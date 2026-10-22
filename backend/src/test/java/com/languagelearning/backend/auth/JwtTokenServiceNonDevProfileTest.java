@@ -35,6 +35,18 @@ class JwtTokenServiceNonDevProfileTest {
     }
 
     @Test
+    @DisplayName("Startup fails in non-dev profile when JWT_SECRET is a placeholder")
+    void nonDevProfile_PlaceholderJwtSecret_ThrowsIllegalStateException() {
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles("prod");
+
+        JwtTokenService service = new JwtTokenService("REPLACE_ME_GENERATE_WITH_OPENSSL", "language-learning-app", 900L, env);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, service::init);
+        assertTrue(ex.getMessage().contains("cannot be a placeholder") || ex.getMessage().contains("at least 256 bits"));
+    }
+
+    @Test
     @DisplayName("Startup succeeds in dev profile even with empty JWT_SECRET using fallback dev secret")
     void devProfile_EmptyJwtSecret_UsesFallback() {
         MockEnvironment env = new MockEnvironment();

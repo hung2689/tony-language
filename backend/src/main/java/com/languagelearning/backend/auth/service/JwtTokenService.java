@@ -49,12 +49,12 @@ public class JwtTokenService {
         boolean isDevProfile = Arrays.asList(environment.getActiveProfiles()).contains("dev");
 
         String effectiveSecret = rawSecret;
-        if (effectiveSecret == null || effectiveSecret.isBlank()) {
+        if (effectiveSecret == null || effectiveSecret.isBlank() || effectiveSecret.startsWith("REPLACE_") || effectiveSecret.startsWith("change_me")) {
             if (isDevProfile) {
-                log.warn("No JWT_SECRET provided. Using clearly-labeled dev fallback secret under 'dev' profile.");
+                log.warn("No JWT_SECRET provided or placeholder used. Using clearly-labeled dev fallback secret under 'dev' profile.");
                 effectiveSecret = DEV_FALLBACK_SECRET;
             } else {
-                throw new IllegalStateException("JWT_SECRET must be configured in non-dev profiles and must be at least 256 bits (32 bytes).");
+                throw new IllegalStateException("JWT_SECRET must be configured in non-dev profiles and cannot be a placeholder.");
             }
         }
 
