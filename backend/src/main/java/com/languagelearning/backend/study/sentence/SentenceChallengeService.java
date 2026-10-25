@@ -279,38 +279,29 @@ public class SentenceChallengeService {
     }
 
     private SentenceTemplate buildSentenceTemplate(String term, String pos, String def, String example) {
-        // If an example sentence is provided in the vocabulary, utilize it
-        if (example != null && !example.trim().isEmpty() && example.contains(term)) {
-            String viPrompt = "Dịch câu sau sang tiếng Anh: [Hãy dùng từ: '" + term + "']";
-            if (def != null && !def.isEmpty()) {
-                viPrompt = "Hãy diễn đạt câu này sang tiếng Anh (nghĩa: " + def + "):";
-            }
-            return new SentenceTemplate(viPrompt, example.trim());
-        }
-
         // Natural contextual templates based on Part of Speech
         String p = pos != null ? pos.toLowerCase() : "";
-        String meaning = (def != null && !def.isEmpty()) ? def : term;
+        String meaning = (def != null && !def.isBlank()) ? def.trim() : term;
 
         if (p.contains("adj") || p.contains("tính")) {
             return new SentenceTemplate(
-                    "Hôm nay tôi cảm thấy rất " + meaning + " sau một ngày dài làm việc.",
+                    "Dịch câu sau sang tiếng Anh: \"Hôm nay tôi cảm thấy rất " + meaning + " sau một ngày dài làm việc.\"",
                     "Today I feel very " + term + " after a long day of work."
             );
         } else if (p.contains("verb") || p.contains("động")) {
             return new SentenceTemplate(
-                    "Chúng ta cần " + meaning + " kế hoạch này để đạt được kết quả tốt nhất.",
-                    "We need to " + term + " this plan to achieve the best results."
+                    "Dịch câu sau sang tiếng Anh: \"Chúng ta cần " + meaning + " kỹ năng này để đạt được thành công.\"",
+                    "We need to " + term + " this skill to achieve success."
             );
         } else if (p.contains("adv") || p.contains("trạng")) {
             return new SentenceTemplate(
-                    "Cô ấy đã hoàn thành toàn bộ bài kiểm tra một cách " + meaning + ".",
-                    "She completed the entire test " + term + "."
+                    "Dịch câu sau sang tiếng Anh: \"Cô ấy đã hoàn thành xuất sắc công việc một cách " + meaning + ".\"",
+                    "She completed the work " + term + "."
             );
         } else {
             // Default noun or general vocabulary
             return new SentenceTemplate(
-                    "Việc hiểu rõ " + meaning + " là chìa khóa để giải quyết vấn đề này.",
+                    "Dịch câu sau sang tiếng Anh: \"Việc hiểu rõ " + meaning + " là chìa khóa để giải quyết vấn đề này.\"",
                     "Understanding " + term + " clearly is the key to solving this problem."
             );
         }

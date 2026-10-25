@@ -11,25 +11,32 @@ function buildFallbackChallenges(cards = [], deckTitle = '') {
 
   return selectedCards.map((card, index) => {
     const term = card.term || card.word || '';
-    const meaning = card.definition || card.meaning || '';
-    const partOfSpeech = card.partOfSpeech || card.wordType || '';
+    const meaning = (card.definition || card.meaning || '').trim();
+    const pos = (card.partOfSpeech || card.wordType || '').toLowerCase();
     const example = card.example || card.exampleSentence || '';
 
-    let promptVi = `Hãy đặt một câu hoàn chỉnh bằng tiếng Anh sử dụng từ "${term}" (nghĩa: ${meaning}).`;
-    let referenceEn = example || `I try to use ${term} in my daily life.`;
+    let promptVi = `Dịch câu sau sang tiếng Anh: "Việc hiểu rõ ${meaning || term} là điều rất quan trọng trong cuộc sống."`;
+    let referenceEn = example || `Understanding ${term} is very important in life.`;
 
-    if (example) {
-      promptVi = `Hãy dịch câu sau sang tiếng Anh (sử dụng từ vựng "${term}"): "${meaning}"`;
+    if (pos.includes('adj') || pos.includes('tính')) {
+      promptVi = `Dịch câu sau sang tiếng Anh: "Hôm nay tôi cảm thấy rất ${meaning || term} sau một ngày dài làm việc."`;
+      referenceEn = `Today I feel very ${term} after a long day of work.`;
+    } else if (pos.includes('verb') || pos.includes('động')) {
+      promptVi = `Dịch câu sau sang tiếng Anh: "Chúng ta cần ${meaning || term} kế hoạch này để đạt kết quả tốt nhất."`;
+      referenceEn = `We need to ${term} this plan to achieve the best results.`;
+    } else if (pos.includes('adv') || pos.includes('trạng')) {
+      promptVi = `Dịch câu sau sang tiếng Anh: "Cô ấy đã hoàn thành xuất sắc công việc một cách ${meaning || term}."`;
+      referenceEn = `She completed the work ${term}.`;
     }
 
     return {
       cardId: card.id || index + 1,
       targetWord: term,
       meaning: meaning,
-      partOfSpeech: partOfSpeech,
+      partOfSpeech: card.partOfSpeech || card.wordType || '',
       promptVi: promptVi,
       referenceEn: referenceEn,
-      hint: `Gợi ý: Từ loại là ${partOfSpeech || 'từ vựng'}. Bắt đầu viết câu hoàn chỉnh.`
+      hint: `Gợi ý: Từ loại là ${card.partOfSpeech || card.wordType || 'từ vựng'}. Bắt đầu viết câu hoàn chỉnh.`
     };
   });
 }
