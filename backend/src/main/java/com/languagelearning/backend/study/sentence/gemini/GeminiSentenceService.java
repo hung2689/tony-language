@@ -32,13 +32,12 @@ public class GeminiSentenceService {
     public GeminiSentenceService(
             @Value("${gemini.api.key:}") String apiKey,
             @Value("${gemini.api.model:gemini-1.5-flash}") String model,
-            @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models}") String baseUrl,
-            ObjectMapper objectMapper
+            @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models}") String baseUrl
     ) {
         this.apiKey = apiKey != null ? apiKey.trim() : "";
         this.model = (model != null && !model.isBlank()) ? model.trim() : "gemini-1.5-flash";
         this.baseUrl = (baseUrl != null && !baseUrl.isBlank()) ? baseUrl.trim() : "https://generativelanguage.googleapis.com/v1beta/models";
-        this.objectMapper = objectMapper;
+        this.objectMapper = new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(12))
                 .build();
