@@ -7,6 +7,7 @@ import com.languagelearning.backend.study.sentence.dto.SentenceEvaluationRequest
 import com.languagelearning.backend.study.sentence.dto.SentenceEvaluationResponse;
 import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
+import com.languagelearning.backend.study.sentence.gemini.GeminiSentenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,9 @@ public class SentenceChallengeServiceTest {
 
     @Mock
     private VocabularyRepository vocabularyRepository;
+
+    @Mock
+    private GeminiSentenceService geminiSentenceService;
 
     @InjectMocks
     private SentenceChallengeService sentenceChallengeService;
@@ -114,5 +118,35 @@ public class SentenceChallengeServiceTest {
         assertEquals(0, response.getScore());
         assertFalse(response.isPassed());
         assertEquals("INCORRECT", response.getRating());
+    }
+
+    @Test
+    void evaluateSentence_UsesGeminiWhenConfigured() {
+        when(geminiSentenceService.isConfigured()).thenReturn(true);
+        SentenceEvaluationRequest request = new SentenceEvaluationRequest(
+                101L,
+                "exhausted",
+                "Hôm nay tôi mệt.",
+                "Today I was exhausted.",
+                "Today I was exhausted."
+        );
+        SentenceEvaluationResponse mockGeminiResp = new SentenceEvaluationResponse(
+                95,
+                true,
+                true,
+                "EXCELLENT",
+                "Gemini: Câu viết rất chuẩn và tự nhiên!",
+                "Today I was exhausted.",
+                "Today I was exhausted.",
+                List.of()
+        );
+        when(geminiSentenceService.evaluateSentence(request)).thenReturn(mockGeminiResp);
+
+        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request);
+
+        assertNotNull(response);
+        assertEquals(95, response.getScore());
+        assertEquals("EXCELLENT", response.getRating());
+        assertEquals("Gemini: Câu viết rất chuẩn và tự nhiên!", response.getFeedback());
     }
 }

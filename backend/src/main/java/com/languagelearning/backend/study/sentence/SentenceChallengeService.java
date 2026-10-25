@@ -7,6 +7,7 @@ import com.languagelearning.backend.deck.repository.VocabularySetRepository;
 import com.languagelearning.backend.study.sentence.dto.SentenceChallengeItemDto;
 import com.languagelearning.backend.study.sentence.dto.SentenceEvaluationRequest;
 import com.languagelearning.backend.study.sentence.dto.SentenceEvaluationResponse;
+import com.languagelearning.backend.study.sentence.gemini.GeminiSentenceService;
 import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
 import org.springframework.stereotype.Service;
@@ -19,13 +20,16 @@ public class SentenceChallengeService {
 
     private final VocabularySetRepository vocabularySetRepository;
     private final VocabularyRepository vocabularyRepository;
+    private final GeminiSentenceService geminiSentenceService;
 
     public SentenceChallengeService(
             VocabularySetRepository vocabularySetRepository,
-            VocabularyRepository vocabularyRepository
+            VocabularyRepository vocabularyRepository,
+            GeminiSentenceService geminiSentenceService
     ) {
         this.vocabularySetRepository = vocabularySetRepository;
         this.vocabularyRepository = vocabularyRepository;
+        this.geminiSentenceService = geminiSentenceService;
     }
 
     /**
@@ -45,6 +49,14 @@ public class SentenceChallengeService {
         Collections.shuffle(pool);
         int takeCount = Math.min(pool.size(), Math.max(1, limit > 0 ? limit : 5));
         List<Vocabulary> selected = pool.subList(0, takeCount);
+
+        // Try generating with Gemini LLM if configured
+        if (geminiSentenceService != null && geminiSentenceService.isConfigured()) {
+            List<SentenceChallengeItemDto> geminiItems = geminiSentenceService.generateChallenges(selected);
+            if (geminiItems != null && !geminiItems.isEmpty()) {
+                return geminiItems;
+            }
+        }
 
         List<SentenceChallengeItemDto> challenges = new ArrayList<>();
         long challengeIdSeq = 1;
@@ -109,6 +121,14 @@ public class SentenceChallengeService {
                     reference,
                     List.of("Câu trả lời hiện đang để trống.")
             );
+        }
+
+        // Try evaluating with Gemini LLM if configured
+        if (geminiSentenceService != null && geminiSentenceService.isConfigured()) {
+            SentenceEvaluationResponse geminiResponse = geminiSentenceService.evaluateSentence(request);
+            if (geminiResponse != null) {
+                return geminiResponse;
+            }
         }
 
         List<String> grammarNotes = new ArrayList<>();
