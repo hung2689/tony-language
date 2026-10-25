@@ -4,7 +4,6 @@ import {
   parseSynonyms,
   detectDelimiter,
   SAMPLE_BULK_LINES,
-  MAX_PASTE_LINES,
 } from '../parseBulkText';
 
 describe('parseBulkText Unit Test Suite', () => {
@@ -14,7 +13,8 @@ describe('parseBulkText Unit Test Suite', () => {
     expect(result.delimiter).toBe('|');
     expect(result.summary.total).toBe(6);
     expect(result.summary.valid).toBe(5); // 5 unique valid
-    expect(result.summary.warnings).toBe(1); // line 6 is duplicate of 'hello'
+    expect(result.summary.duplicates).toBe(1); // line 6 is duplicate of 'hello'
+    expect(result.summary.warnings).toBe(0);
     expect(result.summary.errors).toBe(0);
 
     const first = result.rows[0];
@@ -169,24 +169,24 @@ describe('parseBulkText Unit Test Suite', () => {
     expect(result.rows[0].fields.synonyms).toEqual(['begin', 'initiate', 'commence']);
   });
 
-  it('warns on duplicate terms within the same paste', () => {
+  it('marks duplicate terms within the same paste with DUPLICATE status', () => {
     const input = `cat|con mèo||noun||\ndog|con chó||noun||\nCAT|mèo nhỏ||noun||`;
     const result = parseBulkText(input);
 
     expect(result.summary.total).toBe(3);
     expect(result.rows[0].status).toBe('valid');
     expect(result.rows[1].status).toBe('valid');
-    expect(result.rows[2].status).toBe('warning');
-    expect(result.rows[2].warnings[0]).toContain('bị trùng lặp với dòng 1');
+    expect(result.rows[2].status).toBe('duplicate');
+    expect(result.rows[2].duplicateReason).toContain('bị trùng lặp với dòng 1');
   });
 
-  it('warns on terms that already exist in the deck', () => {
+  it('marks terms that already exist in the deck with DUPLICATE status', () => {
     const input = 'existingWord|định nghĩa||noun||';
     const result = parseBulkText(input, { existingTerms: ['EXISTINGWORD', 'otherWord'] });
 
     expect(result.summary.total).toBe(1);
-    expect(result.rows[0].status).toBe('warning');
-    expect(result.rows[0].warnings[0]).toContain('đã tồn tại trong bộ từ vựng này');
+    expect(result.rows[0].status).toBe('duplicate');
+    expect(result.rows[0].duplicateReason).toContain('đã tồn tại trong bộ từ vựng này');
   });
 
   it('gives non-blocking warning for non-standard part of speech', () => {

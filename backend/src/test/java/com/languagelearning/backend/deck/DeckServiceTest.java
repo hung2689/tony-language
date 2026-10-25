@@ -13,6 +13,7 @@ import com.languagelearning.backend.deck.repository.VocabularySetRepository;
 import com.languagelearning.backend.folder.entity.Folder;
 import com.languagelearning.backend.folder.repository.FolderRepository;
 import com.languagelearning.backend.deck.service.DeckService;
+import com.languagelearning.backend.study.repository.StudyPlanDeckRepository;
 import com.languagelearning.backend.term.dto.TermCardDto;
 import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.entity.VocabularySynonym;
@@ -52,6 +53,9 @@ class DeckServiceTest {
 
     @Mock
     private FolderRepository folderRepository;
+
+    @Mock
+    private StudyPlanDeckRepository studyPlanDeckRepository;
 
     @Mock
     private CurrentUserProvider currentUserProvider;
@@ -177,6 +181,26 @@ class DeckServiceTest {
         verify(vocabularySynonymRepository).deleteByVocabularyId(301L);
         verify(vocabularySetItemRepository).delete(item);
         verify(vocabularyRepository).deleteById(301L);
+        verify(vocabularySetRepository).delete(deck);
+    }
+
+    @Test
+    @DisplayName("Xóa Deck: Không xóa từ nếu từ đó vẫn được sử dụng bởi bộ từ khác")
+    void deleteDeck_DoesNotDeleteCardIfSharedWithAnotherDeck() {
+        Long deckId = 50L;
+        VocabularySet deck = new VocabularySet(USER_ID, null, "Deck to delete", null);
+        deck.setId(deckId);
+        when(vocabularySetRepository.findByIdAndUserId(deckId, USER_ID)).thenReturn(Optional.of(deck));
+
+        VocabularySetItem item = new VocabularySetItem(deckId, 301L);
+        when(vocabularySetItemRepository.findByIdVocabularySetId(deckId)).thenReturn(List.of(item));
+        when(vocabularySetItemRepository.existsByIdVocabularyId(301L)).thenReturn(true);
+
+        deckService.deleteDeck(deckId);
+
+        verify(vocabularySetItemRepository).delete(item);
+        verify(vocabularySynonymRepository, never()).deleteByVocabularyId(301L);
+        verify(vocabularyRepository, never()).deleteById(301L);
         verify(vocabularySetRepository).delete(deck);
     }
 }

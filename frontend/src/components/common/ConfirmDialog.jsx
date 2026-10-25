@@ -1,6 +1,6 @@
-import Modal from './Modal';
-import Button from './Button';
-import { AlertTriangle } from 'lucide-react';
+import { useEffect } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
+import { lockScroll, unlockScroll } from '../../utils/scrollLock';
 
 export default function ConfirmDialog({
   isOpen,
@@ -10,29 +10,93 @@ export default function ConfirmDialog({
   message,
   confirmText = 'Xác nhận',
   cancelText = 'Hủy bỏ',
-  confirmVariant = 'danger',
+  confirmVariant = 'primary',
   loading = false,
+  icon: CustomIcon,
   children,
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen && !loading) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      lockScroll();
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      if (isOpen) {
+        unlockScroll();
+      }
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose, loading]);
+
+  if (!isOpen) return null;
+
+  const IconComponent = CustomIcon || AlertTriangle;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="450px">
-      <div className="confirm-dialog-content">
-        <div className="confirm-dialog-icon">
-          <AlertTriangle size={32} className="text-warning" />
+    <div
+      className="confirm-dialog-backdrop"
+      onClick={!loading ? onClose : undefined}
+      role="presentation"
+    >
+      <div
+        className="confirm-dialog-container"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+      >
+        {/* Header */}
+        <div className="confirm-dialog-header">
+          <div className="confirm-dialog-header-left">
+            <div className="confirm-dialog-icon-circle">
+              <IconComponent size={20} className="confirm-dialog-icon" />
+            </div>
+            <h2 id="confirm-dialog-title" className="confirm-dialog-title">
+              {title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="confirm-dialog-close-btn"
+            onClick={onClose}
+            disabled={loading}
+            aria-label="Đóng"
+          >
+            <X size={18} />
+          </button>
         </div>
-        <div className="confirm-dialog-body">
+
+        {/* Content Body */}
+        <div className="confirm-dialog-content">
           {message && <p className="confirm-dialog-message">{message}</p>}
           {children}
         </div>
+
+        {/* Footer Buttons */}
+        <div className="confirm-dialog-footer">
+          <button
+            type="button"
+            className="confirm-dialog-btn-secondary"
+            onClick={onClose}
+            disabled={loading}
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            className={`confirm-dialog-btn-primary ${confirmVariant === 'danger' ? 'is-danger' : ''}`}
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? 'Đang xử lý...' : confirmText}
+          </button>
+        </div>
       </div>
-      <div className="modal-footer">
-        <Button variant="secondary" onClick={onClose} disabled={loading}>
-          {cancelText}
-        </Button>
-        <Button variant={confirmVariant} onClick={onConfirm} disabled={loading}>
-          {loading ? 'Đang xử lý...' : confirmText}
-        </Button>
-      </div>
-    </Modal>
+    </div>
   );
 }

@@ -1,0 +1,265 @@
+/* MagicUI macOS-Style Floating Dock */
+
+.magic-dock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 45;
+  user-select: none;
+}
+
+.magic-dock-inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 14px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 16px 36px -6px rgba(0, 0, 0, 0.14),
+    0 4px 12px -2px rgba(0, 0, 0, 0.06),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hover glow for dock */
+.magic-dock-inner:hover {
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 20px 42px -6px rgba(0, 0, 0, 0.18),
+    0 6px 16px -2px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Dark Mode Dock */
+[data-theme='dark'] .magic-dock-inner {
+  background: rgba(30, 41, 59, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #334155;
+  box-shadow:
+    0 18px 40px -6px rgba(0, 0, 0, 0.55),
+    0 4px 14px -2px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] .magic-dock-inner:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: #475569;
+}
+
+/* Individual Item Wrapper */
+.magic-dock-item-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Tooltip floating above icon */
+.magic-dock-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 5px 10px;
+  background-color: #0f172a;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 7px;
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0.18s;
+  z-index: 60;
+}
+
+[data-theme='dark'] .magic-dock-tooltip {
+  background-color: #f8fafc;
+  color: #0f172a;
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.6);
+}
+
+.magic-dock-tooltip-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+[data-theme='dark'] .magic-dock-tooltip-arrow {
+  border-color: #f8fafc transparent transparent transparent;
+}
+
+.magic-dock-item-wrapper.is-hovered .magic-dock-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Dock Icon Button */
+.magic-dock-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #334155;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  will-change: width, height, transform;
+  transition:
+    width 0.12s cubic-bezier(0.2, 0.8, 0.4, 1),
+    height 0.12s cubic-bezier(0.2, 0.8, 0.4, 1),
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.magic-dock-icon-btn:hover {
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.magic-dock-icon-btn:active {
+  transform: scale(0.92);
+}
+
+[data-theme='dark'] .magic-dock-icon-btn {
+  background-color: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+
+[data-theme='dark'] .magic-dock-icon-btn:hover {
+  background-color: rgba(51, 65, 85, 0.6);
+  color: #f1f5f9;
+  border-color: #334155;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Active state styling */
+.magic-dock-icon-btn.is-active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
+[data-theme='dark'] .magic-dock-icon-btn.is-active {
+  background: rgba(96, 165, 250, 0.16);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 0 14px rgba(96, 165, 250, 0.35);
+}
+
+/* Content Container */
+.magic-dock-icon-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+/* Active Dot beneath icon */
+.magic-dock-active-dot {
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background-color: #0f172a;
+  margin-top: 4px;
+  margin-bottom: -4px;
+  box-shadow: 0 0 6px rgba(15, 23, 42, 0.4);
+  transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .magic-dock-active-dot {
+  background-color: #60a5fa;
+  box-shadow: 0 0 8px #60a5fa;
+}
+
+/* Badge (e.g. SRS due words) */
+.magic-dock-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 9999px;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .magic-dock-badge {
+  background-color: #f87171;
+  color: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme='dark'] .magic-dock-badge {
+  border-color: #0f172a;
+}
+
+/* Separator */
+.magic-dock-separator {
+  width: 1px;
+  height: 28px;
+  margin: 0 4px;
+  background: rgba(0, 0, 0, 0.12);
+  align-self: center;
+}
+
+[data-theme='dark'] .magic-dock-separator {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* App Dock Floating Container */
+.app-floating-dock-wrapper {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+@media (min-width: 769px) {
+  .app-content-body {
+    padding-bottom: 84px !important;
+  }
+}
+
+/* On mobile screens, use MobileBottomNav instead to avoid overlap */
+@media (max-width: 768px) {
+  .app-floating-dock-wrapper {
+    display: none !important;
+  }
+}

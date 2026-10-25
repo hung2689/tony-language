@@ -188,6 +188,25 @@ class AuthServiceTest {
 
         assertNotNull(result);
         assertEquals("access-token-123", result.response().getAccessToken());
+        assertTrue(result.persistent());
         verify(bruteForceLimiter).reset("key");
+    }
+
+    @Test
+    @DisplayName("Login: rememberMe=false issues session-scoped refresh token")
+    void login_RememberMeFalse_IssuesSessionRefreshToken() {
+        when(bruteForceLimiter.buildKey(anyString(), anyString())).thenReturn("key");
+        when(userRepository.findByEmailIgnoreCase("test@example.com")).thenReturn(Optional.of(activeUser));
+        when(passwordEncoder.matches("CorrectPass123", activeUser.getPasswordHash())).thenReturn(true);
+        when(jwtTokenService.generateAccessToken(activeUser)).thenReturn("access-token-123");
+        when(refreshTokenService.issueRefreshToken(activeUser, false)).thenReturn("s_session-refresh-token");
+        when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(900L);
+
+        LoginRequest request = new LoginRequest("test@example.com", "CorrectPass123", false);
+        AuthService.AuthResult result = authService.login(request, "127.0.0.1");
+
+        assertNotNull(result);
+        assertFalse(result.persistent());
+        assertEquals("s_session-refresh-token", result.rawRefreshToken());
     }
 }

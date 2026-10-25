@@ -21,8 +21,17 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final BruteForceLimiter bruteForceLimiter;
 
-    public record AuthResult(AuthResponse response, String rawRefreshToken) {}
-    public record RefreshResult(TokenRefreshResponse response, String newRawRefreshToken) {}
+    public record AuthResult(AuthResponse response, String rawRefreshToken, boolean persistent) {
+        public AuthResult(AuthResponse response, String rawRefreshToken) {
+            this(response, rawRefreshToken, true);
+        }
+    }
+
+    public record RefreshResult(TokenRefreshResponse response, String newRawRefreshToken, boolean persistent) {
+        public RefreshResult(TokenRefreshResponse response, String newRawRefreshToken) {
+            this(response, newRawRefreshToken, true);
+        }
+    }
 
     public AuthService(UserRepository userRepository,
                        RoleRepository roleRepository,
@@ -99,8 +108,11 @@ public class AuthService {
 
         bruteForceLimiter.reset(rateLimitKey);
 
+        boolean rememberMe = request.isRememberMe();
         String accessToken = jwtTokenService.generateAccessToken(user);
-        String rawRefreshToken = refreshTokenService.issueRefreshToken(user);
+        String rawRefreshToken = rememberMe
+                ? refreshTokenService.issueRefreshToken(user)
+                : refreshTokenService.issueRefreshToken(user, false);
 
         String displayName = userProfileRepository.findByUserId(user.getId())
                 .map(UserProfile::getDisplayName)
@@ -109,7 +121,7 @@ public class AuthService {
         UserSummaryDto userSummary = buildUserSummary(user, displayName);
         AuthResponse response = new AuthResponse(accessToken, jwtTokenService.getAccessTokenExpirationSeconds(), userSummary);
 
-        return new AuthResult(response, rawRefreshToken);
+        return new AuthResult(response, rawRefreshToken, rememberMe);
     }
 
     @Transactional
@@ -120,7 +132,7 @@ public class AuthService {
         String newAccessToken = jwtTokenService.generateAccessToken(user);
         TokenRefreshResponse response = new TokenRefreshResponse(newAccessToken, jwtTokenService.getAccessTokenExpirationSeconds());
 
-        return new RefreshResult(response, rotated.newRawRefreshToken());
+        return new RefreshResult(response, rotated.newRawRefreshToken(), rotated.persistent());
     }
 
     @Transactional

@@ -1,0 +1,320 @@
+.srs-forecast-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: srsFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.srs-forecast-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 460px;
+  padding: 24px 26px 22px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  animation: srsScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes srsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes srsScaleUp {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Header */
+.srs-forecast-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.srs-forecast-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.srs-forecast-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.srs-forecast-title-icon {
+  color: #0f172a;
+}
+
+.srs-forecast-main-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.srs-forecast-deck-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+  padding-left: 2px;
+}
+
+.srs-forecast-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.srs-forecast-close-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Stats Row */
+.srs-forecast-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 22px;
+}
+
+.srs-forecast-stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.srs-forecast-stat-label {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.srs-forecast-stat-val {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Chart Section */
+.srs-forecast-chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.srs-forecast-chart-heading {
+  font-size: 13.5px;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+}
+
+.srs-forecast-bars-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  height: 120px;
+  padding-top: 24px;
+  padding-bottom: 4px;
+}
+
+.srs-forecast-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.srs-forecast-count-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+  min-height: 16px;
+  line-height: 16px;
+}
+
+.srs-forecast-col.is-today .srs-forecast-count-label {
+  color: #f97316;
+}
+
+.srs-forecast-bar-track {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 80px;
+}
+
+.srs-forecast-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background-color: #52525b;
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+  min-height: 5px;
+}
+
+.srs-forecast-col.is-today .srs-forecast-bar {
+  background-color: #f97316;
+}
+
+.srs-forecast-day-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 8px;
+}
+
+.srs-forecast-col.is-today .srs-forecast-day-name {
+  color: #f97316;
+}
+
+/* Action CTA */
+.srs-forecast-cta-btn {
+  width: 100%;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.srs-forecast-cta-btn:hover {
+  background-color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
+}
+
+.srs-forecast-cta-btn:active {
+  transform: translateY(0);
+}
+
+.srs-forecast-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 180px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.srs-forecast-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: srsSpin 0.7s linear infinite;
+}
+
+@keyframes srsSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Dark Mode Support for Forecast Modal (#0F172A / #1E293B / #334155)
+   ========================================================================== */
+[data-theme='dark'] .srs-forecast-modal-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='dark'] .srs-forecast-main-title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-forecast-title-icon {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .srs-forecast-deck-name {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-forecast-close-btn {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-forecast-close-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-forecast-stats-row {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+}
+
+[data-theme='dark'] .srs-stat-box-val {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-stat-box-lbl {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-chart-card {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+}
+
+[data-theme='dark'] .srs-chart-title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-chart-subtitle {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-forecast-cta-btn {
+  background-color: #60a5fa;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .srs-forecast-cta-btn:hover {
+  background-color: #93c5fd;
+}

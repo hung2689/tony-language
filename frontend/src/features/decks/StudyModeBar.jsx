@@ -1,5 +1,5 @@
 import { STUDY_MODES, getModeRoute } from '../../utils/studyModeRegistry';
-import { Layers, GraduationCap, Gamepad2, Headphones, Sparkles } from 'lucide-react';
+import { Layers, GraduationCap, Gamepad2, Headphones, Sparkles, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const MODE_ICON_MAP = {
@@ -7,6 +7,7 @@ const MODE_ICON_MAP = {
   GraduationCap,
   Gamepad2,
   Headphones,
+  BookOpen,
 };
 
 export default function StudyModeBar({ deckId, activeModeId = 'flashcard' }) {

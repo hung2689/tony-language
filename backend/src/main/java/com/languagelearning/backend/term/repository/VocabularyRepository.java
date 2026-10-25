@@ -13,4 +13,7 @@ public interface VocabularyRepository extends JpaRepository<Vocabulary, Long> {
 
     @Query("SELECT v FROM Vocabulary v JOIN VocabularySetItem vsi ON v.id = vsi.id.vocabularyId WHERE vsi.id.vocabularySetId = :deckId ORDER BY v.id ASC")
     List<Vocabulary> findByDeckId(@Param("deckId") Long deckId);
+
+    @Query("SELECT DISTINCT v FROM Vocabulary v JOIN VocabularySetItem vsi ON v.id = vsi.id.vocabularyId WHERE vsi.id.vocabularySetId IN :deckIds ORDER BY v.id ASC")
+    List<Vocabulary> findByDeckIdIn(@Param("deckIds") java.util.Collection<Long> deckIds);
 }

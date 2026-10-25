@@ -1,20 +1,32 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
+import { useWallpaper } from '../../features/wallpapers/WallpaperContext';
 import { folderService } from '../../services/folderService';
 import { deckService } from '../../services/deckService';
+import { analyticsService } from '../../services/analyticsService';
 import AppHeader from './AppHeader';
-import AppSidebar from './AppSidebar';
+import AppDock from './AppDock';
+import MobileBottomNav from './MobileBottomNav';
 import DeckFormModal from '../../features/decks/DeckFormModal';
+import WallpaperModal from '../../features/wallpapers/WallpaperModal';
 import Toast from '../common/Toast';
 
 export default function MainLayout() {
   const { user, logout } = useAuth();
+  const { activeWallpaper, overlayOpacity } = useWallpaper();
   const navigate = useNavigate();
   const location = useLocation();
+  const contentBodyRef = useRef(null);
+
+  // Scroll content body to top when navigating across pages
+  useEffect(() => {
+    if (contentBodyRef.current) {
+      contentBodyRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [location.pathname]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // When searching from Deck page (Ctrl+K or input), navigate to library with filter active
   const handleSearchChange = (query) => {
@@ -24,17 +36,47 @@ export default function MainLayout() {
     }
   };
 
-  // Global "+ Tạo Bộ thẻ" modal state accessible from sidebar
+  // Global "+ Tạo Bộ thẻ" modal state accessible from dock & header
   const [isGlobalCreateDeckOpen, setIsGlobalCreateDeckOpen] = useState(false);
   const [folders, setFolders] = useState([]);
   const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
 
   const showToast = useCallback((message, type = 'success') => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
     setToast({ message, type });
-    setTimeout(() => {
+    toastTimerRef.current = setTimeout(() => {
       setToast(null);
+      toastTimerRef.current = null;
     }, 4000);
   }, []);
+
+  // Cleanup toast timer on unmount (BUG-04)
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Shared overview for header streak & library workspace (BUG-08)
+  const [overview, setOverview] = useState(null);
+
+  const fetchOverview = useCallback(async () => {
+    try {
+      const data = await analyticsService.getOverview();
+      setOverview(data);
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOverview();
+  }, [fetchOverview]);
 
   // Load folders for global modal
   const loadFolders = useCallback(async () => {
@@ -78,40 +120,56 @@ export default function MainLayout() {
     }
   };
 
-  return (
-    <div className="app-shell-layout">
-      {/* 1. Left Sidebar */}
-      <AppSidebar
-        user={user}
-        onLogout={logout}
-        onCreateDeck={() => setIsGlobalCreateDeckOpen(true)}
-        isOpenOnMobile={isMobileSidebarOpen}
-        onCloseMobile={() => setIsMobileSidebarOpen(false)}
-      />
+  const hasWallpaper = Boolean(activeWallpaper && (activeWallpaper.imageUrl || activeWallpaper.url));
 
-      {/* 2. Right Main Layout Container */}
+  return (
+    <div className={`app-shell-layout ${hasWallpaper ? 'has-custom-wallpaper' : ''}`}>
+      {/* 0. Ambient Background Layer if Wallpaper selected */}
+      {hasWallpaper && (
+        <div
+          className="app-wallpaper-layer"
+          style={{
+            backgroundImage: `url(${activeWallpaper.imageUrl || activeWallpaper.url})`,
+          }}
+          aria-hidden="true"
+        >
+          {/* Subtle light/white overlay to preserve crisp monochrome contrast */}
+          <div
+            className="app-wallpaper-overlay"
+            style={{
+              backgroundColor: `rgba(248, 250, 252, ${overlayOpacity / 100})`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Main Column Container (Full width - No Sidebar) */}
       <div className="app-main-column">
         {/* Top Header Bar */}
         <AppHeader
+          user={user}
+          onLogout={logout}
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
-          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+          overview={overview}
         />
 
-        {/* Content Outlet (Library or Deck Page) */}
-        <div className="app-content-body">
+        {/* Content Outlet (Library, Deck, Study Plan, Analytics) */}
+        <div className="app-content-body" ref={contentBodyRef}>
           <Outlet
             context={{
               searchQuery,
               setSearchQuery,
               openGlobalCreateDeck: () => setIsGlobalCreateDeckOpen(true),
               refreshFolders: loadFolders,
+              overview,
+              refreshOverview: fetchOverview,
             }}
           />
         </div>
       </div>
 
-      {/* Global Create Deck Modal from Sidebar */}
+      {/* Global Create Deck Modal */}
       <DeckFormModal
         isOpen={isGlobalCreateDeckOpen}
         onClose={() => setIsGlobalCreateDeckOpen(false)}
@@ -121,6 +179,15 @@ export default function MainLayout() {
         currentFolderId={null}
         deckToEdit={null}
       />
+
+      {/* Wallpaper Switcher Modal */}
+      <WallpaperModal />
+
+      {/* MagicUI macOS Dock for Navigation & Quick Actions */}
+      <AppDock onOpenCreateDeck={() => setIsGlobalCreateDeckOpen(true)} />
+
+      {/* Mobile Bottom Navigation Bar (Thumb-zone for Mobile Screens) */}
+      <MobileBottomNav />
 
       {/* Global Toast */}
       {toast && (

@@ -4,6 +4,7 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Tabs from '../../components/common/Tabs';
 import BulkImportTab from '../bulkimport/BulkImportTab';
+import { useStudyPlan } from '../studyplan/StudyPlanContext';
 import { Plus, Trash2, FolderPlus, Edit3, Upload, Sparkles, AlertCircle } from 'lucide-react';
 
 const emptyCard = () => ({
@@ -34,6 +35,8 @@ export default function DeckFormModal({
   const [errors, setErrors] = useState({});
   const [quickFolderName, setQuickFolderName] = useState('');
   const [isQuickFolderOpen, setIsQuickFolderOpen] = useState(false);
+  const { activePlan } = useStudyPlan();
+  const [addToStudyPlan, setAddToStudyPlan] = useState(false);
 
   useEffect(() => {
     if (deckToEdit) {
@@ -112,6 +115,13 @@ export default function DeckFormModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // If user is on bulk tab, guide them to click "Thêm X thẻ vào bộ từ" first
+    if (activeTab === 'bulk') {
+      setErrors({ general: 'Vui lòng nhấn nút "Thêm thẻ vào bộ từ" trong tab Bulk Import trước, sau đó nhấn Hoàn thành.' });
+      return;
+    }
+
     const newErrors = {};
 
     if (!name.trim()) {
@@ -169,6 +179,7 @@ export default function DeckFormModal({
       description: description.trim() || null,
       folderId: folderId ? Number(folderId) : null,
       cards: payloadCards,
+      addToStudyPlan: !isEditing && addToStudyPlan,
     });
   };
 
@@ -277,6 +288,19 @@ export default function DeckFormModal({
           onChange={(e) => setDescription(e.target.value)}
         />
 
+        {!isEditing && activePlan && (
+          <div style={{ marginTop: '0.75rem', marginBottom: '0.25rem' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>
+              <input
+                type="checkbox"
+                checked={addToStudyPlan}
+                onChange={(e) => setAddToStudyPlan(e.target.checked)}
+              />
+              <span>Thêm bộ từ này vào lộ trình ôn tập &quot;{activePlan.name}&quot;</span>
+            </label>
+          </div>
+        )}
+
         <div className="sidebar-divider" style={{ margin: '20px 0' }} />
 
         {/* 3-Tab Interface */}
@@ -286,14 +310,15 @@ export default function DeckFormModal({
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'bulk' ? (
+        <div style={{ display: activeTab === 'bulk' ? 'block' : 'none' }}>
           <BulkImportTab
             existingCards={cards}
             onImportCards={handleBulkImportCards}
           />
-        ) : (
-          <>
-            {/* Cards list (Manual Entry) */}
+        </div>
+
+        <div style={{ display: activeTab === 'manual' ? 'block' : 'none' }}>
+          {/* Cards list (Manual Entry) */}
             <div className="deck-cards-editor">
               {cards.map((card, index) => (
                 <div key={card.id || index} className="card-editor-item">
@@ -424,8 +449,7 @@ export default function DeckFormModal({
                 Thêm thẻ từ mới
               </Button>
             </div>
-          </>
-        )}
+          </div>
 
         <div className="modal-footer" style={{ marginTop: '24px' }}>
           <Button variant="secondary" onClick={onClose} disabled={loading}>

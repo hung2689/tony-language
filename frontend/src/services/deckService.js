@@ -41,4 +41,16 @@ export const deckService = {
       body: JSON.stringify({ folderId: folderId ?? null }),
     });
   },
+
+  getDeckSrsForecast(id) {
+    return request(`/decks/${id}/srs-forecast`);
+  },
+
+  getDeckSrsQueue(id) {
+    return request(`/decks/${id}/srs-queue`);
+  },
+
+  getDeckQueue(id) {
+    return request(`/decks/${id}/srs-queue`);
+  },
 };

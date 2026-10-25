@@ -86,6 +86,12 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Actuator: health endpoint for Render health checks -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<!-- Flyway integration with Spring Boot -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

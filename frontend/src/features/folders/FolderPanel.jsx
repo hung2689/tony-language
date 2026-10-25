@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Layers, FileText, Folder, MoreVertical, Edit2, Trash2, Plus } from 'lucide-react';
 
 export default function FolderPanel({
@@ -14,11 +15,98 @@ export default function FolderPanel({
   totalDeckCount = 0,
   uncategorizedDeckCount = 0,
 }) {
-  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [menuState, setMenuState] = useState(null); // { folder, position: { top, left, width } }
+  const menuRef = useRef(null);
+  const triggerRef = useRef(null);
 
-  const toggleMenu = (e, folderId) => {
+  const toggleMenu = (e, folder) => {
     e.stopPropagation();
-    setActiveMenuId(activeMenuId === folderId ? null : folderId);
+    if (menuState?.folder?.id === folder.id) {
+      setMenuState(null);
+      triggerRef.current = null;
+    } else {
+      triggerRef.current = e.currentTarget;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const menuWidth = 146;
+      const menuHeight = 84;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      // Check space below in scroll area container as well as viewport
+      const scrollArea = e.currentTarget.closest('.user-folders-scroll-area');
+      const scrollAreaRect = scrollArea?.getBoundingClientRect();
+      const spaceBelowInContainer = scrollAreaRect ? scrollAreaRect.bottom - rect.bottom : spaceBelow;
+
+      // Auto-flip upwards if not enough room below in viewport OR if near the bottom edge of folder list
+      const shouldFlipUp =
+        (spaceBelow < menuHeight + 12 || spaceBelowInContainer < menuHeight - 10) &&
+        spaceAbove > menuHeight;
+
+      let top = shouldFlipUp ? rect.top - menuHeight - 4 : rect.bottom + 4;
+      let left = rect.right - menuWidth;
+
+      // Ensure dropdown stays within viewport boundaries
+      if (left < 8) left = 8;
+      if (left + menuWidth > window.innerWidth - 8) {
+        left = window.innerWidth - menuWidth - 8;
+      }
+      if (top < 8) top = 8;
+
+      setMenuState({
+        folder,
+        position: { top, left, width: menuWidth },
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!menuState) return;
+
+    const closeMenu = () => {
+      setMenuState(null);
+      triggerRef.current = null;
+    };
+
+    const handleClickOutside = (e) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target) &&
+        !triggerRef.current?.contains(e.target)
+      ) {
+        closeMenu();
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeMenu();
+      }
+    };
+
+    // Close on any scroll (captures container scroll in .user-folders-scroll-area and window scroll)
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    document.addEventListener('mousedown', handleClickOutside, true);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuState]);
+
+  const handleEdit = (folder) => {
+    setMenuState(null);
+    triggerRef.current = null;
+    onEditFolder(folder);
+  };
+
+  const handleDelete = (folder) => {
+    setMenuState(null);
+    triggerRef.current = null;
+    onDeleteFolder(folder);
   };
 
   return (
@@ -86,7 +174,7 @@ export default function FolderPanel({
           ) : (
             folders.map((folder) => {
               const isSelected = selectedFolderId === folder.id && !isUncategorizedSelected;
-              const isMenuOpen = activeMenuId === folder.id;
+              const isMenuOpen = menuState?.folder?.id === folder.id;
 
               return (
                 <div
@@ -110,38 +198,14 @@ export default function FolderPanel({
                     <span className="folder-count-pill">{folder.deckCount || 0}</span>
                     <button
                       type="button"
-                      className="folder-more-btn"
-                      onClick={(e) => toggleMenu(e, folder.id)}
+                      className={`folder-more-btn ${isMenuOpen ? 'is-active' : ''}`}
+                      onClick={(e) => toggleMenu(e, folder)}
                       title="Tùy chọn thư mục"
                       aria-label="Tùy chọn thư mục"
+                      aria-expanded={isMenuOpen}
                     >
                       <MoreVertical size={14} />
                     </button>
-
-                    {isMenuOpen && (
-                      <div className="dropdown-menu folder-dropdown-menu">
-                        <button
-                          type="button"
-                          className="dropdown-item"
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            onEditFolder(folder);
-                          }}
-                        >
-                          <Edit2 size={14} /> Đổi tên
-                        </button>
-                        <button
-                          type="button"
-                          className="dropdown-item text-danger"
-                          onClick={() => {
-                            setActiveMenuId(null);
-                            onDeleteFolder(folder);
-                          }}
-                        >
-                          <Trash2 size={14} /> Xóa thư mục
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -149,6 +213,45 @@ export default function FolderPanel({
           )}
         </div>
       </nav>
+
+      {/* Render context menu in Portal outside any overflow/clip parent */}
+      {menuState &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="dropdown-menu folder-dropdown-portal"
+            style={{
+              position: 'fixed',
+              top: `${menuState.position.top}px`,
+              left: `${menuState.position.left}px`,
+              width: `${menuState.position.width}px`,
+              zIndex: 9999,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            role="menu"
+            aria-label="Tùy chọn thư mục"
+          >
+            <button
+              type="button"
+              className="dropdown-item"
+              onClick={() => handleEdit(menuState.folder)}
+              role="menuitem"
+            >
+              <Edit2 size={14} />
+              <span>Đổi tên</span>
+            </button>
+            <button
+              type="button"
+              className="dropdown-item text-danger"
+              onClick={() => handleDelete(menuState.folder)}
+              role="menuitem"
+            >
+              <Trash2 size={14} />
+              <span>Xóa thư mục</span>
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

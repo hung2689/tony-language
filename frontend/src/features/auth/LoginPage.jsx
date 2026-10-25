@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Eye, EyeOff, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import './Auth.css';
 
@@ -12,6 +12,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -45,7 +46,7 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
+      await login(email.trim(), password, rememberMe);
       navigate(from, { replace: true });
     } catch (err) {
       setErrorMessage(err.message || 'Đăng nhập không thành công');
@@ -55,15 +56,10 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout
-      badgeText="Chào mừng trở lại"
-      brandQuote="Mỗi từ vựng bạn ghi nhớ hôm nay là một chìa khóa mở cánh cửa tri thức ngày mai."
-    >
+    <AuthLayout>
       <div className="auth-card-inner">
         <header className="auth-form-header">
-          <span className="auth-step-pill">Tài khoản</span>
           <h2 className="auth-heading">Đăng nhập</h2>
-          <p className="auth-subheading">Nhập thông tin xác thực để truy cập kho từ vựng của bạn</p>
         </header>
 
         {errorMessage && (
@@ -76,14 +72,14 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="auth-field-group">
             <label className="auth-label" htmlFor="login-email">
-              Địa chỉ Email <span className="auth-required-mark">*</span>
+              Email
             </label>
             <div className={`auth-input-container ${fieldErrors.email ? 'has-error' : ''}`}>
               <input
                 id="login-email"
                 type="email"
                 className="auth-text-input"
-                placeholder="tenban@example.com"
+                placeholder="name@example.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -98,14 +94,14 @@ export default function LoginPage() {
 
           <div className="auth-field-group">
             <label className="auth-label" htmlFor="login-password">
-              Mật khẩu <span className="auth-required-mark">*</span>
+              Mật khẩu
             </label>
             <div className={`auth-input-container auth-password-container ${fieldErrors.password ? 'has-error' : ''}`}>
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 className="auth-text-input auth-password-input"
-                placeholder="Nhập mật khẩu của bạn"
+                placeholder="Mật khẩu"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -127,6 +123,20 @@ export default function LoginPage() {
             {fieldErrors.password && <p className="auth-field-error">{fieldErrors.password}</p>}
           </div>
 
+          <div className="auth-remember-row">
+            <label className="auth-remember-label" htmlFor="login-remember-me">
+              <input
+                id="login-remember-me"
+                type="checkbox"
+                className="auth-remember-checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={submitting}
+              />
+              <span>Ghi nhớ đăng nhập</span>
+            </label>
+          </div>
+
           <button
             type="submit"
             className="auth-primary-btn"
@@ -135,13 +145,10 @@ export default function LoginPage() {
             {submitting ? (
               <>
                 <Loader2 size={18} className="auth-spinner" />
-                <span>Đang xác thực...</span>
+                <span>Đang đăng nhập...</span>
               </>
             ) : (
-              <>
-                <span>Đăng nhập</span>
-                <ArrowRight size={17} className="auth-btn-icon-right" />
-              </>
+              <span>Đăng nhập</span>
             )}
           </button>
         </form>
@@ -150,7 +157,7 @@ export default function LoginPage() {
           <p className="auth-footer-prompt">
             Chưa có tài khoản?{' '}
             <Link to="/register" state={{ from: location.state?.from }} className="auth-action-link">
-              Đăng ký ngay
+              Đăng ký
             </Link>
           </p>
         </footer>

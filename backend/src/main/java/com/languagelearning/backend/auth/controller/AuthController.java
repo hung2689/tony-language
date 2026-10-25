@@ -25,13 +25,16 @@ public class AuthController {
 
     private final AuthService authService;
     private final boolean cookieSecure;
+    private final String cookieSameSite;
     private final long refreshTokenExpirationDays;
 
     public AuthController(AuthService authService,
                           @Value("${app.cookie.secure:false}") boolean cookieSecure,
-                          @Value("${app.jwt.refresh-token-expiration-days:14}") long refreshTokenExpirationDays) {
+                          @Value("${app.cookie.same-site:Strict}") String cookieSameSite,
+                          @Value("${app.jwt.refresh-token-expiration-days:30}") long refreshTokenExpirationDays) {
         this.authService = authService;
         this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
         this.refreshTokenExpirationDays = refreshTokenExpirationDays;
     }
 
@@ -54,7 +57,8 @@ public class AuthController {
         String clientIp = extractClientIp(httpRequest);
         AuthService.AuthResult result = authService.login(request, clientIp);
 
-        ResponseCookie cookie = buildRefreshTokenCookie(result.rawRefreshToken(), Duration.ofDays(refreshTokenExpirationDays));
+        Duration maxAge = result.persistent() ? Duration.ofDays(refreshTokenExpirationDays) : null;
+        ResponseCookie cookie = buildRefreshTokenCookie(result.rawRefreshToken(), maxAge);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -73,7 +77,8 @@ public class AuthController {
         }
 
         AuthService.RefreshResult result = authService.refresh(rawRefreshToken);
-        ResponseCookie cookie = buildRefreshTokenCookie(result.newRawRefreshToken(), Duration.ofDays(refreshTokenExpirationDays));
+        Duration maxAge = result.persistent() ? Duration.ofDays(refreshTokenExpirationDays) : null;
+        ResponseCookie cookie = buildRefreshTokenCookie(result.newRawRefreshToken(), maxAge);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -105,13 +110,15 @@ public class AuthController {
     }
 
     private ResponseCookie buildRefreshTokenCookie(String token, Duration maxAge) {
-        return ResponseCookie.from(REFRESH_COOKIE_NAME, token)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_COOKIE_NAME, token)
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/api/auth")
-                .sameSite("Strict")
-                .maxAge(maxAge)
-                .build();
+                .sameSite(cookieSameSite);
+        if (maxAge != null) {
+            builder.maxAge(maxAge);
+        }
+        return builder.build();
     }
 
     private String extractClientIp(HttpServletRequest request) {

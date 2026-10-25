@@ -1,11 +1,15 @@
 package com.languagelearning.backend.deck.controller;
 
 import com.languagelearning.backend.common.dto.ApiResponse;
+import com.languagelearning.backend.common.security.CurrentUserProvider;
 import com.languagelearning.backend.deck.dto.DeckCreateRequest;
 import com.languagelearning.backend.deck.dto.DeckDetailResponse;
 import com.languagelearning.backend.deck.dto.DeckResponse;
 import com.languagelearning.backend.deck.dto.DeckUpdateRequest;
 import com.languagelearning.backend.deck.service.DeckService;
+import com.languagelearning.backend.study.dto.SrsForecastResponse;
+import com.languagelearning.backend.study.dto.TodayStudyQueueResponse;
+import com.languagelearning.backend.study.service.StudyPlanService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +23,13 @@ import java.util.Map;
 public class DeckController {
 
     private final DeckService deckService;
+    private final StudyPlanService studyPlanService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public DeckController(DeckService deckService) {
+    public DeckController(DeckService deckService, StudyPlanService studyPlanService, CurrentUserProvider currentUserProvider) {
         this.deckService = deckService;
+        this.studyPlanService = studyPlanService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
@@ -67,5 +75,19 @@ public class DeckController {
         Long targetFolderId = payload.get("folderId");
         deckService.moveDeck(id, targetFolderId);
         return ResponseEntity.ok(ApiResponse.success("Chuyển thư mục thành công", null));
+    }
+
+    @GetMapping("/{id}/srs-forecast")
+    public ResponseEntity<ApiResponse<SrsForecastResponse>> getDeckSrsForecast(@PathVariable Long id) {
+        Long userId = currentUserProvider.getCurrentUserId();
+        SrsForecastResponse response = studyPlanService.getDeckForecast(userId, id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy dự báo ôn tập bộ từ thành công", response));
+    }
+
+    @GetMapping("/{id}/srs-queue")
+    public ResponseEntity<ApiResponse<TodayStudyQueueResponse>> getDeckSrsQueue(@PathVariable Long id) {
+        Long userId = currentUserProvider.getCurrentUserId();
+        TodayStudyQueueResponse response = studyPlanService.getDeckStudyQueue(userId, id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ cần ôn thành công", response));
     }
 }

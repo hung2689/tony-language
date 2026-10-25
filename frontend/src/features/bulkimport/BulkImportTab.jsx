@@ -8,6 +8,7 @@ import {
   Trash2,
   Download,
   Info,
+  Plus,
 } from 'lucide-react';
 import {
   parseBulkText,
@@ -102,22 +103,63 @@ export default function BulkImportTab({
       targetRow.status = status;
       nextRows[rowIndex] = targetRow;
 
-      // Recalculate summary
+      // Recalculate summary and duplication across all rows
+      const seen = new Map();
+      const existingTermSet = new Set(
+        existingCards.map((c) => (c.term || '').trim().toLowerCase()).filter(Boolean)
+      );
+
       let valid = 0;
+      let dups = 0;
       let warn = 0;
       let err = 0;
-      for (const r of nextRows) {
-        if (r.status === 'valid') valid++;
-        else if (r.status === 'warning') warn++;
-        else if (r.status === 'error') err++;
-      }
+
+      const recheckedRows = nextRows.map((r, i) => {
+        const term = (r.fields.term || '').trim();
+        const termLower = term.toLowerCase();
+
+        let duplicateReason = null;
+        if (term) {
+          if (seen.has(termLower)) {
+            duplicateReason = `Dòng ${r.lineNumber}: Thuật ngữ '${term}' bị trùng lặp với dòng ${seen.get(termLower)}.`;
+          } else {
+            seen.set(termLower, r.lineNumber || (i + 1));
+          }
+
+          if (!duplicateReason && existingTermSet.has(termLower)) {
+            duplicateReason = `Dòng ${r.lineNumber}: Thuật ngữ '${term}' đã tồn tại trong bộ từ vựng này.`;
+          }
+        }
+
+        let st = 'valid';
+        if (r.errors?.length > 0) {
+          st = 'error';
+          err++;
+        } else if (duplicateReason) {
+          st = 'duplicate';
+          dups++;
+        } else if (r.warnings?.length > 0) {
+          st = 'warning';
+          warn++;
+        } else {
+          st = 'valid';
+          valid++;
+        }
+
+        return {
+          ...r,
+          status: st,
+          duplicateReason,
+        };
+      });
 
       return {
         ...prev,
-        rows: nextRows,
+        rows: recheckedRows,
         summary: {
-          total: nextRows.length,
+          total: recheckedRows.length,
           valid,
+          duplicates: dups,
           warnings: warn,
           errors: err,
         },
@@ -131,21 +173,62 @@ export default function BulkImportTab({
       if (!prev) return prev;
       const nextRows = prev.rows.filter((_, idx) => idx !== rowIndex);
 
+      const seen = new Map();
+      const existingTermSet = new Set(
+        existingCards.map((c) => (c.term || '').trim().toLowerCase()).filter(Boolean)
+      );
+
       let valid = 0;
+      let dups = 0;
       let warn = 0;
       let err = 0;
-      for (const r of nextRows) {
-        if (r.status === 'valid') valid++;
-        else if (r.status === 'warning') warn++;
-        else if (r.status === 'error') err++;
-      }
+
+      const recheckedRows = nextRows.map((r, i) => {
+        const term = (r.fields.term || '').trim();
+        const termLower = term.toLowerCase();
+
+        let duplicateReason = null;
+        if (term) {
+          if (seen.has(termLower)) {
+            duplicateReason = `Dòng ${r.lineNumber}: Thuật ngữ '${term}' bị trùng lặp với dòng ${seen.get(termLower)}.`;
+          } else {
+            seen.set(termLower, r.lineNumber || (i + 1));
+          }
+
+          if (!duplicateReason && existingTermSet.has(termLower)) {
+            duplicateReason = `Dòng ${r.lineNumber}: Thuật ngữ '${term}' đã tồn tại trong bộ từ vựng này.`;
+          }
+        }
+
+        let st = 'valid';
+        if (r.errors?.length > 0) {
+          st = 'error';
+          err++;
+        } else if (duplicateReason) {
+          st = 'duplicate';
+          dups++;
+        } else if (r.warnings?.length > 0) {
+          st = 'warning';
+          warn++;
+        } else {
+          st = 'valid';
+          valid++;
+        }
+
+        return {
+          ...r,
+          status: st,
+          duplicateReason,
+        };
+      });
 
       return {
         ...prev,
-        rows: nextRows,
+        rows: recheckedRows,
         summary: {
-          total: nextRows.length,
+          total: recheckedRows.length,
           valid,
+          duplicates: dups,
           warnings: warn,
           errors: err,
         },
@@ -154,17 +237,20 @@ export default function BulkImportTab({
   };
 
   // Import valid cards into the deck form without saving to backend
+  // Duplicate rows must NOT be imported until edited
   const handleConfirmImport = () => {
     if (!parsedResult || parsedResult.rows.length === 0) return;
 
-    // Filter out rows with errors
-    const validRows = parsedResult.rows.filter((r) => r.status !== 'error');
-    if (validRows.length === 0) {
-      alert('Không có thẻ hợp lệ nào để thêm. Vui lòng sửa các dòng bị lỗi trước.');
+    // Filter out rows with errors or duplicates
+    const importableRows = parsedResult.rows.filter(
+      (r) => r.status === 'valid' || r.status === 'warning'
+    );
+    if (importableRows.length === 0) {
+      alert('Không có thẻ hợp lệ nào để thêm. Vui lòng sửa các dòng bị lỗi hoặc trùng lặp trước.');
       return;
     }
 
-    const cardsToImport = validRows.map((r) => ({
+    const cardsToImport = importableRows.map((r) => ({
       id: null,
       term: r.fields.term.trim(),
       definition: r.fields.definition.trim(),
@@ -181,7 +267,7 @@ export default function BulkImportTab({
   };
 
   const { rows, summary, delimiter, isExceededLimit, globalError } = parsedResult;
-  const validCardsCount = rows.filter((r) => r.status !== 'error').length;
+  const importableCardsCount = rows.filter((r) => r.status === 'valid' || r.status === 'warning').length;
   const formatNoticeId = useId();
 
   return (
@@ -268,6 +354,11 @@ export default function BulkImportTab({
             <span className="bulk-pill pill-valid">
               <CheckCircle2 size={13} /> {summary.valid} hợp lệ
             </span>
+            {summary.duplicates > 0 && (
+              <span className="bulk-pill pill-duplicate" style={{ backgroundColor: '#ffedd5', color: '#c2410c' }}>
+                <Copy size={13} /> {summary.duplicates} trùng lặp
+              </span>
+            )}
             {summary.warnings > 0 && (
               <span className="bulk-pill pill-warning">
                 <AlertTriangle size={13} /> {summary.warnings} cảnh báo
@@ -284,10 +375,10 @@ export default function BulkImportTab({
             type="button"
             variant="primary"
             onClick={handleConfirmImport}
-            disabled={validCardsCount === 0}
+            disabled={importableCardsCount === 0}
             icon={Plus}
           >
-            Thêm {validCardsCount} thẻ vào bộ từ
+            Thêm {importableCardsCount} thẻ vào bộ từ
           </Button>
         </div>
       )}
@@ -300,7 +391,7 @@ export default function BulkImportTab({
               <thead>
                 <tr>
                   <th style={{ width: '45px' }}>#</th>
-                  <th style={{ width: '90px' }}>Trạng thái</th>
+                  <th style={{ width: '105px' }}>Trạng thái</th>
                   <th style={{ width: '130px' }}>Thuật ngữ *</th>
                   <th style={{ width: '150px' }}>Định nghĩa *</th>
                   <th style={{ width: '100px' }}>Phát âm</th>
@@ -313,8 +404,9 @@ export default function BulkImportTab({
               <tbody>
                 {rows.map((row, idx) => {
                   const isErr = row.status === 'error';
+                  const isDup = row.status === 'duplicate';
                   const isWarn = row.status === 'warning';
-                  const rowClass = isErr ? 'row-error' : isWarn ? 'row-warning' : 'row-valid';
+                  const rowClass = isErr ? 'row-error' : isDup ? 'row-duplicate' : isWarn ? 'row-warning' : 'row-valid';
 
                   return (
                     <tr key={row.id || idx} className={rowClass}>
@@ -322,16 +414,25 @@ export default function BulkImportTab({
                       <td className="cell-status">
                         {isErr && (
                           <span className="status-badge badge-error" title={row.errors.join('\n')}>
+                            <AlertCircle size={12} style={{ marginRight: '3px' }} />
                             Lỗi
+                          </span>
+                        )}
+                        {isDup && (
+                          <span className="status-badge badge-duplicate" title={row.duplicateReason || 'Thuật ngữ bị trùng lặp'}>
+                            <Copy size={12} style={{ marginRight: '3px' }} />
+                            Trùng lặp
                           </span>
                         )}
                         {isWarn && (
                           <span className="status-badge badge-warning" title={row.warnings.join('\n')}>
+                            <AlertTriangle size={12} style={{ marginRight: '3px' }} />
                             Cảnh báo
                           </span>
                         )}
-                        {!isErr && !isWarn && (
+                        {!isErr && !isDup && !isWarn && (
                           <span className="status-badge badge-valid">
+                            <Check size={12} style={{ marginRight: '3px' }} />
                             Chuẩn
                           </span>
                         )}

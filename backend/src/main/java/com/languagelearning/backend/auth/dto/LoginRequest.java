@@ -10,12 +10,19 @@ public class LoginRequest {
     @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
 
+    private boolean rememberMe = true;
+
     public LoginRequest() {
     }
 
     public LoginRequest(String email, String password) {
+        this(email, password, true);
+    }
+
+    public LoginRequest(String email, String password, boolean rememberMe) {
         this.email = email;
         this.password = password;
+        this.rememberMe = rememberMe;
     }
 
     public String getEmail() {
@@ -32,5 +39,13 @@ public class LoginRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public boolean isRememberMe() {
+        return rememberMe;
+    }
+
+    public void setRememberMe(boolean rememberMe) {
+        this.rememberMe = rememberMe;
     }
 }

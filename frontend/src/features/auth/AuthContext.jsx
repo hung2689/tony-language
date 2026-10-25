@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../../services/authService';
-import { setOnAuthFailure, clearAccessToken } from '../../services/api';
+import { setOnAuthFailure, clearAccessToken, getAccessToken } from '../../services/api';
 
 const AuthContext = createContext(null);
 
@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Ignore network errors on logout
     } finally {
-      clearAccessToken();
+      clearAccessToken({ broadcast: true });
       setUser(null);
     }
   }, []);
@@ -23,22 +23,21 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     setOnAuthFailure(() => {
-      if (isMounted) {
+      if (isMounted && !getAccessToken()) {
         setUser(null);
       }
     });
 
-    // Try silent refresh on app startup
+    // Single-flight silent refresh on app startup (safe under React StrictMode)
     authService
-      .refresh()
-      .then(async () => {
-        const me = await authService.getMe();
+      .restoreSession()
+      .then((me) => {
         if (isMounted) {
           setUser(me);
         }
       })
       .catch(() => {
-        if (isMounted) {
+        if (isMounted && !getAccessToken()) {
           setUser(null);
         }
       })
@@ -53,8 +52,8 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const data = await authService.login(email, password);
+  const login = useCallback(async (email, password, rememberMe = false) => {
+    const data = await authService.login(email, password, rememberMe);
     setUser(data.user);
     return data;
   }, []);

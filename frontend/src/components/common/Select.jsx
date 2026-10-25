@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 export default function Select({
   label,
   options = [],
@@ -8,7 +10,8 @@ export default function Select({
   placeholder,
   ...props
 }) {
-  const selectId = id || props.name || Math.random().toString(36).substring(7);
+  const generatedId = useId();
+  const selectId = id || props.name || generatedId;
 
   return (
     <div className={`form-group ${className}`}>

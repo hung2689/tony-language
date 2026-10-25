@@ -1,0 +1,13 @@
+{
+  "name": "language-learning-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "telegram-kiro": "node scripts/telegram-listener-kiro.mjs",
+    "telegram-anti": "node scripts/telegram-listener-anti.mjs",
+    "notify": "node scripts/notify-telegram.mjs",
+    "seed:demo": "node scripts/seed-srs-demo.mjs",
+    "seed:demo:clean": "node scripts/clean-srs-demo.mjs"
+  }
+}

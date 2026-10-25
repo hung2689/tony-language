@@ -9,5 +9,14 @@ dist/
 .vscode/
 .gemini/
 scratch/
+.kiro/hooks/
 logs/
 screenshots/
+uploads/
+**/uploads/
+**/video/
+**/wallpapers/*
+!frontend/public/wallpapers/*
+Duy
+Hung/
+duyhung/

@@ -1,4 +1,6 @@
-import { request, setAccessToken, clearAccessToken } from './api';
+import { request, setAccessToken, clearAccessToken, refreshAccessToken } from './api';
+
+let restoreSessionPromise = null;
 
 export const authService = {
   async register(email, username, password) {
@@ -12,10 +14,10 @@ export const authService = {
     return data;
   },
 
-  async login(email, password) {
+  async login(email, password, rememberMe = false) {
     const data = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, rememberMe: Boolean(rememberMe) }),
     });
     if (data?.accessToken) {
       setAccessToken(data.accessToken);
@@ -24,13 +26,19 @@ export const authService = {
   },
 
   async refresh() {
-    const data = await request('/auth/refresh', {
-      method: 'POST',
-    });
-    if (data?.accessToken) {
-      setAccessToken(data.accessToken);
+    return await refreshAccessToken();
+  },
+
+  async restoreSession() {
+    if (!restoreSessionPromise) {
+      restoreSessionPromise = (async () => {
+        await refreshAccessToken();
+        return await request('/users/me');
+      })().finally(() => {
+        restoreSessionPromise = null;
+      });
     }
-    return data;
+    return restoreSessionPromise;
   },
 
   async logout() {
@@ -39,7 +47,7 @@ export const authService = {
         method: 'POST',
       });
     } finally {
-      clearAccessToken();
+      clearAccessToken({ broadcast: true });
     }
   },
 

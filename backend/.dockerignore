@@ -1,0 +1,12 @@
+target/
+uploads/
+video/
+.idea/
+.vscode/
+*.iml
+.env
+.env.*
+!.env.example
+*.local
+*.log
+HELP.md

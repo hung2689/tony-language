@@ -1,5 +1,6 @@
-import { Layers, GraduationCap, Gamepad2, Headphones } from 'lucide-react';
+import { Layers, GraduationCap, Gamepad2, Headphones, BookOpen } from 'lucide-react';
 import FlashcardView from '../features/decks/FlashcardView';
+import ContextStoryCloze from '../features/decks/ContextStoryCloze';
 
 /**
  * Study Mode Registry Configuration
@@ -25,9 +26,20 @@ export const STUDY_MODES = [
     iconName: 'GraduationCap',
     subpath: 'learn',
     route: (deckId) => `/decks/${deckId}/learn`,
-    status: 'coming-soon',
+    status: 'available',
     component: null,
-    description: 'Học thích ứng theo thuật toán lặp lại ngắt quãng',
+    description: 'Luyện gõ từ vựng tập trung và ôn lại các từ chưa thuộc',
+  },
+  {
+    id: 'story',
+    label: 'Đoạn văn ngữ cảnh',
+    icon: BookOpen,
+    iconName: 'BookOpen',
+    subpath: 'story',
+    route: (deckId) => `/decks/${deckId}/story`,
+    status: 'available',
+    component: ContextStoryCloze,
+    description: 'Tạo đoạn văn ngữ cảnh và điền từ vựng vào ô trống',
   },
   {
     id: 'test-game',

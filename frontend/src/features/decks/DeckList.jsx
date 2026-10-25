@@ -1,8 +1,9 @@
-import { Plus } from 'lucide-react';
+import { Plus, BookOpen, Edit2, FolderInput, Trash2, Folder, Layers } from 'lucide-react';
 import DeckCard from './DeckCard';
 
 export default function DeckList({
   decks = [],
+  viewMode = 'grid',
   onCreateDeck,
   onOpenDeck,
   onEditDeck,
@@ -114,7 +115,88 @@ export default function DeckList({
             <span>Tạo bộ từ vựng ngay</span>
           </button>
         </div>
+      ) : viewMode === 'list' ? (
+        /* High-density List View */
+        <div className="deck-list-table-container">
+          <table className="deck-list-table">
+            <thead>
+              <tr>
+                <th>Bộ từ vựng</th>
+                <th style={{ width: '160px' }}>Thư mục</th>
+                <th style={{ width: '110px' }}>Số thẻ</th>
+                <th style={{ width: '130px', textAlign: 'right' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {decks.map((deck) => (
+                <tr
+                  key={deck.id}
+                  className="deck-list-row"
+                  onClick={() => onOpenDeck?.(deck)}
+                >
+                  <td className="deck-list-name-col">
+                    <div className="deck-list-title-text">{deck.name}</div>
+                    {deck.description && (
+                      <div className="deck-list-desc-text">{deck.description}</div>
+                    )}
+                  </td>
+                  <td>
+                    <span className="deck-list-folder-chip">
+                      <Folder size={12} />
+                      <span>{deck.folderName || 'Chưa phân loại'}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span className="monochrome-count-pill">
+                      <Layers size={12} style={{ marginRight: '4px' }} />
+                      {deck.cardCount || 0} thẻ
+                    </span>
+                  </td>
+                  <td className="deck-list-actions-col" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="deck-list-action-btn"
+                      onClick={() => onOpenDeck?.(deck)}
+                      title="Học bộ từ này"
+                      aria-label="Học bộ từ này"
+                    >
+                      <BookOpen size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="deck-list-action-btn"
+                      onClick={() => onEditDeck?.(deck)}
+                      title="Chỉnh sửa"
+                      aria-label="Chỉnh sửa bộ từ"
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="deck-list-action-btn"
+                      onClick={() => onMoveDeck?.(deck)}
+                      title="Chuyển thư mục"
+                      aria-label="Chuyển thư mục bộ từ"
+                    >
+                      <FolderInput size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="deck-list-action-btn is-danger"
+                      onClick={() => onDeleteDeck?.(deck)}
+                      title="Xóa bộ từ"
+                      aria-label="Xóa bộ từ vựng"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
+        /* Grid View */
         <div className="monochrome-deck-grid">
           {decks.map((deck) => (
             <DeckCard

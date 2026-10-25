@@ -1,0 +1,969 @@
+/* ==========================================================================
+   Analytics & Study Insights Dashboard Styles (Monochrome with Accents)
+   ========================================================================== */
+
+.analytics-page {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 36px 110px 36px;
+}
+
+/* ==========================================================================
+   1. Hero Learner Tier Banner (matching reference screenshot)
+   ========================================================================== */
+.analytics-hero-banner {
+  width: 100%;
+  min-height: 105px;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #e0f2fe 0%, #e0e7ff 40%, #ede9fe 75%, #f1f5f9 100%);
+  border: 1px solid rgba(199, 210, 254, 0.7);
+  padding: 1.25rem 2rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.08);
+}
+
+.hero-banner-art {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 55%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.85;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-banner-mountain-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-tier-squircle {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #09090b 0%, #1e1b4b 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hero-diamond-emoji {
+  line-height: 1;
+}
+
+.hero-tier-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hero-tier-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.hero-tier-pill {
+  background-color: #6366f1;
+  color: #ffffff;
+  font-size: 0.725rem;
+  font-weight: 800;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero-tier-heading {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #09090b;
+  letter-spacing: -0.01em;
+}
+
+.hero-tier-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+.hero-sparkle-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.hero-banner-right {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.hero-streak-pill {
+  background: #18181b;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.6rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.hero-streak-pill:hover {
+  background: #27272a;
+  transform: translateY(-1px);
+}
+
+.hero-streak-flame {
+  color: #f97316;
+  flex-shrink: 0;
+  animation: flame-flicker 2s infinite ease-in-out;
+}
+
+.hero-streak-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.hero-streak-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.hero-streak-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fdba74;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.hero-streak-chevron {
+  color: #a1a1aa;
+}
+
+/* ==========================================================================
+   2. Achievements Section (Huy hiệu thành tích 4/6 - 3 columns x 2 rows)
+   ========================================================================== */
+.achievements-card-container {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.achievements-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.15rem;
+}
+
+.achievements-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #09090b;
+}
+
+.achievements-trophy-icon {
+  color: #2563eb;
+}
+
+.achievements-view-all-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: opacity 0.15s ease;
+}
+
+.achievements-view-all-btn:hover {
+  opacity: 0.8;
+}
+
+.achievements-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.achievement-tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.achievement-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.achievement-tile-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.achievement-tile-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.achievement-tile-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.achievement-tile-desc {
+  margin: 2px 0 6px;
+  font-size: 0.775rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.achievement-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 0.725rem;
+  font-weight: 700;
+}
+
+.achievement-status-tag.is-unlocked {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.achievement-status-tag.is-pill {
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.achievement-progress-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 140px;
+}
+
+.achievement-bar-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.achievement-bar-track {
+  height: 5px;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.achievement-bar-fill {
+  height: 100%;
+  background-color: #2563eb;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.achievement-tile-arrow {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   3. Two-Column Side-by-Side Section (Heatmap & SM-2 Retention)
+   ========================================================================== */
+.analytics-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+
+.analytics-section {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.analytics-two-columns .analytics-section {
+  margin-bottom: 0;
+  height: 100%;
+}
+
+.analytics-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.15rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.analytics-section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #09090b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Heatmap specific styling in Left Column */
+.heatmap-container {
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  flex: 1;
+}
+
+.heatmap-scroll-area {
+  min-width: 0;
+  width: 100%;
+}
+
+.heatmap-months-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  font-size: 0.725rem;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+  padding-left: 1.6rem;
+}
+
+.heatmap-body {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.heatmap-day-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.675rem;
+  color: #94a3b8;
+  padding: 1px 0;
+  width: 1.4rem;
+  flex-shrink: 0;
+}
+
+.heatmap-weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(53, 1fr);
+  gap: 2px;
+  flex: 1;
+}
+
+.heatmap-week-col {
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.heatmap-cell {
+  width: 8.5px;
+  height: 8.5px;
+  border-radius: 2px;
+  background-color: #f1f5f9;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.35);
+  outline: 1.5px solid #18181b;
+  z-index: 10;
+}
+
+.heatmap-cell.level-0 {
+  background-color: #f1f5f9;
+}
+
+.heatmap-cell.level-1 {
+  background-color: #d1fae5;
+}
+
+.heatmap-cell.level-2 {
+  background-color: #6ee7b7;
+}
+
+.heatmap-cell.level-3 {
+  background-color: #10b981;
+}
+
+.heatmap-cell.level-4 {
+  background-color: #047857;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  font-size: 0.725rem;
+  color: #64748b;
+  margin-top: 1rem;
+}
+
+.legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+/* Retention Distribution specific styling in Right Column */
+.retention-section-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.retention-header-total {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.retention-cards-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  flex: 1;
+}
+
+.retention-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.retention-card-mastered {
+  border-color: #bbf7d0;
+  background-color: #f0fdf4;
+}
+
+.retention-card-reviewing {
+  border-color: #fde68a;
+  background-color: #fffbeb;
+}
+
+.retention-card-learning {
+  border-color: #bfdbfe;
+  background-color: #eff6ff;
+}
+
+.retention-card-wide {
+  grid-column: span 3;
+  border-color: #e2e8f0;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+}
+
+.retention-wide-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.retention-wide-right {
+  flex: 1;
+}
+
+.retention-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.725rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.tag-mastered {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.tag-reviewing {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.tag-learning {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.tag-unseen {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.tag-unseen-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+  display: inline-block;
+}
+
+.retention-card-count {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 2px;
+}
+
+.retention-card-pct {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.retention-card-desc {
+  font-size: 0.725rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   4. Weak Words Section
+   ========================================================================== */
+.weak-words-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.weak-words-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+.weak-words-table td {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+}
+
+.weak-words-table tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-practice-weak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #18181b;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-practice-weak:hover {
+  background-color: #27272a;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .achievements-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .analytics-two-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .retention-cards-layout {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .retention-card-wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .analytics-page {
+    padding: 16px 16px 110px 16px;
+  }
+
+  .analytics-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.15rem;
+    gap: 1rem;
+  }
+
+  .hero-tier-heading {
+    font-size: 1.15rem;
+  }
+
+  .hero-tier-squircle {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+  }
+
+  .hero-banner-right {
+    width: 100%;
+  }
+
+  .hero-streak-pill {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .achievements-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .retention-cards-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .retention-card-wide {
+    grid-column: span 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* ==========================================================================
+   Dark Mode Support (Deep Slate Palette #0F172A / #1E293B / #334155)
+   ========================================================================== */
+[data-theme='dark'] .analytics-hero-banner {
+  background: linear-gradient(135deg, #1e293b 0%, #273449 100%);
+  border-color: #334155;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .hero-tier-squircle {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .hero-tier-heading {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .hero-tier-sub {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .hero-streak-pill {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .hero-streak-pill:hover {
+  background: #182234;
+}
+
+[data-theme='dark'] .achievements-card-container,
+[data-theme='dark'] .analytics-section {
+  background-color: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='dark'] .achievements-card-title,
+[data-theme='dark'] .analytics-section-title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .achievements-view-all-btn {
+  color: #60a5fa;
+}
+
+/* Huy hiệu đã đạt: nền vàng mờ + viền vàng mờ + chữ sáng */
+[data-theme='dark'] .achievement-tile.is-unlocked {
+  background-color: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+[data-theme='dark'] .achievement-tile.is-unlocked .achievement-tile-name {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .achievement-tile.is-unlocked .achievement-tile-desc {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .achievement-status-tag.is-unlocked {
+  background-color: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+/* Huy hiệu chưa đạt: nền surface xám, icon mờ nhưng chữ vẫn đọc được */
+[data-theme='dark'] .achievement-tile.is-in-progress {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .achievement-tile.is-in-progress .achievement-tile-icon-circle {
+  opacity: 0.7;
+}
+
+[data-theme='dark'] .achievement-tile.is-in-progress .achievement-tile-name {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .achievement-tile.is-in-progress .achievement-tile-desc {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .achievement-status-tag.is-pill {
+  background-color: #273449;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+[data-theme='dark'] .achievement-bar-label {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .achievement-bar-track {
+  background-color: #334155;
+}
+
+[data-theme='dark'] .achievement-bar-fill {
+  background-color: #60a5fa;
+}
+
+[data-theme='dark'] .achievement-tile-arrow {
+  color: #64748b;
+}
+
+/* Heatmap Dark Mode */
+[data-theme='dark'] .heatmap-months-row {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .heatmap-day-labels {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .heatmap-cell.level-0 {
+  background-color: #334155;
+}
+
+[data-theme='dark'] .heatmap-cell.level-1 {
+  background-color: #065f46;
+}
+
+[data-theme='dark'] .heatmap-cell.level-2 {
+  background-color: #059669;
+}
+
+[data-theme='dark'] .heatmap-cell.level-3 {
+  background-color: #10b981;
+}
+
+[data-theme='dark'] .heatmap-cell.level-4 {
+  background-color: #34d399;
+}
+
+[data-theme='dark'] .legend-swatch.level-0 {
+  background-color: #334155;
+}
+
+[data-theme='dark'] .legend-swatch.level-1 {
+  background-color: #065f46;
+}
+
+[data-theme='dark'] .legend-swatch.level-2 {
+  background-color: #059669;
+}
+
+[data-theme='dark'] .legend-swatch.level-3 {
+  background-color: #10b981;
+}
+
+[data-theme='dark'] .legend-swatch.level-4 {
+  background-color: #34d399;
+}
+
+[data-theme='dark'] .heatmap-legend {
+  color: #94a3b8;
+}
+
+/* Retention Distribution Dark Mode */
+[data-theme='dark'] .retention-header-total {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .retention-header-total strong {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .retention-card-mastered {
+  background-color: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+[data-theme='dark'] .retention-card-reviewing {
+  background-color: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+[data-theme='dark'] .retention-card-learning {
+  background-color: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+[data-theme='dark'] .retention-card-wide {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .tag-mastered {
+  background-color: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+}
+
+[data-theme='dark'] .tag-reviewing {
+  background-color: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .tag-learning {
+  background-color: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .tag-unseen {
+  background-color: #273449;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .retention-card-count {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .retention-card-pct {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .retention-card-desc {
+  color: #94a3b8;
+}
+
+/* Weak words table */
+[data-theme='dark'] .weak-words-table th {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .weak-words-table td {
+  border-bottom-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .btn-practice-weak {
+  background-color: #60a5fa;
+  color: #0f172a;
+}
+
+[data-theme='dark'] .btn-practice-weak:hover {
+  background-color: #93c5fd;
+}

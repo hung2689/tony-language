@@ -1,0 +1,49 @@
+/* ==========================================================================
+   Magic UI Animated BorderBeam Component
+   ========================================================================== */
+
+.magic-border-beam {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: calc(var(--border-width, 1.5) * 1px);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.magic-border-beam::after {
+  content: "";
+  position: absolute;
+  inset: -150%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 250deg,
+    var(--color-orange, #f97316) 285deg,
+    var(--color-from, #a855f7) 320deg,
+    var(--color-to, #3b82f6) 350deg,
+    transparent 360deg
+  );
+  animation: border-beam-spin calc(var(--duration, 8) * 1s) linear infinite;
+  animation-delay: calc(var(--delay, 0) * 1s);
+  filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.45));
+}
+
+@keyframes border-beam-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .magic-border-beam::after {
+    animation-duration: 20s;
+  }
+}

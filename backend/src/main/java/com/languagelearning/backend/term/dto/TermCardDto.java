@@ -18,6 +18,9 @@ public class TermCardDto {
     private String partOfSpeech;
     private String example;
     private List<String> synonyms = new ArrayList<>();
+    private java.time.Instant lastReviewedAt;
+    private Integer intervalDays;
+    private Integer repetitions;
 
     public TermCardDto() {
     }
@@ -86,5 +89,29 @@ public class TermCardDto {
 
     public void setSynonyms(List<String> synonyms) {
         this.synonyms = synonyms != null ? synonyms : new ArrayList<>();
+    }
+
+    public java.time.Instant getLastReviewedAt() {
+        return lastReviewedAt;
+    }
+
+    public void setLastReviewedAt(java.time.Instant lastReviewedAt) {
+        this.lastReviewedAt = lastReviewedAt;
+    }
+
+    public Integer getIntervalDays() {
+        return intervalDays;
+    }
+
+    public void setIntervalDays(Integer intervalDays) {
+        this.intervalDays = intervalDays;
+    }
+
+    public Integer getRepetitions() {
+        return repetitions;
+    }
+
+    public void setRepetitions(Integer repetitions) {
+        this.repetitions = repetitions;
     }
 }

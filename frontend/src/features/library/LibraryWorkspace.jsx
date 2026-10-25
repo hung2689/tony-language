@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom';
 import { folderService } from '../../services/folderService';
 import { deckService } from '../../services/deckService';
@@ -10,10 +10,34 @@ import DeckFormModal from '../decks/DeckFormModal';
 import MoveDeckModal from '../decks/MoveDeckModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Toast from '../../components/common/Toast';
-import { Folder, Search, ArrowUpDown, Plus } from 'lucide-react';
+import DailyGateReminder from '../studyplan/DailyGateReminder';
+import { useStudyPlan } from '../studyplan/StudyPlanContext';
+import SpacedRepetitionForecastModal from '../studyplan/SpacedRepetitionForecastModal';
+import { useAuth } from '../auth/AuthContext';
+import { analyticsService } from '../../services/analyticsService';
+import {
+  Folder,
+  Search,
+  ArrowUpDown,
+  Plus,
+  Sparkles,
+  Calendar,
+  LayoutGrid,
+  List,
+  Flame,
+  Target,
+  ArrowRight,
+  BookOpen,
+  Layers,
+} from 'lucide-react';
+
+// Configurable background video for dashboard hero (cinematic mountain landscape)
+// Local asset path: backend/video/13772604_3840_2160_60fps.mp4 -> served by Vite from /video/...
+const HERO_BACKGROUND_VIDEO_SRC = '/video/13772604_3840_2160_60fps.mp4';
 
 export default function LibraryWorkspace() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const outletContext = useOutletContext() || {};
   const globalSearchQuery = outletContext.searchQuery ?? '';
@@ -21,8 +45,36 @@ export default function LibraryWorkspace() {
 
   const [folders, setFolders] = useState([]);
   const [decks, setDecks] = useState([]);
+  const [overview, setOverview] = useState(outletContext.overview || null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+  const [isSrsForecastOpen, setIsSrsForecastOpen] = useState(false);
+  const [srsDeckId, setSrsDeckId] = useState(null);
+  const [srsDeckName, setSrsDeckName] = useState(null);
+  const { activePlan, todayQueue, refreshPlan, openCreateModal } = useStudyPlan();
+
+  // View mode: 'grid' | 'list'
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('ll_library_view_mode') || 'grid';
+    } catch {
+      return 'grid';
+    }
+  });
+
+  const handleUpdateViewMode = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('ll_library_view_mode', mode);
+    } catch {}
+  };
+
+  const handleQuickSRSClick = () => {
+    setSrsDeckId(null);
+    setSrsDeckName(activePlan?.name || 'Lộ trình ôn tập');
+    setIsSrsForecastOpen(true);
+  };
 
   // Sorting state
   const [sortBy, setSortBy] = useState('newest'); // newest | oldest | name_asc | count_desc
@@ -44,23 +96,35 @@ export default function LibraryWorkspace() {
   const [deckToMove, setDeckToMove] = useState(null);
   const [deckToDelete, setDeckToDelete] = useState(null);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
     setToast({ message, type });
-    setTimeout(() => {
+    toastTimerRef.current = setTimeout(() => {
       setToast(null);
+      toastTimerRef.current = null;
     }, 4000);
-  };
+  }, []);
+
+  // Cleanup toast timer on unmount (BUG-04)
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
 
   // Load folders
   const loadFolders = useCallback(async () => {
     try {
       const data = await folderService.getFolders();
       setFolders(data || []);
-      outletContext.refreshFolders?.();
     } catch (err) {
       showToast(err.message || 'Không thể tải danh sách thư mục', 'error');
     }
-  }, [outletContext]);
+  }, [showToast]);
 
   // Load decks according to folder filter
   const loadDecks = useCallback(async () => {
@@ -79,7 +143,7 @@ export default function LibraryWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [selectedFolderId, isUncategorizedSelected]);
+  }, [selectedFolderId, isUncategorizedSelected, showToast]);
 
   useEffect(() => {
     loadFolders();
@@ -88,6 +152,17 @@ export default function LibraryWorkspace() {
   useEffect(() => {
     loadDecks();
   }, [loadDecks]);
+
+  // Sync overview from outlet context or fetch if missing (BUG-08)
+  useEffect(() => {
+    if (outletContext.overview) {
+      setOverview(outletContext.overview);
+    } else {
+      analyticsService.getOverview()
+        .then((data) => setOverview(data))
+        .catch(() => {});
+    }
+  }, [outletContext.overview]);
 
   const uncategorizedDeckCount = decks.filter((d) => d.folderId == null).length;
 
@@ -116,6 +191,7 @@ export default function LibraryWorkspace() {
       setIsCreateFolderOpen(false);
       setFolderToEdit(null);
       await loadFolders();
+      outletContext.refreshFolders?.();
     } catch (err) {
       showToast(err.message || 'Lỗi xử lý thư mục', 'error');
     }
@@ -126,6 +202,7 @@ export default function LibraryWorkspace() {
       const newFolder = await folderService.createFolder(name);
       showToast('Đã tạo thư mục mới');
       await loadFolders();
+      outletContext.refreshFolders?.();
       return newFolder;
     } catch (err) {
       showToast(err.message || 'Lỗi tạo thư mục', 'error');
@@ -142,6 +219,7 @@ export default function LibraryWorkspace() {
         setSearchParams({});
       }
       await loadFolders();
+      outletContext.refreshFolders?.();
       await loadDecks();
     } catch (err) {
       showToast(err.message || 'Lỗi khi xóa thư mục', 'error');
@@ -170,7 +248,15 @@ export default function LibraryWorkspace() {
         await deckService.updateDeck(deckToEdit.id, deckData);
         showToast('Cập nhật bộ từ vựng thành công');
       } else {
-        await deckService.createDeck(deckData);
+        const created = await deckService.createDeck(deckData);
+        if (deckData.addToStudyPlan && created?.id) {
+          try {
+            await studyPlanService.addDecksToActivePlan({ deckIds: [created.id] });
+            await refreshPlan();
+          } catch {
+            // Silently ignore if adding to plan fails
+          }
+        }
         showToast('Tạo bộ từ vựng thành công');
       }
       setIsDeckFormOpen(false);
@@ -248,26 +334,115 @@ export default function LibraryWorkspace() {
 
   return (
     <div className="library-workspace-page">
-      {/* Page Header Row */}
+      {/* 1. Welcoming Hero Momentum Section (when browsing all decks) */}
+      {!selectedFolderId && !isUncategorizedSelected && (
+        <div className="library-momentum-hero">
+          {/* Full-bleed background video covering the entire hero container */}
+          <video
+            className="momentum-hero-video"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden="true"
+            preload="metadata"
+          >
+            <source src={HERO_BACKGROUND_VIDEO_SRC} type="video/mp4" />
+          </video>
+
+          {/* Dark gradient overlay for optimal readability & contrast */}
+          <div className="momentum-hero-overlay" aria-hidden="true" />
+
+          {/* Hero Foreground Content */}
+          <div className="momentum-hero-content">
+            <div className="momentum-hero-left">
+              <div className="momentum-greeting-pill">
+                <Sparkles size={13} className="greeting-sparkle" />
+                <span>Chào mừng trở lại, {user?.displayName || user?.username || 'Học viên'}</span>
+              </div>
+
+              <h1 className="momentum-hero-title">
+                Chinh phục vốn từ vựng<br className="hero-title-break" />
+                với phương pháp thông minh.
+              </h1>
+
+              <div className="momentum-stats-row">
+                <button
+                  type="button"
+                  className="momentum-stat-chip"
+                  onClick={() => navigate('/analytics')}
+                  title="Xem thống kê chuỗi ngày"
+                >
+                  <Flame size={15} className="chip-flame-icon" />
+                  <span><strong>{overview?.currentStreak || 0}</strong> ngày streak</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="momentum-stat-chip"
+                  onClick={() => navigate('/study-plan')}
+                  title="Xem kế hoạch học hôm nay"
+                >
+                  <Target size={15} className="chip-target-icon" />
+                  <span><strong>{todayQueue?.totalWords || 0}</strong> từ cần ôn</span>
+                </button>
+
+                <div className="momentum-stat-chip">
+                  <BookOpen size={15} className="chip-deck-icon" />
+                  <span><strong>{decks.length}</strong> bộ từ vựng</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="momentum-hero-cta">
+              <button
+                type="button"
+                className="momentum-cta-btn"
+                onClick={handleOpenCreateDeck}
+              >
+                <Plus size={16} />
+                <span>Tạo bộ thẻ mới</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Page Header Row (Folder Title & Actions) */}
       <div className="main-page-header-row">
         <div className="main-title-group">
           <div className="main-title-flex">
-            <Folder size={26} className="main-folder-title-icon" />
-            <h1 className="main-page-title">{currentFolderName}</h1>
+            <Folder size={22} className="main-folder-title-icon" />
+            <h2 className="main-page-title">{currentFolderName}</h2>
           </div>
           <p className="main-page-subtitle">
-            {filteredAndSortedDecks.length} bộ từ vựng được tìm thấy
+            {filteredAndSortedDecks.length} bộ từ vựng sẵn sàng
           </p>
         </div>
 
-        <button
-          type="button"
-          className="monochrome-btn-primary"
-          onClick={handleOpenCreateDeck}
-        >
-          <Plus size={16} />
-          <span>Tạo bộ từ vựng</span>
-        </button>
+        <div className="main-header-actions">
+          <button
+            type="button"
+            className="srs-quick-header-btn"
+            onClick={handleQuickSRSClick}
+            title="Lặp lại ngắt quãng (SM-2)"
+          >
+            <Sparkles size={15} />
+            <span>Lặp lại ngắt quãng</span>
+            {todayQueue && todayQueue.totalWords > 0 && (
+              <span className="srs-quick-count-badge">{todayQueue.totalWords}</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className="monochrome-btn-primary"
+            onClick={handleOpenCreateDeck}
+          >
+            <Plus size={15} />
+            <span>Tạo bộ từ vựng</span>
+          </button>
+        </div>
       </div>
 
       {/* Toolbar Row */}
@@ -297,6 +472,28 @@ export default function LibraryWorkspace() {
             <option value="count_desc">Số lượng thẻ</option>
           </select>
         </div>
+
+        {/* View Mode Toggle: Grid vs List */}
+        <div className="toolbar-view-toggle">
+          <button
+            type="button"
+            className={`toolbar-view-btn ${viewMode === 'grid' ? 'is-active' : ''}`}
+            onClick={() => handleUpdateViewMode('grid')}
+            title="Dạng lưới thẻ (Grid View)"
+            aria-label="Dạng lưới thẻ"
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
+            type="button"
+            className={`toolbar-view-btn ${viewMode === 'list' ? 'is-active' : ''}`}
+            onClick={() => handleUpdateViewMode('list')}
+            title="Dạng danh sách (List View)"
+            aria-label="Dạng danh sách"
+          >
+            <List size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Two-Column Area */}
@@ -325,6 +522,7 @@ export default function LibraryWorkspace() {
         {/* Column B: Right Deck Area */}
         <DeckList
           decks={filteredAndSortedDecks}
+          viewMode={viewMode}
           onCreateDeck={handleOpenCreateDeck}
           onOpenDeck={(deck) => navigate(`/decks/${deck.id}`)}
           onEditDeck={(deck) => handleOpenEditDeck(deck)}
@@ -382,6 +580,15 @@ export default function LibraryWorkspace() {
         message={`Bạn có chắc chắn muốn xóa bộ từ vựng "${deckToDelete?.name}"? Các thẻ từ và tiến độ học tập gắn liền với bộ từ này sẽ bị xóa vĩnh viễn.`}
         confirmText="Xác nhận xóa"
         confirmVariant="danger"
+      />
+
+      {/* SRS Forecast Modal */}
+      <SpacedRepetitionForecastModal
+        isOpen={isSrsForecastOpen}
+        onClose={() => setIsSrsForecastOpen(false)}
+        deckId={srsDeckId}
+        deckName={srsDeckName}
+        onStart={(id) => navigate(id ? `/decks/${id}/srs` : '/study-plan/srs')}
       />
 
       {/* Global Toast */}

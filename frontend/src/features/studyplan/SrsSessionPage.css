@@ -1,0 +1,255 @@
+.srs-session-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+.srs-session-top-header {
+  padding: 16px 32px 12px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.srs-session-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.srs-session-back-btn {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+
+.srs-session-back-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.srs-session-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.srs-session-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.srs-session-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Mode Bar */
+.srs-mode-bar-container {
+  padding: 14px 32px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: center;
+}
+
+.srs-mode-bar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 900px;
+  width: 100%;
+}
+
+.srs-mode-tab-btn {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.srs-mode-tab-btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.srs-mode-tab-btn.is-active {
+  background-color: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.srs-mode-tab-btn.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.srs-mode-soon-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: #f1f5f9;
+  color: #64748b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 2px;
+}
+
+/* Main Area */
+.srs-session-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* Completed Card */
+.srs-complete-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 440px;
+  width: 100%;
+  gap: 16px;
+}
+
+.srs-complete-icon {
+  width: 64px;
+  height: 64px;
+  background-color: #ecfdf5;
+  color: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.srs-complete-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.srs-complete-msg {
+  font-size: 14.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.srs-complete-btn {
+  margin-top: 8px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Dark Mode Support for SRS Session Page (#0F172A / #1E293B / #334155)
+   ========================================================================== */
+[data-theme='dark'] .srs-session-page {
+  background-color: #0f172a;
+}
+
+[data-theme='dark'] .srs-session-top-header {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+}
+
+[data-theme='dark'] .srs-session-back-btn {
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-session-back-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-session-title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-session-subtitle {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-mode-bar-container {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+}
+
+[data-theme='dark'] .srs-mode-tab-btn {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-mode-tab-btn:hover {
+  background-color: #273449;
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-mode-tab-btn.is-active {
+  background-color: #60a5fa;
+  color: #0f172a;
+  border-color: #60a5fa;
+}
+
+[data-theme='dark'] .srs-complete-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .srs-complete-title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .srs-complete-msg {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .srs-complete-btn {
+  background-color: #60a5fa;
+  color: #0f172a;
+}

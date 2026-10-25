@@ -102,6 +102,7 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
       summary: {
         total: 0,
         valid: 0,
+        duplicates: 0,
         warnings: 0,
         errors: 0,
       },
@@ -145,6 +146,7 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
       summary: {
         total: indexedLines.length,
         valid: 0,
+        duplicates: 0,
         warnings: 0,
         errors: indexedLines.length,
       },
@@ -158,6 +160,7 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
   const pasteTermsSeen = new Map(); // term.toLowerCase() -> lineNumber
 
   let validCount = 0;
+  let duplicateCount = 0;
   let warningCount = 0;
   let errorCount = 0;
 
@@ -247,24 +250,21 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
     }
 
     // Duplicates check
+    let duplicateReason = null;
     if (term) {
       const termLower = term.toLowerCase();
 
       // Check duplicate within the same paste
       if (pasteTermsSeen.has(termLower)) {
         const prevLine = pasteTermsSeen.get(termLower);
-        warnings.push(
-          `Dòng ${lineNumber}: Thuật ngữ '${term}' bị trùng lặp với dòng ${prevLine} trong cùng nội dung nhập.`
-        );
+        duplicateReason = `Dòng ${lineNumber}: Thuật ngữ '${term}' bị trùng lặp với dòng ${prevLine} trong cùng nội dung nhập.`;
       } else {
         pasteTermsSeen.set(termLower, lineNumber);
       }
 
       // Check duplicate against existing deck cards
-      if (existingTermSet.has(termLower)) {
-        warnings.push(
-          `Dòng ${lineNumber}: Thuật ngữ '${term}' đã tồn tại trong bộ từ vựng này.`
-        );
+      if (!duplicateReason && existingTermSet.has(termLower)) {
+        duplicateReason = `Dòng ${lineNumber}: Thuật ngữ '${term}' đã tồn tại trong bộ từ vựng này.`;
       }
     }
 
@@ -273,6 +273,9 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
     if (errors.length > 0) {
       status = 'error';
       errorCount++;
+    } else if (duplicateReason) {
+      status = 'duplicate';
+      duplicateCount++;
     } else if (warnings.length > 0) {
       status = 'warning';
       warningCount++;
@@ -294,9 +297,10 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
         synonyms, // array of strings
         rawSynonyms: synonyms.join('; '),
       },
-      status, // 'valid' | 'warning' | 'error'
+      status, // 'valid' | 'duplicate' | 'warning' | 'error'
       errors,
       warnings,
+      duplicateReason,
     });
   }
 
@@ -307,6 +311,7 @@ export function parseBulkText(rawText = '', { existingTerms = [] } = {}) {
     summary: {
       total: indexedLines.length,
       valid: validCount,
+      duplicates: duplicateCount,
       warnings: warningCount,
       errors: errorCount,
     },

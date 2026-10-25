@@ -33,7 +33,7 @@ class RefreshTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        refreshTokenService = new RefreshTokenService(refreshTokenRepository, 14L, 10L);
+        refreshTokenService = new RefreshTokenService(refreshTokenRepository, 30L, 10L);
         user = new User("test@example.com", "hash", "testuser", User.STATUS_ACTIVE);
         user.setId(5L);
     }
@@ -89,6 +89,50 @@ class RefreshTokenServiceTest {
 
         assertTrue(ex.getMessage().contains("vừa được làm mới ở một tab khác"));
         verify(refreshTokenRepository, never()).revokeAllActiveTokensByUserId(anyLong(), any(Instant.class));
+    }
+
+    @Test
+    @DisplayName("Rotation: duplicate concurrent call within grace window replays cached rotation result without revoking family")
+    void rotateToken_DuplicateConcurrentCallWithinGrace_ReplaysRotatedResult() {
+        String rawToken = refreshTokenService.generateRawToken(true);
+        String hash = refreshTokenService.hashToken(rawToken);
+
+        RefreshToken oldToken = new RefreshToken(user, hash, Instant.now().plusSeconds(3600));
+        oldToken.setRevokedAt(Instant.now());
+
+        // First call succeeds (rowsUpdated = 1), second concurrent call sees rowsUpdated = 0
+        when(refreshTokenRepository.revokeTokenIfActive(eq(hash), any(Instant.class)))
+                .thenReturn(1)
+                .thenReturn(0);
+        when(refreshTokenRepository.findByTokenHash(hash)).thenReturn(Optional.of(oldToken));
+
+        RefreshTokenService.RotatedTokenResult firstResult = refreshTokenService.rotateRefreshToken(rawToken);
+        RefreshTokenService.RotatedTokenResult secondResult = refreshTokenService.rotateRefreshToken(rawToken);
+
+        assertNotNull(firstResult);
+        assertNotNull(secondResult);
+        assertEquals(firstResult.newRawRefreshToken(), secondResult.newRawRefreshToken());
+        assertTrue(secondResult.persistent());
+        verify(refreshTokenRepository, never()).revokeAllActiveTokensByUserId(anyLong(), any(Instant.class));
+    }
+
+    @Test
+    @DisplayName("Rotation: preserves session vs persistent (rememberMe) mode across sliding rotations")
+    void rotateToken_PreservesSessionAndPersistentFlag() {
+        String sessionToken = refreshTokenService.generateRawToken(false);
+        String sessionHash = refreshTokenService.hashToken(sessionToken);
+
+        assertFalse(refreshTokenService.isPersistentToken(sessionToken));
+
+        RefreshToken oldSessionEntity = new RefreshToken(user, sessionHash, Instant.now().plusSeconds(3600));
+        oldSessionEntity.setRevokedAt(Instant.now());
+
+        when(refreshTokenRepository.revokeTokenIfActive(eq(sessionHash), any(Instant.class))).thenReturn(1);
+        when(refreshTokenRepository.findByTokenHash(sessionHash)).thenReturn(Optional.of(oldSessionEntity));
+
+        RefreshTokenService.RotatedTokenResult rotatedSession = refreshTokenService.rotateRefreshToken(sessionToken);
+        assertFalse(rotatedSession.persistent());
+        assertFalse(refreshTokenService.isPersistentToken(rotatedSession.newRawRefreshToken()));
     }
 
     @Test

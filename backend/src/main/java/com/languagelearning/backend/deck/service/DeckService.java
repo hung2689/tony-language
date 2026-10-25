@@ -16,6 +16,7 @@ import com.languagelearning.backend.deck.repository.VocabularySetItemRepository;
 import com.languagelearning.backend.deck.repository.VocabularySetRepository;
 import com.languagelearning.backend.folder.entity.Folder;
 import com.languagelearning.backend.folder.repository.FolderRepository;
+import com.languagelearning.backend.study.repository.StudyPlanDeckRepository;
 import com.languagelearning.backend.term.dto.TermCardDto;
 import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.entity.VocabularySynonym;
@@ -36,19 +37,22 @@ public class DeckService {
     private final VocabularySynonymRepository vocabularySynonymRepository;
     private final FolderRepository folderRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final StudyPlanDeckRepository studyPlanDeckRepository;
 
     public DeckService(VocabularySetRepository vocabularySetRepository,
                        VocabularySetItemRepository vocabularySetItemRepository,
                        VocabularyRepository vocabularyRepository,
                        VocabularySynonymRepository vocabularySynonymRepository,
                        FolderRepository folderRepository,
-                       CurrentUserProvider currentUserProvider) {
+                       CurrentUserProvider currentUserProvider,
+                       StudyPlanDeckRepository studyPlanDeckRepository) {
         this.vocabularySetRepository = vocabularySetRepository;
         this.vocabularySetItemRepository = vocabularySetItemRepository;
         this.vocabularyRepository = vocabularyRepository;
         this.vocabularySynonymRepository = vocabularySynonymRepository;
         this.folderRepository = folderRepository;
         this.currentUserProvider = currentUserProvider;
+        this.studyPlanDeckRepository = studyPlanDeckRepository;
     }
 
     @Transactional
@@ -175,12 +179,15 @@ public class DeckService {
             }
         }
 
-        // Delete removed cards from deck and db
+        // Delete removed cards from deck and db (preserving cards shared with other decks)
         for (Long vocabId : existingVocabIdsInDeck) {
             if (!retainedVocabIds.contains(vocabId)) {
                 vocabularySetItemRepository.deleteById(new VocabularySetItemId(deckId, vocabId));
-                vocabularySynonymRepository.deleteByVocabularyId(vocabId);
-                vocabularyRepository.deleteById(vocabId);
+                boolean stillUsedInOtherDeck = vocabularySetItemRepository.existsByIdVocabularyId(vocabId);
+                if (!stillUsedInOtherDeck) {
+                    vocabularySynonymRepository.deleteByVocabularyId(vocabId);
+                    vocabularyRepository.deleteById(vocabId);
+                }
             }
         }
 
@@ -206,10 +213,18 @@ public class DeckService {
         List<VocabularySetItem> items = vocabularySetItemRepository.findByIdVocabularySetId(deckId);
         for (VocabularySetItem item : items) {
             Long vocabId = item.getId().getVocabularyId();
-            vocabularySynonymRepository.deleteByVocabularyId(vocabId);
             vocabularySetItemRepository.delete(item);
-            vocabularyRepository.deleteById(vocabId);
+
+            // Only delete vocabulary and synonyms if not shared by any other deck
+            boolean stillUsedInOtherDeck = vocabularySetItemRepository.existsByIdVocabularyId(vocabId);
+            if (!stillUsedInOtherDeck) {
+                vocabularySynonymRepository.deleteByVocabularyId(vocabId);
+                vocabularyRepository.deleteById(vocabId);
+            }
         }
+        // Clean up associations in study plans
+        studyPlanDeckRepository.deleteByDeckId(deckId);
+
         vocabularySetRepository.delete(deck);
     }
 

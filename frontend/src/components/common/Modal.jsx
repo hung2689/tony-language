@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { lockScroll, unlockScroll } from '../../utils/scrollLock';
 
 export default function Modal({
   isOpen,
@@ -15,11 +16,13 @@ export default function Modal({
       }
     };
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      lockScroll();
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.body.style.overflow = 'auto';
+      if (isOpen) {
+        unlockScroll();
+      }
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);

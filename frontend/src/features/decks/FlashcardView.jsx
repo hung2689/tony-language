@@ -6,6 +6,8 @@ import {
   ChevronRight,
   Shuffle,
   RotateCcw,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import {
   getNextIndex,
@@ -46,9 +48,11 @@ export default function FlashcardView({ cards = [], onToast }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
   const [settings, setSettings] = useState(loadSettings);
 
   const settingsRef = useRef(null);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
 
   // Sync activeCards when raw cards prop updates
   useEffect(() => {
@@ -86,6 +90,7 @@ export default function FlashcardView({ cards = [], onToast }) {
   const exampleText = currentCard?.example || '';
 
   const handleFlip = useCallback(() => {
+    setIsSettingsOpen(false);
     setIsFlipped((prev) => {
       const next = !prev;
       const wordToRead = currentCard?.term;
@@ -148,9 +153,40 @@ export default function FlashcardView({ cards = [], onToast }) {
     [onToast]
   );
 
+  // Touch / Swipe gestures for mobile & tablet
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    // Detect fast horizontal swipe
+    if (deltaTime < 500 && Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+      if (deltaX < 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+  };
+
   // Keyboard navigation using strictly tested pure handler
   useEffect(() => {
     function handleKeyDown(e) {
+      if (e.key === 'Escape' && isZenMode) {
+        setIsZenMode(false);
+        return;
+      }
+
       const isModalOrPopoverOpen =
         Boolean(isSettingsOpen) ||
         Boolean(document.querySelector('.modal-overlay')) ||
@@ -168,7 +204,7 @@ export default function FlashcardView({ cards = [], onToast }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrev, handleNext, handleFlip, isSettingsOpen]);
+  }, [handlePrev, handleNext, handleFlip, isSettingsOpen, isZenMode]);
 
   if (!currentCard) return null;
 
@@ -190,95 +226,97 @@ export default function FlashcardView({ cards = [], onToast }) {
   const isTermOnFront = settings.frontFace === 'term';
 
   return (
-    <div className="flashcard-experience-container">
+    <div className={`flashcard-experience-container ${isZenMode ? 'is-zen-mode' : ''}`}>
       {/* 1. Main Flashcard Container with 3D Flip */}
       <div className="flashcard-scene">
         <div
           className={`flashcard-card-box ${isFlipped ? 'is-flipped' : ''}`}
           onClick={handleFlip}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           role="button"
           tabIndex={0}
           aria-label={isFlipped ? 'Mặt sau thẻ' : 'Mặt trước thẻ'}
         >
-          {/* Card Top Action Bar (Absolute inside card) */}
-          <div className="flashcard-top-bar" onClick={(e) => e.stopPropagation()}>
-            {/* Settings Icon & Popover */}
-            <div className="flashcard-settings-container" ref={settingsRef}>
-              <button
-                type="button"
-                className="flashcard-icon-btn"
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                aria-label="Cài đặt thẻ"
-                title="Cài đặt hiển thị"
-              >
-                <Settings size={18} />
-              </button>
+          {/* FRONT FACE */}
+          <div className="flashcard-face flashcard-front">
+            {/* Card Top Action Bar (Inside Front Face) */}
+            <div className="flashcard-top-bar" onClick={(e) => e.stopPropagation()}>
+              {/* Settings Icon & Popover */}
+              <div className="flashcard-settings-container" ref={settingsRef}>
+                <button
+                  type="button"
+                  className="flashcard-icon-btn"
+                  onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  aria-label="Cài đặt thẻ"
+                  title="Cài đặt hiển thị"
+                >
+                  <Settings size={18} />
+                </button>
 
-              {isSettingsOpen && (
-                <div className="flashcard-settings-popover" role="region" aria-label="Tùy chọn hiển thị">
-                  <div className="settings-popover-title">Cài đặt học Flashcard</div>
+                {isSettingsOpen && (
+                  <div className="flashcard-settings-popover" role="region" aria-label="Tùy chọn hiển thị">
+                    <div className="settings-popover-title">Cài đặt học Flashcard</div>
 
-                  <div className="settings-popover-group">
-                    <label className="settings-popover-label">Mặt trước hiển thị:</label>
-                    <div className="settings-radio-options">
-                      <label className="settings-radio-label">
+                    <div className="settings-popover-group">
+                      <label className="settings-popover-label">Mặt trước hiển thị:</label>
+                      <div className="settings-radio-options">
+                        <label className="settings-radio-label">
+                          <input
+                            type="radio"
+                            name="frontFace"
+                            value="term"
+                            checked={settings.frontFace === 'term'}
+                            onChange={() => handleUpdateSettings({ frontFace: 'term' })}
+                          />
+                          <span>Thuật ngữ (Tiếng Anh)</span>
+                        </label>
+                        <label className="settings-radio-label">
+                          <input
+                            type="radio"
+                            name="frontFace"
+                            value="definition"
+                            checked={settings.frontFace === 'definition'}
+                            onChange={() => handleUpdateSettings({ frontFace: 'definition' })}
+                          />
+                          <span>Định nghĩa (Tiếng Việt)</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="settings-divider" />
+
+                    <div className="settings-popover-group">
+                      <label className="settings-checkbox-label">
                         <input
-                          type="radio"
-                          name="frontFace"
-                          value="term"
-                          checked={settings.frontFace === 'term'}
-                          onChange={() => handleUpdateSettings({ frontFace: 'term' })}
+                          type="checkbox"
+                          checked={settings.autoSpeak}
+                          onChange={(e) => handleUpdateSettings({ autoSpeak: e.target.checked })}
                         />
-                        <span>Thuật ngữ (Tiếng Anh)</span>
-                      </label>
-                      <label className="settings-radio-label">
-                        <input
-                          type="radio"
-                          name="frontFace"
-                          value="definition"
-                          checked={settings.frontFace === 'definition'}
-                          onChange={() => handleUpdateSettings({ frontFace: 'definition' })}
-                        />
-                        <span>Định nghĩa (Tiếng Việt)</span>
+                        <span>Tự đọc khi lật</span>
                       </label>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <div className="settings-divider" />
+              {/* Hint / Flip badge */}
+              <div className="flashcard-flip-hint">
+                <span>Nhấn Space hoặc nhấp thẻ để lật</span>
+              </div>
 
-                  <div className="settings-popover-group">
-                    <label className="settings-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={settings.autoSpeak}
-                        onChange={(e) => handleUpdateSettings({ autoSpeak: e.target.checked })}
-                      />
-                      <span>Tự đọc khi lật</span>
-                    </label>
-                  </div>
-                </div>
-              )}
+              {/* Audio Button on card */}
+              <button
+                type="button"
+                className="flashcard-speaker-btn"
+                onClick={(e) => handleSpeak(e, termText)}
+                title="Phát âm tiếng Anh (en-US)"
+                aria-label="Phát âm từ vựng"
+              >
+                <Volume2 size={20} />
+              </button>
             </div>
 
-            {/* Hint / Flip badge */}
-            <div className="flashcard-flip-hint">
-              <span>Nhấn Space hoặc nhấp thẻ để lật</span>
-            </div>
-
-            {/* Audio Button on card */}
-            <button
-              type="button"
-              className="flashcard-speaker-btn"
-              onClick={(e) => handleSpeak(e, termText)}
-              title="Phát âm tiếng Anh (en-US)"
-              aria-label="Phát âm từ vựng"
-            >
-              <Volume2 size={20} />
-            </button>
-          </div>
-
-          {/* FRONT FACE */}
-          <div className="flashcard-face flashcard-front">
             <div className="flashcard-content-wrap">
               {isTermOnFront ? (
                 <>
@@ -304,6 +342,29 @@ export default function FlashcardView({ cards = [], onToast }) {
 
           {/* BACK FACE */}
           <div className="flashcard-face flashcard-back">
+            {/* Card Top Action Bar (Inside Back Face) */}
+            <div className="flashcard-top-bar" onClick={(e) => e.stopPropagation()}>
+              <div className="flashcard-face-badge">
+                <span>{isTermOnFront ? 'Định nghĩa' : 'Thuật ngữ'}</span>
+              </div>
+
+              {/* Hint / Flip badge */}
+              <div className="flashcard-flip-hint">
+                <span>Nhấn Space hoặc nhấp thẻ để lật lại</span>
+              </div>
+
+              {/* Audio Button on card */}
+              <button
+                type="button"
+                className="flashcard-speaker-btn"
+                onClick={(e) => handleSpeak(e, termText)}
+                title="Phát âm tiếng Anh (en-US)"
+                aria-label="Phát âm từ vựng"
+              >
+                <Volume2 size={20} />
+              </button>
+            </div>
+
             <div className="flashcard-content-wrap">
               {isTermOnFront ? (
                 <>
@@ -419,14 +480,15 @@ export default function FlashcardView({ cards = [], onToast }) {
           <ChevronRight size={22} />
         </button>
 
-        {/* Action Toggles: Shuffle & Restart */}
+        {/* Action Toggles: Shuffle, Restart & Zen Mode */}
         <div className="flashcard-aux-actions">
           <button
             type="button"
             className={`flashcard-tool-btn ${isShuffled ? 'is-active' : ''}`}
             onClick={handleToggleShuffle}
-            title={isShuffled ? 'Tắt trộn thẻ' : 'Trộn ngẫu nhiên thẻ'}
+            title={isShuffled ? 'Tắt trộn thẻ' : 'Trộn ngẫu nhiên thẻ (S)'}
             aria-pressed={isShuffled}
+            aria-label="Trộn ngẫu nhiên thẻ"
           >
             <Shuffle size={17} />
           </button>
@@ -435,12 +497,37 @@ export default function FlashcardView({ cards = [], onToast }) {
             type="button"
             className="flashcard-tool-btn"
             onClick={handleRestart}
-            title="Bắt đầu lại từ đầu"
+            title="Bắt đầu lại từ đầu (R)"
             aria-label="Bắt đầu lại"
           >
             <RotateCcw size={17} />
           </button>
+
+          <button
+            type="button"
+            className={`flashcard-tool-btn ${isZenMode ? 'is-active' : ''}`}
+            onClick={() => setIsZenMode(!isZenMode)}
+            title={isZenMode ? 'Thoát chế độ tập trung (Esc)' : 'Chế độ tập trung Zen Mode'}
+            aria-label="Chế độ tập trung"
+          >
+            {isZenMode ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+          </button>
         </div>
+      </div>
+
+      {/* 3. Keyboard & Gesture Shortcuts Legend */}
+      <div className="flashcard-shortcuts-legend">
+        <span className="shortcut-item">
+          <kbd className="flashcard-kbd">Space</kbd> Lật thẻ
+        </span>
+        <span className="shortcut-divider">·</span>
+        <span className="shortcut-item">
+          <kbd className="flashcard-kbd">←</kbd> <kbd className="flashcard-kbd">→</kbd> Chuyển thẻ / Vuốt màn hình
+        </span>
+        <span className="shortcut-divider">·</span>
+        <span className="shortcut-item">
+          <kbd className="flashcard-kbd">Esc</kbd> Thoát Zen
+        </span>
       </div>
     </div>
   );

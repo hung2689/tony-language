@@ -1,29 +1,49 @@
 /* Inter font loaded via index.html */
 :root {
-  /* Monochrome Design Tokens */
-  --bg-page: #f9fafb;
+  /* ==========================================================================
+     Light Mode Design Tokens
+     ========================================================================== */
+  --bg-page: #f8fafc;
   --bg-card: #ffffff;
-  --bg-subtle: #f3f4f6;
-  --bg-hover: #f3f4f6;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --bg-hover: #f1f5f9;
 
-  --primary: #111827;
-  --primary-hover: #1f2937;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
   --primary-text: #ffffff;
 
-  --text-main: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
-  --text-light: #9ca3af;
-
-  --border-color: #e5e7eb;
-  --border-focus: #111827;
-
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-  --danger-light: #fef2f2;
-
+  --accent-blue: #2563eb;
+  --accent-blue-hover: #1d4ed8;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
   --warning: #f59e0b;
-  --warning-light: #fffbeb;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #ef4444;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --streak: #f97316;
+
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+
+  --border-color: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-focus: #0f172a;
+
+  /* Aliases used across features */
+  --color-bg: var(--bg-page);
+  --color-card: var(--bg-card);
+  --color-surface: var(--bg-surface);
+  --color-text: var(--text-main);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border-color);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -35,6 +55,59 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  --theme-transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+/* ==========================================================================
+   Dark Mode Design Tokens (Deep Slate / WCAG AA High Contrast)
+   ========================================================================== */
+[data-theme='dark'] {
+  --bg-page: #0f172a;               /* slate-900 */
+  --bg-card: #1e293b;               /* slate-800 */
+  --bg-surface: #1e293b;            /* slate-800 */
+  --bg-surface-elevated: #273449;   /* elevated surface for banner, dropdown, dock */
+  --bg-subtle: #1e293b;
+  --bg-hover: #334155;
+
+  --primary: #f1f5f9;               /* slate-100 */
+  --primary-hover: #e2e8f0;
+  --primary-text: #0f172a;
+
+  --accent-blue: #60a5fa;           /* slate-400 blue accent */
+  --accent-blue-hover: #93c5fd;
+  --success: #34d399;               /* emerald-400 */
+  --success-bg: rgba(52, 211, 153, 0.15);
+  --success-border: rgba(52, 211, 153, 0.35);
+  --warning: #fbbf24;               /* amber-400 */
+  --warning-bg: rgba(251, 191, 36, 0.15);
+  --warning-border: rgba(251, 191, 36, 0.35);
+  --danger: #f87171;                /* red-400 */
+  --danger-bg: rgba(248, 113, 113, 0.15);
+  --danger-border: rgba(248, 113, 113, 0.35);
+  --streak: #fb923c;                /* orange-400 */
+
+  --text-main: #f1f5f9;             /* slate-100 (contrast > 12:1) */
+  --text-secondary: #cbd5e1;        /* slate-300 (contrast > 9:1) */
+  --text-muted: #94a3b8;            /* slate-400 (strictly >= #8a9bb3, contrast > 5.4:1) */
+  --text-light: #94a3b8;
+
+  --border-color: #334155;          /* slate-700 1px thin */
+  --border-subtle: #334155;
+  --border-focus: #60a5fa;
+
+  /* Aliases used across features */
+  --color-bg: var(--bg-page);
+  --color-card: var(--bg-card);
+  --color-surface: var(--bg-surface);
+  --color-text: var(--text-main);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border-color);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -1px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -43,13 +116,43 @@
   padding: 0;
 }
 
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 body {
   font-family: var(--font-family);
   background-color: var(--bg-page);
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow: hidden;
+  transition: var(--theme-transition);
+}
+
+/* Smooth transition for theme switching on surfaces and interactive elements */
+body,
+button,
+input,
+select,
+textarea,
+header,
+nav,
+.stat-box,
+.study-plan-progress-container,
+.study-plan-section,
+.study-plan-hero-card,
+.achievements-card-container,
+.achievement-tile,
+.analytics-section,
+.magic-dock-inner,
+.monochrome-deck-card,
+.study-plan-modal-card {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
 
 button, input, select, textarea {
@@ -307,6 +410,198 @@ button, input, select, textarea {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ==========================================================================
+   Confirm Dialog (Minimalist UI - Black, White & Grayscale)
+   ========================================================================== */
+
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+  animation: confirmFadeIn 0.15s ease-out;
+}
+
+@keyframes confirmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.confirm-dialog-container {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 500px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  animation: confirmScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes confirmScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.confirm-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.confirm-dialog-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confirm-dialog-icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  border: 1px solid #e5e5e5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.confirm-dialog-icon {
+  color: #171717;
+}
+
+.confirm-dialog-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #171717;
+  margin: 0;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.confirm-dialog-close-btn {
+  background: none;
+  border: none;
+  color: #737373;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.confirm-dialog-close-btn:hover:not(:disabled) {
+  color: #171717;
+  background-color: #f5f5f5;
+}
+
+.confirm-dialog-content {
+  margin-top: 16px;
+  margin-bottom: 26px;
+}
+
+.confirm-dialog-message {
+  font-size: 0.95rem;
+  color: #737373;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.confirm-dialog-btn-secondary {
+  background-color: #ffffff;
+  color: #171717;
+  border: 1px solid #e5e5e5;
+  border-radius: 11px;
+  padding: 9px 20px;
+  font-size: 0.925rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-dialog-btn-secondary:hover:not(:disabled) {
+  background-color: #f5f5f5;
+  border-color: #d4d4d4;
+}
+
+.confirm-dialog-btn-primary {
+  background-color: #171717;
+  color: #ffffff;
+  border: 1px solid #171717;
+  border-radius: 11px;
+  padding: 9px 22px;
+  font-size: 0.925rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-dialog-btn-primary:hover:not(:disabled) {
+  background-color: #333333;
+  border-color: #333333;
+}
+
+.confirm-dialog-btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.confirm-dialog-btn-primary:disabled,
+.confirm-dialog-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .confirm-dialog-container {
+    padding: 20px 18px;
+    max-width: 90vw;
+  }
+
+  .confirm-dialog-title {
+    font-size: 1.2rem;
+  }
+
+  .confirm-dialog-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .confirm-dialog-btn-primary,
+  .confirm-dialog-btn-secondary {
+    width: 100%;
+    text-align: center;
+    padding: 11px;
+  }
 }
 
 /* Tabs */
