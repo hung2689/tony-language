@@ -12,7 +12,7 @@ import {
 describe('studyModeRegistry', () => {
   it('defines all required initial study modes with full metadata', () => {
     const ids = STUDY_MODES.map((m) => m.id);
-    expect(ids).toEqual(['flashcard', 'learn', 'story', 'test-game', 'dictation']);
+    expect(ids).toEqual(['flashcard', 'learn', 'story', 'sentence', 'test-game', 'dictation']);
 
     for (const mode of STUDY_MODES) {
       expect(mode).toHaveProperty('id');
@@ -25,16 +25,17 @@ describe('studyModeRegistry', () => {
     }
   });
 
-  it('marks flashcard, learn and story as available', () => {
+  it('marks flashcard, learn, story and sentence as available', () => {
     const available = getAvailableModes();
-    expect(available).toHaveLength(3);
-    expect(available.map((m) => m.id)).toEqual(['flashcard', 'learn', 'story']);
+    expect(available).toHaveLength(4);
+    expect(available.map((m) => m.id)).toEqual(['flashcard', 'learn', 'story', 'sentence']);
   });
 
   it('correctly identifies routable modes', () => {
     expect(isModeRoutable('flashcard')).toBe(true);
     expect(isModeRoutable('learn')).toBe(true);
     expect(isModeRoutable('story')).toBe(true);
+    expect(isModeRoutable('sentence')).toBe(true);
     expect(isModeRoutable('test-game')).toBe(false);
     expect(isModeRoutable('dictation')).toBe(false);
     expect(isModeRoutable('non-existent')).toBe(false);
@@ -49,6 +50,7 @@ describe('studyModeRegistry', () => {
   it('looks up mode by id correctly', () => {
     expect(getModeById('learn')?.label).toBe('Học');
     expect(getModeById('story')?.label).toBe('Đoạn văn ngữ cảnh');
+    expect(getModeById('sentence')?.label).toBe('Đặt câu (AI)');
     expect(getModeById('unknown')).toBeNull();
   });
 
@@ -56,6 +58,7 @@ describe('studyModeRegistry', () => {
     expect(getModeRoute(42, 'flashcard')).toBe('/decks/42');
     expect(getModeRoute(42, 'learn')).toBe('/decks/42/learn');
     expect(getModeRoute(42, 'story')).toBe('/decks/42/story');
+    expect(getModeRoute(42, 'sentence')).toBe('/decks/42/sentence');
     expect(getModeRoute(42, 'test-game')).toBe('/decks/42/test');
     expect(getModeRoute(42, 'dictation')).toBe('/decks/42/dictation');
   });
@@ -79,6 +82,13 @@ describe('studyModeRegistry', () => {
       const res = resolveStudyModeRoute(42, '/decks/42/story');
       expect(res.valid).toBe(true);
       expect(res.modeId).toBe('story');
+      expect(res.redirectTo).toBeNull();
+    });
+
+    it('allows available mode /decks/42/sentence without redirection', () => {
+      const res = resolveStudyModeRoute(42, '/decks/42/sentence');
+      expect(res.valid).toBe(true);
+      expect(res.modeId).toBe('sentence');
       expect(res.redirectTo).toBeNull();
     });
 

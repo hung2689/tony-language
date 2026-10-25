@@ -1,6 +1,7 @@
-import { Layers, GraduationCap, Gamepad2, Headphones, BookOpen } from 'lucide-react';
+import { Layers, GraduationCap, Gamepad2, Headphones, BookOpen, PenTool } from 'lucide-react';
 import FlashcardView from '../features/decks/FlashcardView';
 import ContextStoryCloze from '../features/decks/ContextStoryCloze';
+import SentenceChallengeView from '../features/decks/SentenceChallengeView';
 
 /**
  * Study Mode Registry Configuration
@@ -40,6 +41,17 @@ export const STUDY_MODES = [
     status: 'available',
     component: ContextStoryCloze,
     description: 'Tạo đoạn văn ngữ cảnh và điền từ vựng vào ô trống',
+  },
+  {
+    id: 'sentence',
+    label: 'Đặt câu (AI)',
+    icon: PenTool,
+    iconName: 'PenTool',
+    subpath: 'sentence',
+    route: (deckId) => `/decks/${deckId}/sentence`,
+    status: 'available',
+    component: SentenceChallengeView,
+    description: 'Luyện dịch và đặt câu với từ vựng, AI phân tích & chấm điểm tức thì',
   },
   {
     id: 'test-game',
