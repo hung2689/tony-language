@@ -29,29 +29,32 @@ public class SentenceChallengeController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<SentenceChallengeItemDto>>> getChallenges(
             @PathVariable Long deckId,
-            @RequestParam(defaultValue = "5") int limit
+            @RequestParam(defaultValue = "5") int limit,
+            @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
     ) {
         Long userId = currentUserProvider.getCurrentUserId();
-        List<SentenceChallengeItemDto> challenges = sentenceChallengeService.generateChallenges(userId, deckId, limit);
+        List<SentenceChallengeItemDto> challenges = sentenceChallengeService.generateChallenges(userId, deckId, limit, customApiKey);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách thử thách đặt câu thành công", challenges));
     }
 
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<List<SentenceChallengeItemDto>>> generateChallenges(
             @PathVariable Long deckId,
-            @RequestParam(defaultValue = "5") int limit
+            @RequestParam(defaultValue = "5") int limit,
+            @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
     ) {
         Long userId = currentUserProvider.getCurrentUserId();
-        List<SentenceChallengeItemDto> challenges = sentenceChallengeService.generateChallenges(userId, deckId, limit);
+        List<SentenceChallengeItemDto> challenges = sentenceChallengeService.generateChallenges(userId, deckId, limit, customApiKey);
         return ResponseEntity.ok(ApiResponse.success("Khởi tạo thử thách đặt câu AI thành công", challenges));
     }
 
     @PostMapping("/evaluate")
     public ResponseEntity<ApiResponse<SentenceEvaluationResponse>> evaluateSentence(
             @PathVariable Long deckId,
-            @Valid @RequestBody SentenceEvaluationRequest request
+            @Valid @RequestBody SentenceEvaluationRequest request,
+            @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
     ) {
-        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request);
+        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request, customApiKey);
         return ResponseEntity.ok(ApiResponse.success("AI chấm điểm câu dịch thành công", response));
     }
 }

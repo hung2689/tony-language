@@ -1,3 +1,5 @@
+import { getGeminiApiKey } from '../utils/aiKeyStorage';
+
 function resolveApiBaseUrl() {
   const envUrl = import.meta.env?.VITE_API_BASE_URL;
   if (!envUrl) return '/api';
@@ -219,6 +221,12 @@ export async function request(endpoint, options = {}) {
   // Ensure CSRF header for refresh & logout endpoints
   if (endpoint.startsWith('/auth/refresh') || endpoint.startsWith('/auth/logout')) {
     headers['X-Requested-With'] = 'XMLHttpRequest';
+  }
+
+  // Attach User's personal Gemini API Key if configured (BYOK architecture)
+  const userGeminiKey = getGeminiApiKey();
+  if (userGeminiKey && !headers['X-Gemini-Api-Key']) {
+    headers['X-Gemini-Api-Key'] = userGeminiKey;
   }
 
   const config = {

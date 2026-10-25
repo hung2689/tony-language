@@ -122,7 +122,7 @@ public class SentenceChallengeServiceTest {
 
     @Test
     void evaluateSentence_UsesGeminiWhenConfigured() {
-        when(geminiSentenceService.isConfigured()).thenReturn(true);
+        when(geminiSentenceService.isAvailable(any())).thenReturn(true);
         SentenceEvaluationRequest request = new SentenceEvaluationRequest(
                 101L,
                 "exhausted",
@@ -140,9 +140,9 @@ public class SentenceChallengeServiceTest {
                 "Today I was exhausted.",
                 List.of()
         );
-        when(geminiSentenceService.evaluateSentence(request)).thenReturn(mockGeminiResp);
+        when(geminiSentenceService.evaluateSentence(eq(request), any())).thenReturn(mockGeminiResp);
 
-        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request);
+        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request, "custom-user-key");
 
         assertNotNull(response);
         assertEquals(95, response.getScore());

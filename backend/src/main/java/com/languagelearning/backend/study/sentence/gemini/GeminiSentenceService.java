@@ -1,6 +1,5 @@
 package com.languagelearning.backend.study.sentence.gemini;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.languagelearning.backend.study.sentence.dto.SentenceChallengeItemDto;
@@ -46,10 +45,28 @@ public class GeminiSentenceService {
     }
 
     /**
-     * Checks whether Gemini API Key is configured and ready to use.
+     * Checks whether server-level Gemini API Key is configured.
      */
     public boolean isConfigured() {
         return !apiKey.isEmpty() && !apiKey.equalsIgnoreCase("none");
+    }
+
+    /**
+     * Resolves effective API Key: priority is given to customApiKey (BYOK from user request),
+     * with fallback to server-configured apiKey.
+     */
+    public String resolveApiKey(String customApiKey) {
+        if (customApiKey != null && !customApiKey.trim().isEmpty() && !customApiKey.equalsIgnoreCase("none")) {
+            return customApiKey.trim();
+        }
+        if (isConfigured()) {
+            return this.apiKey;
+        }
+        return null;
+    }
+
+    public boolean isAvailable(String customApiKey) {
+        return resolveApiKey(customApiKey) != null;
     }
 
     public String getModel() {
@@ -57,11 +74,31 @@ public class GeminiSentenceService {
     }
 
     /**
-     * Generates active sentence translation challenges via Gemini LLM.
+     * Validates a provided user Gemini API key with a fast ping.
+     */
+    public boolean testApiKey(String testKey) {
+        if (testKey == null || testKey.isBlank()) return false;
+        try {
+            String testPrompt = "Return a JSON object with key 'status' set to 'OK'.";
+            String res = callGeminiApi(testPrompt, testKey.trim());
+            return res != null && !res.isBlank();
+        } catch (Exception e) {
+            log.warn("Gemini testApiKey failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public List<SentenceChallengeItemDto> generateChallenges(List<Vocabulary> vocabularies) {
+        return generateChallenges(vocabularies, null);
+    }
+
+    /**
+     * Generates active sentence translation challenges via Gemini LLM using user or server API key.
      * Returns null on any failure to signal fallback to local NLP engine.
      */
-    public List<SentenceChallengeItemDto> generateChallenges(List<Vocabulary> vocabularies) {
-        if (!isConfigured() || vocabularies == null || vocabularies.isEmpty()) {
+    public List<SentenceChallengeItemDto> generateChallenges(List<Vocabulary> vocabularies, String customApiKey) {
+        String activeKey = resolveApiKey(customApiKey);
+        if (activeKey == null || vocabularies == null || vocabularies.isEmpty()) {
             return null;
         }
 
@@ -95,14 +132,13 @@ public class GeminiSentenceService {
                     - "targetKeywords": (array of strings, including base form and inflections of targetWord)
                     """.formatted(vocabListBuilder.toString());
 
-            String rawJson = callGeminiApi(prompt);
+            String rawJson = callGeminiApi(prompt, activeKey);
             if (rawJson == null || rawJson.isBlank()) {
                 return null;
             }
 
             JsonNode rootNode = objectMapper.readTree(rawJson);
             if (!rootNode.isArray()) {
-                // If wrapped in object like { "challenges": [...] }
                 if (rootNode.has("challenges") && rootNode.get("challenges").isArray()) {
                     rootNode = rootNode.get("challenges");
                 } else {
@@ -130,7 +166,6 @@ public class GeminiSentenceService {
                     keywords.add(targetWord.toLowerCase());
                 }
 
-                // Match vocabulary for part of speech & phonetic
                 Vocabulary matchedVocab = vocabularies.stream()
                         .filter(v -> (termId != null && Objects.equals(v.getId(), termId)) || v.getWord().equalsIgnoreCase(targetWord))
                         .findFirst()
@@ -162,12 +197,17 @@ public class GeminiSentenceService {
         }
     }
 
+    public SentenceEvaluationResponse evaluateSentence(SentenceEvaluationRequest request) {
+        return evaluateSentence(request, null);
+    }
+
     /**
-     * Evaluates learner's English sentence with Gemini LLM.
+     * Evaluates learner's English sentence with Gemini LLM using user or server API key.
      * Returns null on any failure to signal fallback to local NLP engine.
      */
-    public SentenceEvaluationResponse evaluateSentence(SentenceEvaluationRequest request) {
-        if (!isConfigured() || request == null) {
+    public SentenceEvaluationResponse evaluateSentence(SentenceEvaluationRequest request, String customApiKey) {
+        String activeKey = resolveApiKey(customApiKey);
+        if (activeKey == null || request == null) {
             return null;
         }
 
@@ -197,7 +237,7 @@ public class GeminiSentenceService {
                     request.getReferenceEnglish() != null ? request.getReferenceEnglish() : ""
             );
 
-            String rawJson = callGeminiApi(prompt);
+            String rawJson = callGeminiApi(prompt, activeKey);
             if (rawJson == null || rawJson.isBlank()) {
                 return null;
             }
@@ -242,8 +282,8 @@ public class GeminiSentenceService {
     /**
      * Executes REST call to Gemini 1.5 Flash endpoint with structured JSON output configuration.
      */
-    private String callGeminiApi(String promptText) throws Exception {
-        String endpoint = String.format("%s/%s:generateContent?key=%s", baseUrl, model, apiKey);
+    private String callGeminiApi(String promptText, String effectiveApiKey) throws Exception {
+        String endpoint = String.format("%s/%s:generateContent?key=%s", baseUrl, model, effectiveApiKey);
 
         Map<String, Object> textPart = Map.of("text", promptText);
         Map<String, Object> content = Map.of("parts", List.of(textPart));
@@ -298,7 +338,6 @@ public class GeminiSentenceService {
     private String cleanJsonOutput(String rawText) {
         if (rawText == null) return null;
         String trimmed = rawText.trim();
-        // Remove markdown block backticks if present
         if (trimmed.startsWith("```json")) {
             trimmed = trimmed.substring(7);
         } else if (trimmed.startsWith("```")) {

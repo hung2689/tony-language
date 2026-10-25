@@ -36,6 +36,10 @@ public class SentenceChallengeService {
      * Generates active sentence translation challenges for the given deck.
      */
     public List<SentenceChallengeItemDto> generateChallenges(Long userId, Long deckId, int limit) {
+        return generateChallenges(userId, deckId, limit, null);
+    }
+
+    public List<SentenceChallengeItemDto> generateChallenges(Long userId, Long deckId, int limit, String customApiKey) {
         VocabularySet deck = vocabularySetRepository.findByIdAndUserId(deckId, userId)
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
 
@@ -50,9 +54,9 @@ public class SentenceChallengeService {
         int takeCount = Math.min(pool.size(), Math.max(1, limit > 0 ? limit : 5));
         List<Vocabulary> selected = pool.subList(0, takeCount);
 
-        // Try generating with Gemini LLM if configured
-        if (geminiSentenceService != null && geminiSentenceService.isConfigured()) {
-            List<SentenceChallengeItemDto> geminiItems = geminiSentenceService.generateChallenges(selected);
+        // Try generating with Gemini LLM if configured or custom key provided
+        if (geminiSentenceService != null && geminiSentenceService.isAvailable(customApiKey)) {
+            List<SentenceChallengeItemDto> geminiItems = geminiSentenceService.generateChallenges(selected, customApiKey);
             if (geminiItems != null && !geminiItems.isEmpty()) {
                 return geminiItems;
             }
@@ -103,9 +107,13 @@ public class SentenceChallengeService {
     }
 
     /**
-     * Evaluates user's translated sentence with smart AI checking heuristics.
+     * Evaluates user's translated sentence with smart AI checking heuristics or Gemini.
      */
     public SentenceEvaluationResponse evaluateSentence(SentenceEvaluationRequest request) {
+        return evaluateSentence(request, null);
+    }
+
+    public SentenceEvaluationResponse evaluateSentence(SentenceEvaluationRequest request, String customApiKey) {
         String userSentence = request.getUserSentence() != null ? request.getUserSentence().trim() : "";
         String targetWord = request.getTargetWord() != null ? request.getTargetWord().trim() : "";
         String reference = request.getReferenceEnglish() != null ? request.getReferenceEnglish().trim() : "";
@@ -123,9 +131,9 @@ public class SentenceChallengeService {
             );
         }
 
-        // Try evaluating with Gemini LLM if configured
-        if (geminiSentenceService != null && geminiSentenceService.isConfigured()) {
-            SentenceEvaluationResponse geminiResponse = geminiSentenceService.evaluateSentence(request);
+        // Try evaluating with Gemini LLM if configured or custom key provided
+        if (geminiSentenceService != null && geminiSentenceService.isAvailable(customApiKey)) {
+            SentenceEvaluationResponse geminiResponse = geminiSentenceService.evaluateSentence(request, customApiKey);
             if (geminiResponse != null) {
                 return geminiResponse;
             }

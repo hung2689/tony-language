@@ -15,9 +15,12 @@ import {
   Check,
   X,
   RefreshCw,
+  Key,
 } from 'lucide-react';
 import { sentenceChallengeService } from '../../services/sentenceChallengeService';
 import { speakEnglishTerm } from '../../utils/speechUtils';
+import { hasGeminiApiKey } from '../../utils/aiKeyStorage';
+import GeminiKeyModal from '../../components/common/GeminiKeyModal';
 import './SentenceChallenge.css';
 
 export default function SentenceChallengeView({
@@ -35,8 +38,21 @@ export default function SentenceChallengeView({
   const [history, setHistory] = useState([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  const [hasCustomKey, setHasCustomKey] = useState(() => hasGeminiApiKey());
 
   const textareaRef = useRef(null);
+
+  // Sync API key status
+  useEffect(() => {
+    const handleKeyChange = () => {
+      setHasCustomKey(hasGeminiApiKey());
+    };
+    window.addEventListener('gemini_api_key_changed', handleKeyChange);
+    return () => {
+      window.removeEventListener('gemini_api_key_changed', handleKeyChange);
+    };
+  }, []);
 
   // Load sentence challenges
   const loadChallenges = useCallback(
@@ -354,6 +370,17 @@ export default function SentenceChallengeView({
         </div>
 
         <div className="sentence-header-right">
+          <button
+            type="button"
+            className={`sentence-gemini-badge ${hasCustomKey ? 'is-active' : 'is-missing'}`}
+            onClick={() => setIsKeyModalOpen(true)}
+            title="Cấu hình Google Gemini AI Key cá nhân"
+          >
+            <Key size={13} />
+            <span>{hasCustomKey ? 'Gemini AI' : 'Nạp AI Key'}</span>
+            <span className={`sentence-key-dot ${hasCustomKey ? 'is-green' : 'is-amber'}`} />
+          </button>
+
           <span className="sentence-progress-text">
             Câu <strong>{currentIndex + 1}</strong> / {challenges.length}
           </span>
@@ -367,6 +394,26 @@ export default function SentenceChallengeView({
           </button>
         </div>
       </div>
+
+      {/* BYOK Hint Banner if not configured */}
+      {!hasCustomKey && (
+        <div className="sentence-byok-banner">
+          <div className="sentence-byok-left">
+            <Sparkles size={16} className="sentence-byok-sparkle" />
+            <span>
+              <strong>Kích hoạt Gemini AI cá nhân:</strong> Tự động đặt câu phong phú theo ngữ cảnh và chấm điểm như người bản xứ.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="sentence-byok-btn"
+            onClick={() => setIsKeyModalOpen(true)}
+          >
+            <Key size={13} />
+            <span>Nạp API Key miễn phí</span>
+          </button>
+        </div>
+      )}
 
       {/* Progress Line */}
       <div className="sentence-progress-track">
@@ -583,6 +630,14 @@ export default function SentenceChallengeView({
           </div>
         )}
       </div>
+
+      {/* Personal Gemini AI Key Modal */}
+      <GeminiKeyModal
+        isOpen={isKeyModalOpen}
+        onClose={() => setIsKeyModalOpen(false)}
+        onSuccess={() => loadChallenges(true)}
+        onToast={onToast}
+      />
     </div>
   );
 }
