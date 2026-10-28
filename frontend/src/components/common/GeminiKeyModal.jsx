@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react';
+import Ripple from './Ripple';
 import Modal from './Modal';
 import { getGeminiApiKey, setGeminiApiKey, removeGeminiApiKey } from '../../utils/aiKeyStorage';
 import { request } from '../../services/api';
@@ -86,6 +87,18 @@ export default function GeminiKeyModal({
     onSuccess?.();
   };
 
+  const handleForceSave = () => {
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+      setStatus({ type: 'error', text: 'Vui lòng nhập API Key để lưu.' });
+      return;
+    }
+    setGeminiApiKey(cleanKey);
+    onToast?.('Đã lưu Gemini API Key cá nhân vào trình duyệt!', 'success');
+    onSuccess?.();
+    onClose();
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -114,7 +127,7 @@ export default function GeminiKeyModal({
           <span>Key được lưu an toàn trên trình duyệt (LocalStorage) của bạn và không lưu vào CSDL máy chủ.</span>
         </div>
 
-        {/* Guide link */}
+        {/* Guide link & Tip */}
         <div className="gemini-guide-row">
           <span>Chưa có key? Lấy miễn phí trong 30 giây:</span>
           <a
@@ -126,6 +139,14 @@ export default function GeminiKeyModal({
             <span>Google AI Studio</span>
             <ExternalLink size={13} />
           </a>
+        </div>
+
+        <div className="gemini-tip-box">
+          <span className="gemini-tip-icon">💡</span>
+          <div className="gemini-tip-text">
+            <strong>Mẹo khi tạo Key:</strong> Hãy chọn{' '}
+            <code>"Create API key in new project"</code> (Tạo trong project mới) để key được Google tự động kích hoạt quyền gọi API và cấp 100% hạn mức miễn phí.
+          </div>
         </div>
 
         {/* Form */}
@@ -140,7 +161,7 @@ export default function GeminiKeyModal({
               id="gemini-key-input"
               type={showKey ? 'text' : 'password'}
               className="gemini-key-input"
-              placeholder="AIzaSy..."
+              placeholder="AIzaSy... hoặc AQ.Ab8..."
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               disabled={testing}
@@ -186,6 +207,16 @@ export default function GeminiKeyModal({
             )}
 
             <div className="gemini-actions-right">
+              {status?.type === 'error' && apiKey.trim() && (
+                <button
+                  type="button"
+                  className="gemini-force-save-btn"
+                  onClick={handleForceSave}
+                  title="Lưu trực tiếp key vào trình duyệt mà không cần kiểm tra qua server"
+                >
+                  Vẫn lưu key này
+                </button>
+              )}
               <button
                 type="button"
                 className="gemini-cancel-btn"
@@ -201,7 +232,7 @@ export default function GeminiKeyModal({
               >
                 {testing ? (
                   <>
-                    <RefreshCw size={15} className="gemini-spinner" />
+                    <Ripple size={16} color="currentColor" />
                     <span>Đang kiểm tra...</span>
                   </>
                 ) : (

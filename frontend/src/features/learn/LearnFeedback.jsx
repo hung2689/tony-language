@@ -1,9 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Settings, CheckCircle2, XCircle, Volume2, ArrowRight } from 'lucide-react';
+import { Settings, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { speakEnglishTerm } from '../../utils/speechUtils';
 import { playCorrectSound, playWrongSound } from '../../utils/soundEffects';
 
 export default function LearnFeedback({
+  deck,
   feedback,
   currentQuestion: _currentQuestion,
   sessionStats,
@@ -27,7 +28,7 @@ export default function LearnFeedback({
     onNextRef.current = onNextQuestion;
   });
 
-  // Enable advancing after a brief grace period (350ms) so Enter keydown from submitting does not leak
+  // Grace period (350ms) so Enter keydown from submitting doesn't trigger advance instantly
   useEffect(() => {
     canAdvanceRef.current = false;
     const timer = setTimeout(() => {
@@ -36,7 +37,7 @@ export default function LearnFeedback({
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  // Play audio sound and speech on mount
+  // Audio and speech effects
   useEffect(() => {
     // 1. Sound effects
     if (options?.soundEffects) {
@@ -52,9 +53,8 @@ export default function LearnFeedback({
       speakEnglishTerm(card.term);
     }
 
-    // 3. Auto-advance for correct answers only if user explicitly turned on autoAdvance
+    // 3. Auto-advance for correct answers if enabled
     if (isCorrect && options?.autoAdvance) {
-      // Auto-advance after 2s
       autoAdvanceTimerRef.current = setTimeout(() => {
         onNextRef.current?.();
       }, 2000);
@@ -99,34 +99,54 @@ export default function LearnFeedback({
   };
 
   // Progress bar calculation
-  const totalCards = sessionStats?.totalWords ?? sessionStats?.totalCards ?? 1;
-  const masteredCount = sessionStats?.masteredWords ?? sessionStats?.masteredCount ?? 0;
-  const numSegments = Math.min(10, totalCards);
-  const segments = Array.from({ length: numSegments }, (_, i) => {
-    const threshold = ((i + 1) / numSegments) * totalCards;
-    return masteredCount >= threshold;
-  });
+  const totalWords = sessionStats?.totalWords ?? sessionStats?.totalCards ?? 1;
+  const masteredWords = sessionStats?.masteredWords ?? sessionStats?.masteredCount ?? 0;
+  const fillRatio = totalWords > 0 ? Math.min(1, Math.max(0, masteredWords / totalWords)) : 0;
+  const percent = Math.round(fillRatio * 100);
 
   return (
-    <div className="learn-session-wrapper">
-      {/* Top Bar */}
-      <header className="learn-top-bar">
+    <div className="learn-session-wrapper vintage-learn-container">
+      {/* Top Header Row with Vintage Pirate Navigation */}
+      <header className="vintage-deck-header-row learn-vintage-header">
+        {/* Left: Vintage Back Button */}
         <button
           type="button"
-          className="learn-back-btn"
+          className="vintage-header-back-btn"
           onClick={onExit}
+          title="Thoát phiên học"
           aria-label="Thoát phiên học"
         >
-          <ArrowLeft size={18} />
-          <span>Thoát</span>
+          <img src="/assets/flashcard/button-back.png" alt="Thoát" />
         </button>
 
-        <div className="learn-top-bar-center" />
+        {/* Center: Classic Ornamental Book Title */}
+        <div className="vintage-header-title-ribbon" title={deck?.name}>
+          <span className="vintage-title-flourish is-left" aria-hidden="true">
+            <span className="flourish-line" />
+            <span className="flourish-diamond">◆</span>
+            <span className="flourish-dot">•</span>
+          </span>
+          <div className="vintage-ribbon-content">
+            <img
+              src="/assets/decor_icon/decor_vocabulary_book.png"
+              alt=""
+              className="vintage-title-book-icon"
+            />
+            <h1 className="vintage-ribbon-text">{deck?.name || 'Hải trình Học tập'}</h1>
+          </div>
+          <span className="vintage-title-flourish is-right" aria-hidden="true">
+            <span className="flourish-dot">•</span>
+            <span className="flourish-diamond">◆</span>
+            <span className="flourish-line" />
+          </span>
+        </div>
 
+        {/* Right: Vintage Settings Button */}
         <button
           type="button"
-          className="learn-settings-trigger-btn"
+          className="vintage-header-settings-btn"
           onClick={onOpenSettings}
+          title="Cài đặt phiên học"
           aria-label="Cài đặt phiên học"
         >
           <Settings size={18} />
@@ -134,99 +154,139 @@ export default function LearnFeedback({
         </button>
       </header>
 
-      {/* Progress Bar */}
+      {/* Voyage Nautical Progress Bar */}
       <div
-        className="learn-progress-container"
+        className="vintage-voyage-progress-container"
         role="progressbar"
-        aria-valuenow={masteredCount}
-        aria-valuemin="0"
-        aria-valuemax={totalCards}
-        aria-label="Tiến độ học tập"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Tiến độ hải trình"
       >
-        <div className="learn-progress-segments">
-          {segments.map((isFilled, idx) => (
+        <div className="vintage-voyage-track">
+          <div className="voyage-landmark start-harbor" title="Bến xuất phát">
+            <span className="landmark-icon">⚓</span>
+            <span className="landmark-label">Bến Cảng</span>
+          </div>
+
+          <div className="voyage-sea-line">
             <div
-              key={idx}
-              className={`learn-progress-segment ${isFilled ? 'is-filled' : ''}`}
+              className="voyage-sea-progress"
+              style={{ width: `${percent}%` }}
             />
-          ))}
+            <div
+              className="voyage-ship-marker"
+              style={{ left: `${percent}%` }}
+              title={`Đã thuộc: ${masteredWords}/${totalWords} từ`}
+            >
+              <img
+                src="/assets/flashcard/flashcard-ship.png"
+                alt="Thuyền thám hiểm"
+                className="voyage-ship-img"
+              />
+            </div>
+          </div>
+
+          <div className="voyage-landmark end-island" title="Đảo Kho Báu">
+            <span className="landmark-icon">🏝</span>
+            <span className="landmark-label">Kho Báu</span>
+          </div>
+        </div>
+
+        <div className="voyage-progress-counter">
+          <span>Tiến độ: <strong>{masteredWords}</strong> / {totalWords} từ đã thuộc ({percent}%)</span>
         </div>
       </div>
 
-      {/* Main Feedback Card */}
-      <main className="learn-question-card" aria-live="polite">
-        <div className={`learn-feedback-banner ${isCorrect ? 'is-correct' : 'is-wrong'}`}>
-          <div className="learn-feedback-header">
+      {/* Main Feedback Parchment Scroll */}
+      <main className="vintage-question-scroll-wrapper" aria-live="polite">
+        {/* Antique Corner Illustrations */}
+        <img
+          src="/assets/flashcard/flashcard-compass.png"
+          alt=""
+          className="vintage-corner-compass"
+          aria-hidden="true"
+        />
+        <img
+          src="/assets/flashcard/flashcard-landscape.png"
+          alt=""
+          className="vintage-corner-landscape"
+          aria-hidden="true"
+        />
+
+        {/* Result Wax Seal Stamp / Banner */}
+        <div className={`vintage-feedback-seal-banner ${isCorrect ? 'is-seal-correct' : 'is-seal-wrong'}`}>
+          <div className="vintage-seal-header">
             {isCorrect ? (
-              <CheckCircle2 size={24} className="learn-feedback-icon" />
+              <CheckCircle2 size={26} className="vintage-seal-icon" />
             ) : (
-              <XCircle size={24} className="learn-feedback-icon" />
+              <XCircle size={26} className="vintage-seal-icon" />
             )}
-            <span className="learn-feedback-title">
+            <span className="vintage-seal-title">
               {isCorrect
                 ? override
                   ? 'Đã ghi nhận đúng!'
                   : isAccepted
                   ? 'Được chấp nhận!'
                   : 'Chính xác!'
-                : 'Chưa đúng'}
+                : 'Chưa đúng, cần ghi nhớ lại'}
             </span>
           </div>
 
           {/* Details */}
-          <div className="learn-feedback-details">
+          <div className="vintage-feedback-details">
             {note && (
-              <div className="learn-feedback-row learn-accepted-note" style={{ color: '#a7f3d0' }}>
-                <span className="learn-feedback-lbl" style={{ color: '#6ee7b7' }}>Ghi chú:</span>
-                <span className="learn-feedback-val" style={{ fontWeight: 500 }}>{note}</span>
+              <div className="vintage-feedback-row vintage-note-row">
+                <span className="vintage-feedback-lbl">Ghi chú:</span>
+                <span className="vintage-feedback-val">{note}</span>
               </div>
             )}
 
             {!isCorrect && !isSkipped && userAnswer && (
-              <div className="learn-feedback-row learn-user-ans">
-                <span className="learn-feedback-lbl">Bạn đã trả lời:</span>
-                <span className="learn-feedback-val is-strikethrough">{userAnswer}</span>
+              <div className="vintage-feedback-row vintage-user-ans-row">
+                <span className="vintage-feedback-lbl">Bạn đã trả lời:</span>
+                <span className="vintage-feedback-val is-strikethrough">{userAnswer}</span>
               </div>
             )}
 
-            <div className="learn-feedback-row learn-correct-ans">
-              <span className="learn-feedback-lbl">
-                {isCorrect ? 'Đáp án:' : 'Đáp án đúng:'}
+            <div className="vintage-feedback-row vintage-correct-ans-row">
+              <span className="vintage-feedback-lbl">
+                {isCorrect ? 'Đáp án:' : 'Đáp án chính xác:'}
               </span>
-              <div className="learn-correct-ans-content">
-                <span className="learn-feedback-val is-bold">{correctAnswer}</span>
+              <div className="vintage-correct-ans-content">
+                <span className="vintage-feedback-val is-bold">{correctAnswer}</span>
                 {card?.term && (
                   <button
                     type="button"
-                    className="learn-audio-btn-inline"
+                    className="vintage-sound-btn-inline"
                     onClick={handleSpeakTerm}
                     title="Nghe lại phát âm"
                     aria-label="Nghe phát âm tiếng Anh"
                   >
-                    <Volume2 size={18} />
+                    <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
                   </button>
                 )}
               </div>
             </div>
 
             {alsoCorrect && (
-              <div className="learn-feedback-row learn-also-correct">
-                <span className="learn-feedback-lbl">Cũng đúng:</span>
-                <span className="learn-feedback-val">{alsoCorrect}</span>
+              <div className="vintage-feedback-row vintage-also-correct-row">
+                <span className="vintage-feedback-lbl">Cũng đúng:</span>
+                <span className="vintage-feedback-val">{alsoCorrect}</span>
               </div>
             )}
 
             {/* Reinforcement Details: IPA, partOfSpeech, example */}
             {(card?.pronunciation || card?.partOfSpeech || card?.example) && (
-              <div className="learn-reinforcement-box">
-                <div className="learn-reinforcement-meta">
-                  {card.partOfSpeech && <span className="learn-pos-tag">{card.partOfSpeech}</span>}
+              <div className="vintage-reinforcement-box">
+                <div className="vintage-reinforcement-meta">
+                  {card.partOfSpeech && <span className="vintage-pos-tag">{card.partOfSpeech}</span>}
                   {card.pronunciation && (
-                    <span className="learn-ipa-text">/{card.pronunciation}/</span>
+                    <span className="vintage-ipa-text">/{card.pronunciation}/</span>
                   )}
                 </div>
                 {card.example && (
-                  <div className="learn-example-text">
+                  <div className="vintage-example-text">
                     <em>"{card.example}"</em>
                   </div>
                 )}
@@ -235,49 +295,49 @@ export default function LearnFeedback({
           </div>
         </div>
 
-        {/* Read-only Input Display */}
-        <div className="learn-readonly-input-box">
+        {/* Read-only User Input Ledger Box */}
+        <div className="vintage-readonly-input-box">
           <input
             type="text"
-            className="learn-answer-input is-readonly"
-            value={userAnswer || (isSkipped ? '(Không biết)' : '')}
+            className="vintage-answer-input is-readonly"
+            value={userAnswer || (isSkipped ? '(Chưa biết)' : '')}
             readOnly
             tabIndex={-1}
           />
         </div>
 
         {/* Action Controls */}
-        <div className="learn-feedback-actions">
+        <div className="vintage-feedback-actions">
           <button
             type="button"
-            className="learn-continue-btn"
+            className="vintage-continue-btn"
             onClick={handleNext}
           >
-            <span>Tiếp tục</span>
-            <kbd className="learn-key-badge">↵</kbd>
+            <span>Tiếp tục hải trình</span>
+            <kbd className="vintage-key-badge">↵</kbd>
             <ArrowRight size={18} />
           </button>
 
           {!isCorrect && (
             <button
               type="button"
-              className="learn-override-link-btn"
+              className="vintage-override-link-btn"
               onClick={onOverride}
             >
-              Tôi đã đúng (Chấp nhận đáp án này)
+              <span>✏ Câu trả lời của tôi lẽ ra nên được chấp nhận</span>
             </button>
           )}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="learn-session-footer">
+      <footer className="vintage-session-footer">
         <span>
-          Đã hoàn thành: {masteredCount} / {totalCards}
+          Hải trình: {distinctCardCount} / {totalWords} từ khảo nghiệm
         </span>
-        <span className="learn-footer-divider">•</span>
+        <span className="vintage-footer-divider">•</span>
         <span>
-          Câu hỏi: {distinctCardCount} / {totalCards}
+          Đã thành thạo: {masteredWords} / {totalWords} từ
         </span>
       </footer>
     </div>

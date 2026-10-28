@@ -1,13 +1,9 @@
 import { useState } from 'react';
 import {
-  ArrowLeft,
-  Play,
-  FileEdit,
   Clock,
   ArrowLeftRight,
   GraduationCap,
   Settings,
-  BookOpen,
 } from 'lucide-react';
 
 export default function LearnSetup({
@@ -54,180 +50,195 @@ export default function LearnSetup({
   };
 
   return (
-    <div className="learn-setup-container">
-      {/* Top Bar Navigation */}
-      <header className="learn-top-bar">
+    <div className="learn-setup-container vintage-learn-container">
+      {/* Top Bar Navigation with Vintage Pirate Navigation */}
+      <header className="vintage-deck-header-row learn-vintage-header">
+        {/* Left: Vintage Back Button */}
         <button
           type="button"
-          className="learn-back-btn"
+          className="vintage-header-back-btn"
           onClick={onExit}
-          aria-label="Quay lại trang bộ từ"
+          title="Quay lại bộ từ"
+          aria-label="Quay lại bộ từ"
         >
-          <ArrowLeft size={16} />
-          <span>Thoát</span>
+          <img src="/assets/flashcard/button-back.png" alt="Quay lại" />
         </button>
-        <span className="learn-deck-heading" title={deck?.name}>
-          {deck?.name || 'Bộ từ vựng'}
-        </span>
-        <div className="learn-top-bar-placeholder" />
+
+        {/* Center: Classic Ornamental Book Title */}
+        <div className="vintage-header-title-ribbon" title={deck?.name}>
+          <span className="vintage-title-flourish is-left" aria-hidden="true">
+            <span className="flourish-line" />
+            <span className="flourish-diamond">◆</span>
+            <span className="flourish-dot">•</span>
+          </span>
+          <div className="vintage-ribbon-content">
+            <img
+              src="/assets/decor_icon/decor_vocabulary_book.png"
+              alt=""
+              className="vintage-title-book-icon"
+            />
+            <h1 className="vintage-ribbon-text">{deck?.name || 'Bộ từ vựng'}</h1>
+          </div>
+          <span className="vintage-title-flourish is-right" aria-hidden="true">
+            <span className="flourish-dot">•</span>
+            <span className="flourish-diamond">◆</span>
+            <span className="flourish-line" />
+          </span>
+        </div>
+
+        {/* Right: Word Count Badge */}
+        <div className="vintage-header-count-badge" title="Tổng số từ trong bộ">
+          <span className="count-number">{totalCards}</span>
+          <span className="count-label">từ</span>
+        </div>
       </header>
 
-      {/* Main Container Card (White Card with Minimalist SaaS style) */}
-      <div className="learn-setup-card">
+      {/* Main Container: Bản Lệnh Xuất Bến */}
+      <div className="vintage-setup-parchment-panel">
         {/* Header Intro Area */}
-        <div className="learn-setup-header-area">
-          <div className="learn-setup-header-left">
-            <div className="learn-setup-icon-box">
-              <FileEdit size={22} className="learn-setup-header-icon" />
-            </div>
-            <div className="learn-setup-header-text">
-              <h1 className="learn-setup-title">Cài đặt bài tập / câu hỏi</h1>
-              <p className="learn-setup-subtitle">
-                Gõ câu trả lời chính xác để ghi nhớ từ vựng. Các từ trả lời sai sẽ được lặp lại cho đến khi bạn thành thạo.
-              </p>
-            </div>
-          </div>
-          <div className="learn-setup-header-deco">
-            <BookOpen size={28} className="learn-setup-deco-icon" />
-          </div>
+        <div className="vintage-setup-header-area">
+          <h2 className="vintage-setup-title">Cài đặt Hải trình Học tập</h2>
+          <p className="vintage-setup-subtitle">
+            Gõ câu trả lời chính xác để chinh phục hải trình tri thức. Các từ trả lời chưa chuẩn sẽ được lặp lại cho đến khi bạn hoàn toàn thành thạo.
+          </p>
         </div>
 
         {/* Form with 4 Settings Cards in 2x2 Grid */}
-        <form onSubmit={handleStart} className="learn-setup-form">
-          <div className="learn-setup-grid">
+        <form onSubmit={handleStart} className="vintage-setup-form">
+          <div className="vintage-setup-grid">
             {/* Card 1: Số lượng câu hỏi */}
-            <div className="learn-setting-card">
-              <div className="learn-setting-card-title">
-                <Clock size={18} className="learn-setting-icon" />
+            <div className="vintage-setting-card">
+              <div className="vintage-setting-card-title">
+                <Clock size={18} className="vintage-setting-icon" />
                 <span>Số lượng câu hỏi</span>
               </div>
 
-              <div className="learn-setting-options">
-                <label className="learn-option-row">
+              <div className="vintage-setting-options">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="countMode"
                     value="all"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.countMode === 'all'}
                     onChange={() => {
                       setCountError('');
                       onOptionsChange({ countMode: 'all' });
                     }}
                   />
-                  <span className="learn-option-label">
+                  <span className="vintage-option-label">
                     Tất cả ({totalCards} từ)
                   </span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="countMode"
                     value="custom"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.countMode === 'custom'}
                     onChange={() => {
                       onOptionsChange({ countMode: 'custom' });
                     }}
                   />
-                  <span className="learn-option-label">Tùy chọn:</span>
+                  <span className="vintage-option-label">Tùy chọn:</span>
                   <input
                     type="number"
                     min="1"
                     max={Math.max(1, totalCards)}
-                    className="learn-custom-number-input"
+                    className="vintage-custom-number-input"
                     value={customCountInput}
                     disabled={options.countMode !== 'custom'}
                     onChange={handleCustomCountChange}
                     aria-label="Số câu tùy chọn"
                   />
-                  <span className="learn-option-sublabel">từ</span>
+                  <span className="vintage-option-sublabel">từ</span>
                 </label>
               </div>
-              {countError && <p className="learn-validation-error">{countError}</p>}
+              {countError && <p className="vintage-validation-error">{countError}</p>}
             </div>
 
             {/* Card 2: Thứ tự câu hỏi */}
-            <div className="learn-setting-card">
-              <div className="learn-setting-card-title">
-                <ArrowLeftRight size={18} className="learn-setting-icon" />
-                <span>Thứ tự câu hỏi</span>
+            <div className="vintage-setting-card">
+              <div className="vintage-setting-card-title">
+                <ArrowLeftRight size={18} className="vintage-setting-icon" />
+                <span>Thứ tự hải trình</span>
               </div>
 
-              <div className="learn-setting-options">
-                <label className="learn-option-row">
+              <div className="vintage-setting-options">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="order"
                     value="random"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.order === 'random'}
                     onChange={() => onOptionsChange({ order: 'random' })}
                   />
-                  <span className="learn-option-label">Ngẫu nhiên</span>
+                  <span className="vintage-option-label">Ngẫu nhiên hải trình</span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="order"
                     value="order"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.order === 'order'}
                     onChange={() => onOptionsChange({ order: 'order' })}
                   />
-                  <span className="learn-option-label">Theo thứ tự bộ từ</span>
+                  <span className="vintage-option-label">Theo thứ tự bộ từ</span>
                 </label>
               </div>
             </div>
 
             {/* Card 3: Hướng học */}
-            <div className="learn-setting-card">
-              <div className="learn-setting-card-title">
-                <GraduationCap size={18} className="learn-setting-icon" />
-                <span>Hướng học</span>
+            <div className="vintage-setting-card">
+              <div className="vintage-setting-card-title">
+                <GraduationCap size={18} className="vintage-setting-icon" />
+                <span>Hướng học tập</span>
               </div>
 
-              <div className="learn-setting-options">
-                <label className="learn-option-row">
+              <div className="vintage-setting-options">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="direction"
                     value="VI_TO_EN"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.direction === 'VI_TO_EN'}
                     onChange={() => onOptionsChange({ direction: 'VI_TO_EN' })}
                   />
-                  <span className="learn-option-label">
+                  <span className="vintage-option-label">
                     Việt → Anh (Xem nghĩa tiếng Việt, gõ từ tiếng Anh)
                   </span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="direction"
                     value="EN_TO_VI"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.direction === 'EN_TO_VI'}
                     onChange={() => onOptionsChange({ direction: 'EN_TO_VI' })}
                   />
-                  <span className="learn-option-label">
+                  <span className="vintage-option-label">
                     Anh → Việt (Xem từ tiếng Anh, gõ nghĩa tiếng Việt)
                   </span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="radio"
                     name="direction"
                     value="RANDOM"
-                    className="learn-radio-custom"
+                    className="vintage-radio-custom"
                     checked={options.direction === 'RANDOM'}
                     onChange={() => onOptionsChange({ direction: 'RANDOM' })}
                   />
-                  <span className="learn-option-label">
+                  <span className="vintage-option-label">
                     Trộn cả hai hướng ngẫu nhiên
                   </span>
                 </label>
@@ -235,65 +246,65 @@ export default function LearnSetup({
             </div>
 
             {/* Card 4: Tùy chọn bổ trợ */}
-            <div className="learn-setting-card">
-              <div className="learn-setting-card-title">
-                <Settings size={18} className="learn-setting-icon" />
+            <div className="vintage-setting-card">
+              <div className="vintage-setting-card-title">
+                <Settings size={18} className="vintage-setting-icon" />
                 <span>Tùy chọn bổ trợ</span>
               </div>
 
-              <div className="learn-setting-options">
-                <label className="learn-option-row">
+              <div className="vintage-setting-options">
+                <label className="vintage-option-row">
                   <input
                     type="checkbox"
-                    className="learn-checkbox-custom"
+                    className="vintage-checkbox-custom"
                     checked={Boolean(options.autoSpeak)}
                     onChange={(e) => onOptionsChange({ autoSpeak: e.target.checked })}
                   />
-                  <span className="learn-option-label">Tự đọc từ tiếng Anh</span>
+                  <span className="vintage-option-label">Tự đọc từ tiếng Anh</span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="checkbox"
-                    className="learn-checkbox-custom"
+                    className="vintage-checkbox-custom"
                     checked={Boolean(options.soundEffects)}
                     onChange={(e) => onOptionsChange({ soundEffects: e.target.checked })}
                   />
-                  <span className="learn-option-label">Âm thanh hiệu ứng</span>
+                  <span className="vintage-option-label">Âm thanh hiệu ứng</span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="checkbox"
-                    className="learn-checkbox-custom"
+                    className="vintage-checkbox-custom"
                     checked={Boolean(options.ignoreDiacritics)}
                     onChange={(e) => onOptionsChange({ ignoreDiacritics: e.target.checked })}
                   />
-                  <span className="learn-option-label">Bỏ qua dấu tiếng Việt khi chấm</span>
+                  <span className="vintage-option-label">Bỏ qua dấu tiếng Việt khi chấm</span>
                 </label>
 
-                <label className="learn-option-row">
+                <label className="vintage-option-row">
                   <input
                     type="checkbox"
-                    className="learn-checkbox-custom"
+                    className="vintage-checkbox-custom"
                     checked={options.acceptSynonyms !== false}
                     onChange={(e) => onOptionsChange({ acceptSynonyms: e.target.checked })}
                   />
-                  <span className="learn-option-label">Chấp nhận từ đồng nghĩa</span>
+                  <span className="vintage-option-label">Chấp nhận từ đồng nghĩa</span>
                 </label>
               </div>
             </div>
           </div>
 
-          {/* Bottom Action Area: Pill button on the bottom right */}
-          <div className="learn-setup-bottom-bar">
+          {/* Bottom Action Area: RPG Launch Button */}
+          <div className="vintage-setup-bottom-bar">
             <button
               type="submit"
-              className="learn-pill-start-btn"
+              className="vintage-launch-voyage-btn"
               disabled={totalCards === 0 || Boolean(countError)}
             >
-              <Play size={14} fill="currentColor" className="learn-play-icon" />
-              <span>Bắt đầu học</span>
+              <span className="vintage-btn-icon">⚔</span>
+              <span>BẮT ĐẦU HẢI TRÌNH HỌC TẬP</span>
             </button>
           </div>
         </form>

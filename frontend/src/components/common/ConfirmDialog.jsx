@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import Ripple from './Ripple';
 import { lockScroll, unlockScroll } from '../../utils/scrollLock';
 
 export default function ConfirmDialog({
@@ -92,8 +93,16 @@ export default function ConfirmDialog({
             className={`confirm-dialog-btn-primary ${confirmVariant === 'danger' ? 'is-danger' : ''}`}
             onClick={onConfirm}
             disabled={loading}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            {loading ? 'Đang xử lý...' : confirmText}
+            {loading ? (
+              <>
+                <Ripple size={18} color="currentColor" />
+                <span>Đang xử lý...</span>
+              </>
+            ) : (
+              confirmText
+            )}
           </button>
         </div>
       </div>

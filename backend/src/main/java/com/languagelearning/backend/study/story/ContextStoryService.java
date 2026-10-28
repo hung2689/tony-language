@@ -1,9 +1,15 @@
 package com.languagelearning.backend.study.story;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.languagelearning.backend.common.exception.ValidationException;
 import com.languagelearning.backend.deck.dto.DeckDetailResponse;
 import com.languagelearning.backend.deck.service.DeckService;
+import com.languagelearning.backend.study.sentence.gemini.GeminiSentenceService;
 import com.languagelearning.backend.term.dto.TermCardDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -13,312 +19,315 @@ import java.util.regex.Pattern;
 @Service
 public class ContextStoryService {
 
+    private static final Logger log = LoggerFactory.getLogger(ContextStoryService.class);
+
     private final DeckService deckService;
+    private final GeminiSentenceService geminiSentenceService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final List<StoryTemplate> VERB_TEMPLATES = List.of(
-            new StoryTemplate(
-                    "During our daily journey, we decided to %s with great focus and dedication.",
-                    "Trong hành trình mỗi ngày, chúng tôi quyết định (%s) với sự tập trung và nhiệt huyết."
-            ),
-            new StoryTemplate(
-                    "To overcome the upcoming challenge, everyone worked together to %s effectively.",
-                    "Để vượt qua thử thách sắp tới, mọi người đã cùng nhau (%s) một cách hiệu quả."
-            ),
-            new StoryTemplate(
-                    "Our mentor encouraged us to %s whenever new opportunities arise.",
-                    "Người hướng dẫn khuyến khích chúng tôi (%s) bất cứ khi nào cơ hội mới xuất hiện."
-            ),
-            new StoryTemplate(
-                    "Step by step, the team learned how to %s to achieve higher performance.",
-                    "Từng bước một, toàn đội đã học cách (%s) để đạt hiệu suất cao hơn."
-            )
-    );
-
-    private static final List<StoryTemplate> ADJ_TEMPLATES = List.of(
-            new StoryTemplate(
-                    "Everyone in the team was impressed by such a %s approach to solving the challenge.",
-                    "Mọi người trong đội đều ấn tượng bởi cách tiếp cận (%s) để giải quyết thử thách."
-            ),
-            new StoryTemplate(
-                    "We discovered that cultivating a %s mindset opened up many unexpected possibilities.",
-                    "Chúng tôi phát hiện ra rằng việc nuôi dưỡng tư duy (%s) đã mở ra nhiều cơ hội bất ngờ."
-            ),
-            new StoryTemplate(
-                    "It was truly a %s experience that strengthened our confidence in the path ahead.",
-                    "Đó thực sự là một trải nghiệm (%s) giúp củng cố niềm tin vào con đường phía trước."
-            ),
-            new StoryTemplate(
-                    "The atmosphere became remarkably %s as positive results began to show.",
-                    "Bầu không khí trở nên vô cùng (%s) khi những kết quả khả quan bắt đầu xuất hiện."
-            )
-    );
-
-    private static final List<StoryTemplate> ADV_TEMPLATES = List.of(
-            new StoryTemplate(
-                    "The speaker expressed the core vision %s, inspiring everyone in the room.",
-                    "Diễn giả đã truyền đạt tầm nhìn cốt lõi (%s), truyền cảm hứng cho mọi người trong phòng."
-            ),
-            new StoryTemplate(
-                    "With persistence and passion, they worked %s to reach their long-term milestones.",
-                    "Với sự kiên trì và đam mê, họ đã làm việc (%s) để đạt được các cột mốc dài hạn."
-            ),
-            new StoryTemplate(
-                    "The instructions were delivered %s, making the complex concepts crystal clear.",
-                    "Các hướng dẫn được trình bày (%s), giúp các khái niệm phức tạp trở nên sáng rõ."
-            ),
-            new StoryTemplate(
-                    "Everything progressed %s once the core principles were understood.",
-                    "Mọi thứ tiến triển (%s) một khi các nguyên tắc cốt lõi đã được thấu hiểu."
-            )
-    );
-
-    private static final List<StoryTemplate> GENERAL_TEMPLATES = List.of(
-            new StoryTemplate(
-                    "We realized that this %s plays a vital role in our ongoing mission.",
-                    "Chúng tôi nhận ra rằng (%s) này đóng vai trò thiết yếu trong sứ mệnh của mình."
-            ),
-            new StoryTemplate(
-                    "Through consistent practice, understanding the %s became second nature to us.",
-                    "Thông qua luyện tập đều đặn, việc hiểu rõ (%s) đã trở thành phản xạ tự nhiên của chúng tôi."
-            ),
-            new StoryTemplate(
-                    "The team held an in-depth session exploring how the %s impacts real-world success.",
-                    "Cả nhóm đã có một buổi thảo luận chuyên sâu về việc (%s) tác động ra sao đến thành công thực tế."
-            ),
-            new StoryTemplate(
-                    "Gaining deep mastery over this %s laid the solid groundwork for all future achievements.",
-                    "Làm chủ được (%s) này đã đặt nền móng vững chắc cho mọi thành tựu trong tương lai."
-            )
-    );
+    @Autowired
+    public ContextStoryService(DeckService deckService, GeminiSentenceService geminiSentenceService) {
+        this.deckService = deckService;
+        this.geminiSentenceService = geminiSentenceService;
+    }
 
     public ContextStoryService(DeckService deckService) {
-        this.deckService = deckService;
+        this(deckService, null);
     }
 
     public ContextStoryDto generateStory(Long deckId) {
+        return generateStory(deckId, null);
+    }
+
+    public ContextStoryDto generateStory(Long deckId, String customApiKey) {
         DeckDetailResponse deck = deckService.getDeck(deckId);
         List<TermCardDto> cards = deck.getCards();
         if (cards == null || cards.isEmpty()) {
             throw new ValidationException("Bộ từ vựng cần có ít nhất 1 thẻ để tạo đoạn văn ngữ cảnh.");
         }
-        return generateStoryFromCards(deckId, deck.getName(), cards);
+        return generateStoryFromCards(deckId, deck.getName(), cards, customApiKey);
     }
 
     public ContextStoryDto generateStoryFromCards(Long deckId, String deckTitle, List<TermCardDto> cards) {
+        return generateStoryFromCards(deckId, deckTitle, cards, null);
+    }
+
+    public ContextStoryDto generateStoryFromCards(Long deckId, String deckTitle, List<TermCardDto> cards, String customApiKey) {
         if (cards == null || cards.isEmpty()) {
             throw new ValidationException("Danh sách từ vựng trống.");
         }
 
-        // Limit to 10 cards per story session for optimal cognitive load, or use all if <= 10
-        List<TermCardDto> selectedCards = new ArrayList<>(cards);
-        if (selectedCards.size() > 10) {
-            Collections.shuffle(selectedCards, new Random());
-            selectedCards = selectedCards.subList(0, 10);
+        if (geminiSentenceService == null || !geminiSentenceService.isAvailable(customApiKey)) {
+            throw new ValidationException("Dịch vụ AI Gemini hiện chưa khả dụng hoặc chưa có API Key. Vui lòng thiết lập Gemini API Key để tạo đoạn văn ngữ cảnh.");
         }
 
-        List<StoryParagraphDto> paragraphs = new ArrayList<>();
-        List<StoryBlankDto> allBlanks = new ArrayList<>();
-
-        // Group into paragraphs of 2 - 4 cards each
-        int chunkSize = selectedCards.size() <= 4 ? selectedCards.size() : Math.min(4, (int) Math.ceil(selectedCards.size() / 2.0));
-        int blankIndex = 0;
-        int paragraphNum = 0;
-
-        for (int i = 0; i < selectedCards.size(); i += chunkSize) {
-            int end = Math.min(i + chunkSize, selectedCards.size());
-            List<TermCardDto> chunk = selectedCards.subList(i, end);
-
-            StringBuilder enText = new StringBuilder();
-            StringBuilder viText = new StringBuilder();
-            List<StoryBlankDto> paragraphBlanks = new ArrayList<>();
-
-            for (int j = 0; j < chunk.size(); j++) {
-                TermCardDto card = chunk.get(j);
-                StoryBlankDto blank = new StoryBlankDto(
-                        blankIndex,
-                        card.getId(),
-                        card.getTerm(),
-                        card.getDefinition(),
-                        card.getPartOfSpeech(),
-                        card.getExample(),
-                        card.getSynonyms() != null ? new ArrayList<>(card.getSynonyms()) : new ArrayList<>()
-                );
-
-                // Build natural contextual sentence
-                String termPlaceholder = "{{" + blankIndex + "}}";
-                String sentenceEn;
-                String sentenceVi;
-
-                MatchResultInfo matchResult = findAndReplaceTerm(card.getExample(), card.getTerm(), termPlaceholder);
-
-                if (matchResult.found) {
-                    sentenceEn = matchResult.replacedText;
-                    sentenceVi = "Ví dụ: " + card.getExample() + " (Nghĩa: " + card.getDefinition() + ")";
-                    blank.setMatchedWord(matchResult.matchedWord != null ? matchResult.matchedWord : card.getTerm());
-
-                    // If an inflected form was matched in the example, add it as an accepted synonym
-                    if (matchResult.matchedWord != null && !matchResult.matchedWord.equalsIgnoreCase(card.getTerm())) {
-                        String matchedLower = matchResult.matchedWord.toLowerCase();
-                        if (!blank.getSynonyms().contains(matchedLower)) {
-                            blank.getSynonyms().add(matchedLower);
-                        }
-                    }
-                } else {
-                    // Compose contextual storytelling patterns from template pool
-                    StoryTemplate template = selectStoryTemplate(card, blankIndex);
-                    sentenceEn = template.enText;
-                    sentenceVi = template.viText;
-                    blank.setMatchedWord(card.getTerm());
-                }
-
-                // If term starts with "to ", also register core verb as accepted synonym
-                String cleanTerm = card.getTerm() != null ? card.getTerm().trim() : "";
-                if (cleanTerm.toLowerCase().startsWith("to ") && cleanTerm.length() > 3) {
-                    String core = cleanTerm.substring(3).trim().toLowerCase();
-                    if (!blank.getSynonyms().contains(core)) {
-                        blank.getSynonyms().add(core);
-                    }
-                }
-
-                paragraphBlanks.add(blank);
-                allBlanks.add(blank);
-
-                if (enText.length() > 0) {
-                    enText.append(" ");
-                }
-                enText.append(sentenceEn);
-
-                if (viText.length() > 0) {
-                    viText.append(" ");
-                }
-                viText.append(sentenceVi);
-
-                blankIndex++;
-            }
-
-            paragraphs.add(new StoryParagraphDto(paragraphNum++, enText.toString(), viText.toString(), paragraphBlanks));
+        ContextStoryDto aiStory = generateStoryWithAi(deckId, deckTitle, cards, customApiKey);
+        if (aiStory != null && aiStory.getParagraphs() != null && !aiStory.getParagraphs().isEmpty()) {
+            return aiStory;
         }
 
-        String storyTitle = (deckTitle != null && !deckTitle.trim().isEmpty())
-                ? "Câu chuyện ngữ cảnh: " + deckTitle
-                : "Hành trình khám phá từ vựng";
-
-        String storyId = "story-" + (deckId != null ? deckId : "custom") + "-" + System.currentTimeMillis();
-
-        return new ContextStoryDto(storyId, deckId, storyTitle, paragraphs, allBlanks.size());
+        throw new ValidationException("Không thể tạo đoạn văn bằng AI Gemini lúc này (Timeout hoặc phản hồi không hợp lệ). Vui lòng nhấn 'Tạo đoạn mới' để thử lại.");
     }
 
-    public static class MatchResultInfo {
-        public final boolean found;
-        public final String replacedText;
-        public final String matchedWord;
+    /**
+     * Generates cohesive, multi-topic, natural everyday paragraphs using Gemini LLM.
+     */
+    private ContextStoryDto generateStoryWithAi(Long deckId, String deckTitle, List<TermCardDto> cards, String customApiKey) {
+        try {
+            StringBuilder vocabListBuilder = new StringBuilder();
+            Map<Long, TermCardDto> cardById = new HashMap<>();
+            Map<String, TermCardDto> cardByLowerTerm = new HashMap<>();
 
-        public MatchResultInfo(boolean found, String replacedText, String matchedWord) {
-            this.found = found;
-            this.replacedText = replacedText;
-            this.matchedWord = matchedWord;
+            for (TermCardDto c : cards) {
+                if (c.getId() != null) cardById.put(c.getId(), c);
+                if (c.getTerm() != null) cardByLowerTerm.put(c.getTerm().trim().toLowerCase(), c);
+
+                vocabListBuilder.append(String.format(
+                        "- Card ID: %d, Word: '%s', Part of speech: '%s', Meaning: '%s'%s%n",
+                        c.getId() != null ? c.getId() : 0,
+                        c.getTerm(),
+                        c.getPartOfSpeech() != null ? c.getPartOfSpeech() : "",
+                        c.getDefinition() != null ? c.getDefinition() : "",
+                        (c.getExample() != null && !c.getExample().isBlank()) ? ", Example hint: '" + c.getExample().trim() + "'" : ""
+                ));
+            }
+
+            String prompt = """
+                    You are an expert bilingual English-Vietnamese language educator and narrative writer specializing in natural, conversational English (CEFR A2-B1 level).
+                    
+                    You are given vocabulary cards from a learner's study deck:
+                    Deck Name: "%s"
+                    Vocabulary List:
+                    %s
+                    
+                    TASK:
+                    Create 1 to 3 natural, engaging, and meaningful English paragraphs that help learners understand and practice these words in authentic everyday contexts.
+                    
+                    CRITICAL SELECTION & WRITING PRINCIPLES:
+                    1. DO NOT FORCE ALL WORDS INTO A SINGLE PARAGRAPH:
+                       - Carefully evaluate the semantic relationships between words.
+                       - Group words by coherent everyday topics (e.g. Student life & studying, Office work & colleagues, Daily routines & home, Travel & transportation, Food & dining, Hobbies & sports).
+                       - If the words naturally span MULTIPLE distinct topics, generate MULTIPLE independent paragraphs (e.g., Paragraph 1 about school life, Paragraph 2 about work).
+                       - If the deck only has 3-5 related words, generate ONE concise, cohesive paragraph.
+                       - If a word does NOT fit naturally into any paragraph without making the story awkward, bizarre, or forced, DO NOT USE IT. Leave it out and list it in "unusedWords".
+                       - PRIORITIZE QUALITY OVER QUANTITY: Never sacrifice natural English just to achieve 100%% word coverage.
+                    
+                    2. AUTHENTIC, EVERYDAY NARRATIVE (A2-B1 LEVEL):
+                       - Each paragraph must communicate a coherent story, clear experience, or realistic everyday situation.
+                       - Clear topic, consistent setting, and logical progression from beginning to end.
+                       - Write clear, fluent sentences of moderate length. Avoid stiff, robotic, or overly academic prose.
+                    
+                    3. VOCABULARY INSERTION & BLANKS:
+                       - Use target words accurately in their natural collocations.
+                       - Target words can be grammatically inflected when needed in the sentence (e.g. "run" -> "running", "study" -> "studied", "resilient" -> "resilient").
+                       - In each paragraph's "text", wherever a target word appears, insert a placeholder "{{0}}", "{{1}}", "{{2}}", etc.
+                       - The numbering of blanks MUST be strictly sequential (0, 1, 2, 3...) across ALL paragraphs from first to last!
+                       - For each blank, provide:
+                         * "cardId": (number, matching Card ID)
+                         * "term": (string, original base word)
+                         * "matchedWord": (string, the exact inflected word that was used in the sentence before replacement)
+                         * "contextNote": (string, brief tip in Vietnamese explaining how the word was used)
+                    
+                    OUTPUT FORMAT:
+                    Return a JSON object with this exact structure:
+                    {
+                      "title": "Overall story or collection title in Vietnamese (e.g. 'Câu chuyện ngữ cảnh: Cuộc sống thường ngày')",
+                      "paragraphs": [
+                        {
+                          "title": "Short English title for this paragraph (e.g. 'A Busy Morning at the Office')",
+                          "topic": "Topic in Vietnamese (e.g. 'Công việc văn phòng & Đồng nghiệp')",
+                          "text": "English paragraph text with {{index}} placeholders (e.g. 'Yesterday, Sarah had an important {{0}} with her {{1}}.')",
+                          "translation": "Natural, fluent Vietnamese translation of the paragraph",
+                          "blanks": [
+                            {
+                              "cardId": 101,
+                              "term": "meeting",
+                              "matchedWord": "meeting",
+                              "contextNote": "Cuộc họp quan trọng tại nơi làm việc"
+                            }
+                          ]
+                        }
+                      ],
+                      "usedWords": ["meeting", "colleague"],
+                      "unusedWords": ["airport"]
+                    }
+                    """.formatted(
+                    deckTitle != null ? deckTitle : "Học từ vựng",
+                    vocabListBuilder.toString()
+            );
+
+            String rawJson = geminiSentenceService.generateContent(prompt, customApiKey);
+            if (rawJson == null || rawJson.isBlank()) {
+                return null;
+            }
+
+            JsonNode rootNode = objectMapper.readTree(rawJson);
+            if (!rootNode.has("paragraphs") || !rootNode.get("paragraphs").isArray() || rootNode.get("paragraphs").isEmpty()) {
+                log.warn("Gemini story generation output missing paragraphs array: {}", rawJson);
+                return null;
+            }
+
+            String overallTitle = rootNode.has("title") && !rootNode.get("title").asText().isBlank()
+                    ? rootNode.get("title").asText()
+                    : "Câu chuyện ngữ cảnh: " + (deckTitle != null ? deckTitle : "Từ vựng");
+
+            List<StoryParagraphDto> paragraphs = new ArrayList<>();
+            List<StoryBlankDto> allBlanks = new ArrayList<>();
+            Set<String> usedWordsSet = new LinkedHashSet<>();
+
+            int globalBlankIndex = 0;
+            int paragraphNum = 0;
+
+            for (JsonNode pNode : rootNode.get("paragraphs")) {
+                String pTitle = pNode.has("title") ? pNode.get("title").asText() : "Đoạn " + (paragraphNum + 1);
+                String pTopic = pNode.has("topic") ? pNode.get("topic").asText() : null;
+                String rawText = pNode.has("text") ? pNode.get("text").asText() : "";
+                String translation = pNode.has("translation") ? pNode.get("translation").asText() : "";
+
+                List<StoryBlankDto> paragraphBlanks = new ArrayList<>();
+                List<String> paraUsedWords = new ArrayList<>();
+
+                // Map of local blank index (or match order) to global index
+                Map<Integer, Integer> localToGlobalIndex = new HashMap<>();
+
+                if (pNode.has("blanks") && pNode.get("blanks").isArray()) {
+                    int localIdx = 0;
+                    for (JsonNode bNode : pNode.get("blanks")) {
+                        Long cardId = bNode.has("cardId") ? bNode.get("cardId").asLong() : null;
+                        String term = bNode.has("term") ? bNode.get("term").asText().trim() : "";
+                        String matchedWord = bNode.has("matchedWord") ? bNode.get("matchedWord").asText().trim() : term;
+                        String contextNote = bNode.has("contextNote") ? bNode.get("contextNote").asText() : null;
+
+                        TermCardDto card = null;
+                        if (cardId != null && cardById.containsKey(cardId)) {
+                            card = cardById.get(cardId);
+                        } else if (!term.isEmpty() && cardByLowerTerm.containsKey(term.toLowerCase())) {
+                            card = cardByLowerTerm.get(term.toLowerCase());
+                        } else {
+                            // Find closest by word name
+                            for (TermCardDto c : cards) {
+                                if (c.getTerm() != null && c.getTerm().equalsIgnoreCase(term)) {
+                                    card = c;
+                                    break;
+                                }
+                            }
+                        }
+
+                        Long finalCardId = card != null ? card.getId() : cardId;
+                        String finalTerm = card != null ? card.getTerm() : term;
+                        String finalDef = card != null ? card.getDefinition() : "";
+                        String finalPos = card != null ? card.getPartOfSpeech() : "";
+                        String finalEx = card != null ? card.getExample() : "";
+
+                        List<String> synonyms = new ArrayList<>();
+                        if (card != null && card.getSynonyms() != null) {
+                            synonyms.addAll(card.getSynonyms());
+                        }
+
+                        // Ensure base term and inflected word are included in synonyms
+                        String termLower = finalTerm.toLowerCase();
+                        String matchedLower = matchedWord.toLowerCase();
+                        if (!synonyms.contains(termLower)) synonyms.add(termLower);
+                        if (!synonyms.contains(matchedLower)) synonyms.add(matchedLower);
+
+                        if (termLower.startsWith("to ") && termLower.length() > 3) {
+                            String core = termLower.substring(3).trim();
+                            if (!synonyms.contains(core)) synonyms.add(core);
+                        }
+
+                        StoryBlankDto blank = new StoryBlankDto(
+                                globalBlankIndex,
+                                finalCardId,
+                                finalTerm,
+                                finalDef,
+                                finalPos,
+                                finalEx,
+                                synonyms,
+                                matchedWord,
+                                contextNote
+                        );
+
+                        paragraphBlanks.add(blank);
+                        allBlanks.add(blank);
+                        paraUsedWords.add(finalTerm);
+                        usedWordsSet.add(finalTerm);
+
+                        localToGlobalIndex.put(localIdx++, globalBlankIndex);
+                        globalBlankIndex++;
+                    }
+                }
+
+                // Normalize placeholders in rawText:
+                // If rawText already has {{k}}, check if they need re-indexing to match globalBlankIndex
+                String normalizedText = normalizePlaceholders(rawText, localToGlobalIndex, paragraphBlanks);
+
+                StoryParagraphDto paragraphDto = new StoryParagraphDto(
+                        paragraphNum++,
+                        pTitle,
+                        pTopic,
+                        normalizedText,
+                        translation,
+                        paragraphBlanks,
+                        paraUsedWords
+                );
+                paragraphs.add(paragraphDto);
+            }
+
+            // Compute unused words
+            List<String> unusedWords = new ArrayList<>();
+            for (TermCardDto c : cards) {
+                if (c.getTerm() != null && !usedWordsSet.contains(c.getTerm())) {
+                    unusedWords.add(c.getTerm());
+                }
+            }
+
+            String storyId = "ai-story-" + (deckId != null ? deckId : "custom") + "-" + System.currentTimeMillis();
+            log.info("Gemini successfully generated context story with {} paragraphs and {} blanks",
+                    paragraphs.size(), allBlanks.size());
+
+            return new ContextStoryDto(
+                    storyId,
+                    deckId,
+                    overallTitle,
+                    paragraphs,
+                    allBlanks.size(),
+                    new ArrayList<>(usedWordsSet),
+                    unusedWords
+            );
+
+        } catch (Exception e) {
+            log.warn("Gemini generateStoryWithAi failed, fallback to procedural synthesis: {}", e.getMessage());
+            return null;
         }
     }
 
     /**
-     * Safely locates the target term or its inflections inside the example sentence
-     * using word boundaries (\b) to prevent substring collisions (e.g. 'cat' in 'application').
-     * Completely replaces the entire inflected word so no trailing letters (e.g. 'd', 'ing') remain.
+     * Ensures placeholders in the paragraph text match global blank indices.
      */
-    public MatchResultInfo findAndReplaceTerm(String example, String term, String placeholder) {
-        if (example == null || term == null || term.trim().isEmpty()) {
-            return new MatchResultInfo(false, example, null);
-        }
+    private String normalizePlaceholders(String text, Map<Integer, Integer> localToGlobalIndex, List<StoryBlankDto> paragraphBlanks) {
+        if (text == null || text.isBlank()) return "";
+        if (paragraphBlanks.isEmpty()) return text;
 
-        String cleanTerm = term.trim();
-        List<String> patterns = new ArrayList<>();
+        // If placeholders already exist, check if they are local (0, 1, 2...) or global
+        Matcher matcher = Pattern.compile("\\{\\{(\\d+)\\}\\}").matcher(text);
+        StringBuffer sb = new StringBuffer();
+        int foundCount = 0;
 
-        // 1. Exact whole word match
-        patterns.add("(?i)\\b" + Pattern.quote(cleanTerm) + "\\b");
-
-        // 2. Extract core term if particle prefix is present (e.g. "to explore", "a novel")
-        String coreTerm = cleanTerm;
-        String lowerTerm = cleanTerm.toLowerCase();
-        if (lowerTerm.startsWith("to ") && cleanTerm.length() > 3) {
-            coreTerm = cleanTerm.substring(3).trim();
-            patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "\\b");
-        } else if (lowerTerm.startsWith("a ") && cleanTerm.length() > 2) {
-            coreTerm = cleanTerm.substring(2).trim();
-            patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "\\b");
-        } else if (lowerTerm.startsWith("an ") && cleanTerm.length() > 3) {
-            coreTerm = cleanTerm.substring(3).trim();
-            patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "\\b");
-        } else if (lowerTerm.startsWith("the ") && cleanTerm.length() > 4) {
-            coreTerm = cleanTerm.substring(4).trim();
-            patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "\\b");
-        }
-
-        // 3. Morphological inflections (using coreTerm)
-        if (!coreTerm.contains(" ") && coreTerm.length() >= 3) {
-            int len = coreTerm.length();
-            char lastChar = Character.toLowerCase(coreTerm.charAt(len - 1));
-
-            if (lastChar == 'e') {
-                String root = coreTerm.substring(0, len - 1);
-                // e.g. illuminate -> illuminated, illuminating, illuminates
-                patterns.add("(?i)\\b" + Pattern.quote(root) + "(ing|ed|es|e)\\b");
-                patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "(s|d)?\\b");
-            } else if (lastChar == 'y') {
-                String root = coreTerm.substring(0, len - 1);
-                // e.g. study -> studied, studies, studying
-                patterns.add("(?i)\\b" + Pattern.quote(root) + "(ied|ies)\\b");
-                patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "(ing)?\\b");
+        while (matcher.find()) {
+            int originalIndex = Integer.parseInt(matcher.group(1));
+            // If localToGlobalIndex has a mapping for this position
+            int targetIndex;
+            if (localToGlobalIndex.containsKey(foundCount)) {
+                targetIndex = localToGlobalIndex.get(foundCount);
+            } else if (localToGlobalIndex.containsKey(originalIndex)) {
+                targetIndex = localToGlobalIndex.get(originalIndex);
             } else {
-                // Double consonant (e.g. run -> running, stop -> stopped)
-                patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + lastChar + "(ing|ed)\\b");
-                // Standard suffixes (e.g. resilient -> resiliently, card -> cards)
-                patterns.add("(?i)\\b" + Pattern.quote(coreTerm) + "(s|es|ed|ing|ly)?\\b");
+                targetIndex = originalIndex;
             }
+            matcher.appendReplacement(sb, "{{" + targetIndex + "}}");
+            foundCount++;
         }
-
-        for (String regex : patterns) {
-            Pattern pattern = Pattern.compile(regex);
-            Matcher matcher = pattern.matcher(example);
-            if (matcher.find()) {
-                String matchedWord = matcher.group();
-                String replaced = matcher.replaceFirst(Matcher.quoteReplacement(placeholder));
-                return new MatchResultInfo(true, replaced, matchedWord);
-            }
-        }
-
-        return new MatchResultInfo(false, example, null);
-    }
-
-    private static class StoryTemplate {
-        String enText;
-        String viText;
-
-        StoryTemplate(String enText, String viText) {
-            this.enText = enText;
-            this.viText = viText;
-        }
-    }
-
-    private StoryTemplate selectStoryTemplate(TermCardDto card, int blankIndex) {
-        String placeholder = "{{" + blankIndex + "}}";
-        String pos = card.getPartOfSpeech() != null ? card.getPartOfSpeech().toLowerCase() : "";
-        String def = card.getDefinition() != null ? card.getDefinition() : "";
-
-        List<StoryTemplate> pool;
-        if (pos.contains("verb") || pos.contains("động từ") || pos.equals("v")) {
-            pool = VERB_TEMPLATES;
-        } else if (pos.contains("adj") || pos.contains("tính từ")) {
-            pool = ADJ_TEMPLATES;
-        } else if (pos.contains("adv") || pos.contains("trạng từ")) {
-            pool = ADV_TEMPLATES;
-        } else {
-            pool = GENERAL_TEMPLATES;
-        }
-
-        StoryTemplate tmpl = pool.get(blankIndex % pool.size());
-        return new StoryTemplate(
-                String.format(tmpl.enText, placeholder),
-                String.format(tmpl.viText, def)
-        );
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 }

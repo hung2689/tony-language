@@ -1,166 +1,162 @@
 import { chromium } from '../frontend/node_modules/playwright/index.mjs';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { sendTelegramPhoto, sendTelegramNotification } from './notify-telegram.mjs';
 
-async function run() {
-  console.log('🚀 Starting Learn Flow screenshot capture...');
-  const scratchDir = path.resolve('scratch');
-  if (!fs.existsSync(scratchDir)) fs.mkdirSync(scratchDir, { recursive: true });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
+const outDir = path.join(rootDir, 'screenshots');
 
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 800 },
-  });
-  const page = await context.newPage();
-  page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-  page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
-  page.on('response', resp => {
-    if (resp.url().includes('/api/')) {
-      console.log('API RESP:', resp.status(), resp.request().method(), resp.url());
-    }
-  });
-
-  // 1. Register test user
-  const suffix = Date.now().toString().slice(-5);
-  const testEmail = `learn_${suffix}@example.com`;
-  const testUsername = `learn_${suffix}`;
-  const testPass = 'Password123!';
-
-  await page.goto('http://localhost:5173/register', { waitUntil: 'networkidle' });
-  await page.fill('#reg-email', testEmail);
-  await page.fill('#reg-username', testUsername);
-  await page.fill('#reg-password', testPass);
-  await page.fill('#reg-confirm-password', testPass);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('http://localhost:5173/', { timeout: 10000 });
-  console.log('✅ Registered test user.');
-
-  // 2. Open Create Deck Modal
-  const openModalBtn = page.locator('button:has-text("Tạo bộ từ"), button:has-text("+ Bộ từ mới"), button:has-text("Tạo bộ thẻ")').first();
-  await openModalBtn.click();
-  await page.waitForSelector('form.deck-form', { timeout: 5000 });
-  console.log('✅ Opened Deck creation modal.');
-
-  // Fill deck name
-  await page.locator('input[placeholder*="Oxford"]').fill('Từ vựng Tiếng Anh Giao Tiếp');
-
-  // Fill Card 1
-  const termInputs = page.locator('input[placeholder*="Essential"]');
-  const defInputs = page.locator('input[placeholder*="Cần thiết"]');
-
-  await termInputs.nth(0).fill('surprise');
-  await defInputs.nth(0).fill('sự bất ngờ');
-
-  // Fill Card 2
-  await termInputs.nth(1).fill('to run');
-  await defInputs.nth(1).fill('chạy, đi nhanh');
-
-  // Submit Deck creation via modal footer
-  const submitBtn = page.locator('.modal-footer button[type="submit"]');
-  await submitBtn.click();
-  console.log('✅ Clicked submit deck button.');
-
-  // Creation navigates directly to /decks/:id or stays on page
-  await page.waitForURL(/\/decks\/\d+/, { timeout: 10000 });
-  console.log('✅ Navigated to Deck Detail page:', page.url());
-
-  // Click "Học" tab in StudyModeBar
-  const learnBtn = page.locator('.study-mode-btn:has-text("Học")');
-  await learnBtn.click();
-  await page.waitForURL(/\/decks\/\d+\/learn/, { timeout: 10000 });
-  console.log('✅ Reached Learn Mode route:', page.url());
-
-  // ─────────────────────────────────────────────────────────────
-  // Screenshot 1: Learn Setup
-  // ─────────────────────────────────────────────────────────────
-  await page.waitForTimeout(1000);
-  const setupImg = path.join(scratchDir, 'learn_01_setup.png');
-  await page.screenshot({ path: setupImg });
-  console.log('📸 Captured 1: learn_01_setup.png');
-
-  // Start Session (Bắt đầu học)
-  const startBtn = page.locator('button.learn-pill-start-btn, button:has-text("Bắt đầu")').first();
-  await startBtn.click();
-  await page.waitForSelector('.learn-question-card, .learn-term-display', { timeout: 10000 });
-  await page.waitForTimeout(800);
-
-  // ─────────────────────────────────────────────────────────────
-  // Screenshot 2: Learn Question
-  // ─────────────────────────────────────────────────────────────
-  const questionImg = path.join(scratchDir, 'learn_02_question.png');
-  await page.screenshot({ path: questionImg });
-  console.log('📸 Captured 2: learn_02_question.png');
-
-  function getAnswer(prompt) {
-    const p = prompt.toLowerCase();
-    if (p.includes('surprise')) return 'bất ngờ'; // Prompt EN -> Input VI (accepts 'bất ngờ' via core phrase from 'sự bất ngờ')
-    if (p.includes('bất ngờ')) return 'surprise'; // Prompt VI -> Input EN
-    if (p.includes('run')) return 'chạy'; // Prompt EN -> Input VI
-    if (p.includes('chạy')) return 'run'; // Prompt VI -> Input EN (accepts 'run' from 'to run')
-    return 'surprise';
-  }
-
-  // 3. Submit an answer testing the Core-phrase rule
-  const promptEl = page.locator('.learn-prompt-text');
-  await promptEl.waitFor({ state: 'visible', timeout: 10000 });
-  const promptText = await promptEl.innerText();
-  console.log('Current Question Prompt:', promptText);
-
-  const ans = getAnswer(promptText);
-  await page.fill('.learn-answer-input', ans);
-  await page.keyboard.press('Enter');
-  await page.waitForSelector('.learn-feedback-banner', { timeout: 10000 });
-  await page.waitForTimeout(1000);
-
-  // ─────────────────────────────────────────────────────────────
-  // Screenshot 3: Learn Feedback (Accepted & Note)
-  // ─────────────────────────────────────────────────────────────
-  const feedbackImg = path.join(scratchDir, 'learn_03_feedback.png');
-  await page.screenshot({ path: feedbackImg });
-  console.log('📸 Captured 3: learn_03_feedback.png');
-
-  // 4. Complete remaining cards to reach Results Screen
-  for (let step = 0; step < 25; step++) {
-    if ((await page.locator('.learn-results-card').count()) > 0) {
-      console.log('✅ Reached Results card!');
-      break;
-    }
-
-    const continueBtn = page.locator('.learn-continue-btn');
-    if (await continueBtn.isVisible().catch(() => false)) {
-      await continueBtn.click();
-      await page.waitForTimeout(500);
-      continue;
-    }
-
-    const input = page.locator('.learn-answer-input');
-    if (await input.isVisible().catch(() => false)) {
-      const qText = (await page.locator('.learn-prompt-text').innerText()).toLowerCase();
-      const a = getAnswer(qText);
-
-      await input.fill(a);
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(800);
-      continue;
-    }
-
-    await page.waitForTimeout(400);
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // Screenshot 4: Learn Results
-  // ─────────────────────────────────────────────────────────────
-  await page.waitForSelector('.learn-results-container, .learn-results-card', { timeout: 15000 });
-  await page.waitForTimeout(1000);
-  const resultsImg = path.join(scratchDir, 'learn_04_results.png');
-  await page.screenshot({ path: resultsImg });
-  console.log('📸 Captured 4: learn_04_results.png');
-
-  await browser.close();
-  console.log('\n🎉 ALL 4 LEARN FLOW SCREENSHOTS CAPTURED SUCCESSFULLY!');
+if (!fs.existsSync(outDir)) {
+  fs.mkdirSync(outDir, { recursive: true });
 }
 
-run().catch((err) => {
-  console.error('❌ Flow capture failed:', err);
-  process.exit(1);
-});
+async function capture() {
+  console.log('🚀 Khởi động Playwright để chụp luồng Chế độ Học (Learn Mode)...');
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 860 },
+    locale: 'vi-VN',
+  });
+  const page = await context.newPage();
+
+  try {
+    // 1. Đăng nhập
+    console.log('🔑 Đang đăng nhập...');
+    await page.goto('http://localhost:5173/login');
+    await page.fill('input[type="email"]', 'dev@languagelearning.com');
+    await page.fill('input[type="password"]', 'DevPassword123!');
+    await page.click('button[type="submit"]');
+
+    await page.waitForURL('http://localhost:5173/**', { timeout: 15000 });
+    await page.waitForTimeout(1000);
+    console.log('✅ Đã đăng nhập. Đi thẳng vào Chế độ Học của Deck 11...');
+
+    await page.goto('http://localhost:5173/decks/11/learn');
+    await page.waitForSelector('.vintage-setup-parchment-panel', { timeout: 15000 });
+    await page.waitForTimeout(1200);
+
+    // Chụp Màn hình 1: Cài đặt học tập (Learn Setup)
+    const setupPath = path.join(outDir, '01_learn_setup_vintage.png');
+    await page.screenshot({ path: setupPath, fullPage: true });
+    console.log(`📸 Đã chụp Màn hình Cài đặt: ${setupPath}`);
+
+    // Chọn số câu: 3 câu để test nhanh
+    const customRadio = page.locator('input[value="custom"]');
+    if (await customRadio.count() > 0) {
+      await customRadio.check();
+      const numInput = page.locator('.vintage-custom-number-input');
+      await numInput.fill('3');
+      await page.waitForTimeout(400);
+    }
+
+    // 2. Bắt đầu phiên học
+    console.log('⚔ Bấm bắt đầu hải trình...');
+    await page.click('.vintage-launch-voyage-btn');
+    await page.waitForSelector('.vintage-question-scroll-wrapper', { timeout: 10000 });
+    await page.waitForTimeout(1200);
+
+    // Chụp Màn hình 2: Câu hỏi (Learn Question)
+    const questionPath = path.join(outDir, '02_learn_question_vintage.png');
+    await page.screenshot({ path: questionPath, fullPage: true });
+    console.log(`📸 Đã chụp Màn hình Câu hỏi: ${questionPath}`);
+
+    // 3. Trả lời thử để xem Feedback
+    console.log('📝 Nhập câu trả lời khảo nghiệm...');
+    const input = page.locator('.vintage-answer-input');
+    await input.fill('adventure');
+    await page.click('.vintage-submit-btn');
+
+    await page.waitForSelector('.vintage-feedback-seal-banner', { timeout: 10000 });
+    await page.waitForTimeout(1200);
+
+    // Chụp Màn hình 3: Phản hồi Đúng/Sai (Learn Feedback)
+    const feedbackPath = path.join(outDir, '03_learn_feedback_vintage.png');
+    await page.screenshot({ path: feedbackPath, fullPage: true });
+    console.log(`📸 Đã chụp Màn hình Phản hồi: ${feedbackPath}`);
+
+    // 4. Tiếp tục hoàn thành các câu còn lại để đến màn Kết quả
+    let attempts = 0;
+    while (attempts < 12) {
+      attempts++;
+      console.log(`Tiến trình vòng lặp câu hỏi/kết quả (bước ${attempts})...`);
+
+      const isResults = await page.locator('.vintage-results-parchment-panel').count() > 0;
+      if (isResults) {
+        console.log('🎉 Đã đạt tới màn hình Kết quả!');
+        break;
+      }
+
+      const isFeedback = await page.locator('.vintage-continue-btn').count() > 0;
+      if (isFeedback) {
+        // Nếu có nút override (đáp án sai), click override để chuyển thành đúng
+        const overrideBtn = page.locator('.vintage-override-link-btn');
+        if (await overrideBtn.count() > 0) {
+          console.log('Bấm chấp nhận đáp án (override)...');
+          await overrideBtn.click();
+          await page.waitForTimeout(400);
+        }
+        console.log('Bấm tiếp tục sang câu tiếp theo...');
+        await page.click('.vintage-continue-btn');
+        await page.waitForTimeout(800);
+        continue;
+      }
+
+      const isQuestion = await page.locator('.vintage-skip-btn').count() > 0;
+      if (isQuestion) {
+        console.log('Bấm bỏ qua câu hỏi...');
+        await page.click('.vintage-skip-btn');
+        await page.waitForTimeout(800);
+        continue;
+      }
+
+      await page.waitForTimeout(500);
+    }
+
+    await page.waitForSelector('.vintage-results-parchment-panel', { timeout: 15000 });
+    await page.waitForTimeout(1500);
+
+    // Chụp Màn hình 4: Kết quả (Learn Results)
+    const resultsPath = path.join(outDir, '04_learn_results_vintage.png');
+    await page.screenshot({ path: resultsPath, fullPage: true });
+    console.log(`📸 Đã chụp Màn hình Kết quả: ${resultsPath}`);
+
+    // 5. Gửi thông báo và ảnh qua Telegram
+    console.log('📤 Đang gửi các ảnh chụp qua Telegram...');
+    await sendTelegramNotification(
+      '🗺 <b>[Antigravity AI] BÁO CÁO THIẾT KẾ GIAO DIỆN CHẾ ĐỘ HỌC (LEARN MODE)</b>\n' +
+      '• Phong cách: <b>Vintage Pirate Explorer / Antique Cartography</b>\n' +
+      '• Trải nghiệm: Hải đồ cổ toàn màn hình, bản lệnh xuất bến, hải trình thuyền buồm di động, con dấu sáp mộc bản, và huân chương cập bến vinh quang.'
+    );
+
+    await sendTelegramPhoto(
+      setupPath,
+      '📜 1. BẢN LỆNH XUẤT BẾN (Learn Setup)\nKhung giấy da cổ lớn, hoa văn la bàn hải đồ, 4 thẻ tùy chọn học tập mộc bản & nút RPG [⚔ BẮT ĐẦU HẢI TRÌNH].'
+    );
+
+    await sendTelegramPhoto(
+      questionPath,
+      '🧭 2. KHẢO NGHIỆM TRI THỨC (Learn Question)\nThanh hải trình đứt nét nối Bến Cảng với Đảo Kho Báu, thuyền buồm di chuyển mượt mà, cuộn giấy da cổ với góc minh họa thuyền & la bàn, ô nhập mực bút lông.'
+    );
+
+    await sendTelegramPhoto(
+      feedbackPath,
+      '🎖 3. ĐÓNG DẤU KẾT QUẢ (Learn Feedback)\nDấu triện sáp mộc bản (Moss Green cho Đúng / Deep Red cho Cần nhớ lại), bảng so sánh 2 cột rõ ràng, phiên âm IPA & câu ví dụ.'
+    );
+
+    await sendTelegramPhoto(
+      resultsPath,
+      '🏆 4. CẬP BẾN VINH QUANG (Learn Results)\nHuân chương la bàn cổ mạ vàng, đồng hồ độ chính xác SVG cổ điển, huy hiệu thưởng XP thăng cấp, 6 thẻ chỉ số hải trình & sổ tay ghi chép từ cần ôn lại.'
+    );
+
+    console.log('🎉 Hoàn tất gửi 4 ảnh qua Telegram thành công!');
+  } catch (err) {
+    console.error('❌ Lỗi:', err);
+  } finally {
+    await browser.close();
+  }
+}
+
+capture();

@@ -31,8 +31,8 @@ export default function MainLayout() {
   // When searching from Deck page (Ctrl+K or input), navigate to library with filter active
   const handleSearchChange = (query) => {
     setSearchQuery(query);
-    if (query && location.pathname !== '/') {
-      navigate('/');
+    if (query && location.pathname !== '/library') {
+      navigate('/library');
     }
   };
 
@@ -101,7 +101,7 @@ export default function MainLayout() {
       if (created?.id) {
         navigate(`/decks/${created.id}`);
       } else {
-        navigate('/');
+        navigate('/library');
       }
     } catch (err) {
       showToast(err.message || 'Lỗi khi tạo bộ từ vựng', 'error');

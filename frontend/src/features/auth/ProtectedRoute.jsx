@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Loader2 } from 'lucide-react';
+import Ripple from '../../components/common/Ripple';
 import './Auth.css';
 
 export default function ProtectedRoute({ children }) {
@@ -10,7 +10,7 @@ export default function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="auth-loading-screen">
-        <Loader2 size={32} className="auth-spinner" />
+        <Ripple size={48} color="#3b82f6" style={{ margin: '0 auto 12px auto' }} />
         <p>Đang kiểm tra phiên làm việc...</p>
       </div>
     );

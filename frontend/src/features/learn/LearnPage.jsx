@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { deckService } from '../../services/deckService';
 import { useLearnSession } from './useLearnSession';
+import { useAuth } from '../auth/AuthContext';
 import LearnSetup from './LearnSetup';
 import LearnQuestion from './LearnQuestion';
 import LearnFeedback from './LearnFeedback';
@@ -9,6 +10,7 @@ import LearnResults from './LearnResults';
 import LearnSettingsPopover from './LearnSettingsPopover';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Button from '../../components/common/Button';
+import Ripple from '../../components/common/Ripple';
 import { AlertTriangle, FolderX, RefreshCw, ArrowLeft, Plus } from 'lucide-react';
 import './Learn.css';
 
@@ -75,8 +77,11 @@ export default function LearnPage() {
     }
   }, [deckId]);
 
+  const { refreshUser } = useAuth();
+
   const {
     state,
+    xpResult,
     updateOptions,
     startSession,
     submitAnswer,
@@ -87,6 +92,13 @@ export default function LearnPage() {
     retryAll,
     flushOnExit,
   } = useLearnSession(deck, cards);
+
+  // Refresh user level/XP in header when session finishes and XP is earned
+  useEffect(() => {
+    if (xpResult && xpResult.xpGained > 0 && refreshUser) {
+      refreshUser();
+    }
+  }, [xpResult, refreshUser]);
 
   // Exit navigation with confirmation if session is active and answers exist
   const handleExitRequest = () => {
@@ -109,10 +121,11 @@ export default function LearnPage() {
   // 1. Loading State
   if (loading) {
     return (
-      <div className="learn-distraction-free-container">
-        <div className="learn-center-state">
-          <div className="learn-spinner" aria-label="Đang tải..." />
-          <p className="learn-state-msg">Đang chuẩn bị bộ từ vựng...</p>
+      <div className="learn-distraction-free-container vintage-learn-shell">
+        <div className="vintage-learn-parchment-box">
+          <Ripple size={56} color="#A8783E" style={{ margin: '0 auto 16px auto' }} />
+          <h2 className="vintage-state-title">Đang chuẩn bị Hải trình...</h2>
+          <p className="vintage-state-msg">Đang sắp xếp hải đồ và bộ từ vựng cho chuyến thám hiểm.</p>
         </div>
       </div>
     );
@@ -121,17 +134,21 @@ export default function LearnPage() {
   // 2. 404 / Not Owned State
   if (errorStatus === 404) {
     return (
-      <div className="learn-distraction-free-container">
-        <div className="learn-center-state">
-          <FolderX size={56} className="text-secondary" />
-          <h2 className="learn-state-title">Không tìm thấy bộ từ</h2>
-          <p className="learn-state-msg">
-            Bộ từ này không tồn tại hoặc bạn không có quyền truy cập.
+      <div className="learn-distraction-free-container vintage-learn-shell">
+        <div className="vintage-learn-parchment-box">
+          <FolderX size={56} className="text-secondary" style={{ color: '#796246' }} />
+          <h2 className="vintage-state-title">Không tìm thấy Hải đồ bộ từ</h2>
+          <p className="vintage-state-msg">
+            Bộ từ này không tồn tại hoặc bạn không có quyền hải hành vào khu vực này.
           </p>
-          <Button variant="primary" onClick={() => navigate('/')}>
+          <button
+            type="button"
+            className="vintage-launch-voyage-btn"
+            onClick={() => navigate('/')}
+          >
             <ArrowLeft size={16} />
-            <span>Về thư viện của tôi</span>
-          </Button>
+            <span>Về Thư viện Hải trình</span>
+          </button>
         </div>
       </div>
     );
@@ -140,19 +157,27 @@ export default function LearnPage() {
   // 3. Error State
   if (errorStatus) {
     return (
-      <div className="learn-distraction-free-container">
-        <div className="learn-center-state">
-          <AlertTriangle size={56} className="text-danger" />
-          <h2 className="learn-state-title">Đã xảy ra lỗi</h2>
-          <p className="learn-state-msg">{errorMessage}</p>
+      <div className="learn-distraction-free-container vintage-learn-shell">
+        <div className="vintage-learn-parchment-box">
+          <AlertTriangle size={56} style={{ color: '#992B2B' }} />
+          <h2 className="vintage-state-title">Sóng gió hải hành (Đã có lỗi)</h2>
+          <p className="vintage-state-msg">{errorMessage}</p>
           <div className="learn-state-actions">
-            <Button variant="primary" onClick={loadDeck}>
+            <button
+              type="button"
+              className="vintage-launch-voyage-btn"
+              onClick={loadDeck}
+            >
               <RefreshCw size={16} />
               <span>Thử lại</span>
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/')}>
-              <span>Về thư viện</span>
-            </Button>
+            </button>
+            <button
+              type="button"
+              className="vintage-outline-btn"
+              onClick={() => navigate('/')}
+            >
+              <span>Về Thư viện</span>
+            </button>
           </div>
         </div>
       </div>
@@ -162,24 +187,28 @@ export default function LearnPage() {
   // 4. Empty Deck State
   if (cards.length === 0) {
     return (
-      <div className="learn-distraction-free-container">
-        <div className="learn-center-state">
-          <FolderX size={56} className="text-secondary" />
-          <h2 className="learn-state-title">Bộ từ chưa có thẻ nào</h2>
-          <p className="learn-state-msg">
-            Hãy thêm thẻ từ vựng vào bộ từ này trước khi bắt đầu luyện tập.
+      <div className="learn-distraction-free-container vintage-learn-shell">
+        <div className="vintage-learn-parchment-box">
+          <FolderX size={56} style={{ color: '#796246' }} />
+          <h2 className="vintage-state-title">Bộ từ chưa có thẻ nào</h2>
+          <p className="vintage-state-msg">
+            Hãy thêm thẻ từ vựng vào bộ từ này trước khi bắt đầu chuyến hải trình rèn luyện.
           </p>
-          <Button variant="primary" onClick={() => navigate(`/decks/${deckId}`)}>
+          <button
+            type="button"
+            className="vintage-launch-voyage-btn"
+            onClick={() => navigate(`/decks/${deckId}`)}
+          >
             <Plus size={16} />
             <span>Thêm thẻ từ vựng</span>
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="learn-distraction-free-container">
+    <div className="learn-distraction-free-container vintage-learn-shell">
       {/* Settings Popover */}
       <LearnSettingsPopover
         isOpen={isSettingsOpen}
@@ -202,6 +231,7 @@ export default function LearnPage() {
 
       {state.status === 'question' && state.currentQuestion && (
         <LearnQuestion
+          deck={deck}
           currentQuestion={state.currentQuestion}
           sessionStats={state.sessionStats}
           distinctCardCount={state.distinctCardIdsShown?.length ?? 1}
@@ -216,6 +246,7 @@ export default function LearnPage() {
 
       {state.status === 'feedback' && state.feedback && state.currentQuestion && (
         <LearnFeedback
+          deck={deck}
           feedback={state.feedback}
           currentQuestion={state.currentQuestion}
           sessionStats={state.sessionStats}
@@ -235,6 +266,7 @@ export default function LearnPage() {
           stats={state.stats}
           cardStats={state.cardStats}
           sessionStats={state.sessionStats}
+          xpResult={xpResult}
           onRetryMissed={retryMissed}
           onRetryAll={retryAll}
           onExit={() => navigate(`/decks/${deckId}`)}

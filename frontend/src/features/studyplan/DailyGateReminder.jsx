@@ -15,7 +15,10 @@ export default function DailyGateReminder() {
     !todayQueue ||
     todayQueue.totalWords === 0 ||
     location.pathname.startsWith('/study-plan/learn') ||
-    location.pathname === '/study-plan'
+    location.pathname.includes('/learn') ||
+    location.pathname.startsWith('/decks/') ||
+    location.pathname === '/study-plan' ||
+    location.pathname.startsWith('/profile')
   ) {
     return null;
   }

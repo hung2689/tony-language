@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Ripple from '../../components/common/Ripple';
 import AuthLayout from './AuthLayout';
 import './Auth.css';
 
@@ -144,7 +145,7 @@ export default function LoginPage() {
           >
             {submitting ? (
               <>
-                <Loader2 size={18} className="auth-spinner" />
+                <Ripple size={18} color="currentColor" />
                 <span>Đang đăng nhập...</span>
               </>
             ) : (

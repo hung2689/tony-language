@@ -12,15 +12,20 @@ public class StoryBlankDto {
     private String example;
     private List<String> synonyms = new ArrayList<>();
     private String matchedWord;
+    private String contextNote;
 
     public StoryBlankDto() {
     }
 
     public StoryBlankDto(int index, Long cardId, String term, String definition, String partOfSpeech, String example, List<String> synonyms) {
-        this(index, cardId, term, definition, partOfSpeech, example, synonyms, term);
+        this(index, cardId, term, definition, partOfSpeech, example, synonyms, term, null);
     }
 
     public StoryBlankDto(int index, Long cardId, String term, String definition, String partOfSpeech, String example, List<String> synonyms, String matchedWord) {
+        this(index, cardId, term, definition, partOfSpeech, example, synonyms, matchedWord, null);
+    }
+
+    public StoryBlankDto(int index, Long cardId, String term, String definition, String partOfSpeech, String example, List<String> synonyms, String matchedWord, String contextNote) {
         this.index = index;
         this.cardId = cardId;
         this.term = term;
@@ -29,6 +34,7 @@ public class StoryBlankDto {
         this.example = example;
         this.synonyms = synonyms != null ? synonyms : new ArrayList<>();
         this.matchedWord = matchedWord != null ? matchedWord : term;
+        this.contextNote = contextNote;
     }
 
     public int getIndex() {
@@ -93,5 +99,13 @@ public class StoryBlankDto {
 
     public void setMatchedWord(String matchedWord) {
         this.matchedWord = matchedWord;
+    }
+
+    public String getContextNote() {
+        return contextNote;
+    }
+
+    public void setContextNote(String contextNote) {
+        this.contextNote = contextNote;
     }
 }

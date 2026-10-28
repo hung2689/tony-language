@@ -1,0 +1,1165 @@
+/* ==========================================================================
+   LEXICON FLASHCARD & DECK DETAIL PAGE — VINTAGE PIRATE EXPLORER EDITION
+   Palette:
+   - Paper Base: #F3E6C8
+   - Paper Light: #FAF0DA
+   - Ink Primary: #3B2B1C
+   - Ink Secondary: #796246
+   - Moss Green: #46583A
+   - Moss Light: #DCE0C2
+   - Antique Bronze: #A8783E
+   - Paper Border: #B99A6A
+   ========================================================================== */
+
+/* Hide top app navigation bar when viewing Deck Detail / Flashcard page */
+body.deck-vintage-active .app-topbar,
+body.deck-vintage-active .lexicon-topbar,
+body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
+  display: none !important;
+}
+
+/* 1. Full-width Outer Shell: Immersive Vintage Explorer Journal (No Sidebar) */
+.deck-page-shell.lexicon-journal-shell {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  background-color: #F3E6C8 !important;
+  background-image: url('/assets/flashcard/vintage-map-bg.jpg') !important;
+  background-size: cover !important;
+  background-position: center top !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  color: #3B2B1C;
+  font-family: 'Merriweather', 'Playfair Display', 'Times New Roman', serif;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* 2. Main Content Column (Centered & Balanced across Full Screen) */
+.deck-page-shell .deck-page-main.lexicon-journal-main {
+  width: 100% !important;
+  max-width: 1140px !important;
+  margin: 0 auto !important;
+  padding: 24px 24px 64px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  position: relative;
+  background: transparent !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+
+.deck-page-shell .vintage-deck-header-row,
+.deck-page-shell .vintage-study-mode-bar,
+.deck-page-shell .deck-detail-content,
+.deck-page-shell .vintage-vocab-section {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1100px;
+  flex-shrink: 0;
+}
+
+/* Ensure Spaced Repetition & all modal overlays always stay fixed full-screen */
+.deck-page-shell .srs-popup-overlay,
+.deck-page-shell .modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  z-index: 1050 !important;
+}
+
+/* ==========================================================================
+   SECTION 2.1 — TOP HEADER: [ ← Quay lại ]  ───• 📖 Tiêu đề •───  [ Lặp lại ngắt quãng ] [ ⋮ ]
+   ========================================================================== */
+.deck-page-shell .vintage-deck-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 1120px;
+  margin-bottom: 18px;
+  padding: 2px 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Left Back Button (Cutout PNG) */
+.deck-page-shell .vintage-header-back-btn {
+  appearance: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, filter 0.18s ease;
+  flex-shrink: 0;
+}
+
+.deck-page-shell .vintage-header-back-btn img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 3px 6px rgba(59, 43, 28, 0.22));
+}
+
+.deck-page-shell .vintage-header-back-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+/* Center Ornamental Book Title */
+.deck-page-shell .vintage-header-title-ribbon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 12px;
+}
+
+.deck-page-shell .vintage-title-flourish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8C6D46;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.deck-page-shell .vintage-title-flourish .flourish-line {
+  display: inline-block;
+  width: 58px;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(140, 109, 70, 0.12), #8C6D46);
+}
+
+.deck-page-shell .vintage-title-flourish.is-right .flourish-line {
+  background: linear-gradient(90deg, #8C6D46, rgba(140, 109, 70, 0.12));
+}
+
+.deck-page-shell .vintage-title-flourish .flourish-diamond {
+  font-size: 9px;
+  color: #A8783E;
+  line-height: 1;
+}
+
+.deck-page-shell .vintage-title-flourish .flourish-dot {
+  font-size: 14px;
+  color: #796246;
+  line-height: 1;
+}
+
+.deck-page-shell .vintage-ribbon-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 460px;
+}
+
+.deck-page-shell .vintage-title-book-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 3px rgba(59, 43, 28, 0.18));
+}
+
+.deck-page-shell .vintage-ribbon-text {
+  margin: 0;
+  font-family: 'Merriweather', 'Playfair Display', 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #3B2B1C;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 0 rgba(255, 250, 238, 0.85);
+}
+
+/* Right Actions: SRS Button + More Button */
+.deck-page-shell .vintage-header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.deck-page-shell .vintage-header-srs-btn,
+.deck-page-shell .vintage-header-more-btn {
+  appearance: none;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.deck-page-shell .vintage-header-srs-btn img {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 3px 6px rgba(59, 43, 28, 0.22));
+}
+
+.deck-page-shell .vintage-header-more-btn img {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 3px 6px rgba(59, 43, 28, 0.22));
+}
+
+.deck-page-shell .vintage-header-srs-btn:hover,
+.deck-page-shell .vintage-header-more-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.deck-page-shell .vintage-more-menu-wrapper {
+  position: relative;
+}
+
+.deck-page-shell .vintage-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: #FAF0DA;
+  border: 1.5px solid #B99A6A;
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(59, 43, 28, 0.26);
+  padding: 6px;
+  z-index: 60;
+}
+
+.deck-page-shell .deck-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  background: transparent;
+  color: #3B2B1C;
+  font-family: 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.deck-page-shell .deck-dropdown-item:hover {
+  background: rgba(168, 120, 62, 0.15);
+}
+
+.deck-page-shell .deck-dropdown-item.is-danger {
+  color: #992B2B;
+}
+
+.deck-page-shell .deck-dropdown-divider {
+  height: 1px;
+  background: #D5BE97;
+  margin: 5px 4px;
+}
+
+/* ==========================================================================
+   SECTION 2.2 — 6 CATEGORY CARDS GRID (3 COLUMNS x 2 ROWS)
+   ========================================================================== */
+.deck-page-shell .vintage-study-mode-bar {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto 22px;
+}
+
+.deck-page-shell .vintage-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 18px;
+  width: 100%;
+}
+
+.deck-page-shell .vintage-mode-card {
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  min-height: 76px !important;
+  padding: 12px 20px 12px 18px !important;
+  border: none !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  background-image: url('/assets/flashcard/card-cream.png') !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.16s ease, filter 0.16s ease;
+  filter: drop-shadow(0 4px 8px rgba(59, 43, 28, 0.15));
+  overflow: visible !important;
+}
+
+.deck-page-shell .vintage-mode-card.is-active {
+  background-image: url('/assets/flashcard/card-active-green.png') !important;
+  filter: drop-shadow(0 5px 10px rgba(46, 62, 36, 0.24));
+}
+
+.deck-page-shell .vintage-mode-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 6px 12px rgba(59, 43, 28, 0.22)) brightness(1.02);
+}
+
+.deck-page-shell .vintage-mode-card.is-disabled {
+  cursor: default;
+  opacity: 0.96;
+}
+
+.deck-page-shell .vintage-mode-card-left {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.deck-page-shell .vintage-mode-card-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain !important;
+  flex-shrink: 0;
+  display: block;
+}
+
+.deck-page-shell .vintage-mode-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.deck-page-shell .vintage-mode-card-title {
+  font-family: 'Merriweather', 'Playfair Display', 'Times New Roman', serif;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #3B2B1C !important;
+  text-transform: none !important;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.deck-page-shell .vintage-mode-card.is-active .vintage-mode-card-title {
+  color: #26331D !important;
+}
+
+.deck-page-shell .vintage-mode-card-sub {
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #5A432B;
+  line-height: 1.2;
+}
+
+.deck-page-shell .vintage-mode-card.is-active .vintage-mode-card-sub {
+  color: #38492C;
+}
+
+/* Floating "✦ Sắp ra mắt" pill badge on top-right of coming-soon cards */
+.deck-page-shell .vintage-mode-soon-floating {
+  position: absolute;
+  top: -7px;
+  right: 26px;
+  height: 26px;
+  width: auto;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 3;
+  filter: drop-shadow(0 2px 3px rgba(59, 43, 28, 0.18));
+}
+
+.deck-page-shell .vintage-mode-card-chevron {
+  color: #5A432B;
+  flex-shrink: 0;
+  margin-left: 8px;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   SECTION 2.3 — MAIN 3D VINTAGE FLASHCARD
+   ========================================================================== */
+.deck-page-shell .vintage-flashcard-experience {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto 30px;
+}
+
+.deck-page-shell .vintage-flashcard-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto 14px;
+}
+
+.deck-page-shell .vintage-card-scene {
+  width: 100%;
+  max-width: 680px;
+  height: 390px;
+  perspective: 1400px;
+  margin: 0 auto;
+}
+
+.deck-page-shell .vintage-card-box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.58s cubic-bezier(0.22, 0.61, 0.36, 1);
+  cursor: pointer;
+  outline: none;
+}
+
+.deck-page-shell .vintage-card-box.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.deck-page-shell .vintage-card-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 58px 68px 64px;
+  box-sizing: border-box;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  background-image: url('/assets/flashcard/flashcard-page.png') !important;
+  background-repeat: no-repeat !important;
+  background-position: center center !important;
+  background-size: 100% 100% !important;
+  filter: drop-shadow(0 14px 26px rgba(59, 43, 28, 0.25));
+  overflow: hidden;
+  user-select: none;
+}
+
+.deck-page-shell .vintage-card-back {
+  transform: rotateY(180deg);
+}
+
+/* 1. Top-Left Compass Rose (1:1 aspect ratio, never stretched) */
+.deck-page-shell .vintage-fc-compass {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  width: 62px;
+  height: 62px;
+  object-fit: contain !important;
+  pointer-events: none;
+  z-index: 3;
+  filter: drop-shadow(0 2px 4px rgba(59, 43, 28, 0.2));
+}
+
+/* 2. Top-Center Label Tag ("Mặt trước" / "Mặt sau") */
+.deck-page-shell .vintage-fc-label-wrap {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 104px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.deck-page-shell .vintage-fc-label-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  filter: drop-shadow(0 2px 4px rgba(59, 43, 28, 0.18));
+}
+
+.deck-page-shell .vintage-fc-label-text {
+  position: relative;
+  z-index: 1;
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #3B2B1C;
+  transform: rotate(-6deg) translateY(-1px);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* 3. Top-Right Audio Speaker Button */
+.deck-page-shell .vintage-fc-sound-btn {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.deck-page-shell .vintage-fc-sound-img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain !important;
+  display: block;
+  filter: drop-shadow(0 2px 5px rgba(59, 43, 28, 0.22));
+}
+
+.deck-page-shell .vintage-fc-sound-btn:hover {
+  transform: scale(1.07);
+  filter: brightness(1.05);
+}
+
+/* 4. Bottom-Left Pine Mountains Illustration */
+.deck-page-shell .vintage-fc-landscape {
+  position: absolute;
+  bottom: 14px;
+  left: 20px;
+  width: 168px;
+  height: 98px;
+  object-fit: contain !important;
+  object-position: left bottom;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.95;
+}
+
+/* 5. Bottom-Right Sailing Ship Illustration */
+.deck-page-shell .vintage-fc-ship {
+  position: absolute;
+  bottom: 14px;
+  right: 22px;
+  width: 82px;
+  height: 118px;
+  object-fit: contain !important;
+  object-position: right bottom;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.95;
+}
+
+/* 6. Center Vocabulary Content */
+.deck-page-shell .vintage-fc-center {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 460px;
+  width: 100%;
+  padding: 8px 16px;
+}
+
+.deck-page-shell .vintage-fc-main-term {
+  margin: 0 0 10px;
+  font-family: 'Merriweather', 'Playfair Display', 'Times New Roman', serif;
+  font-size: clamp(32px, 4.2vw, 46px);
+  font-weight: 800;
+  color: #3B2B1C;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+  text-shadow: 0 1px 0 rgba(255, 250, 238, 0.75);
+}
+
+.deck-page-shell .vintage-fc-meta {
+  margin: 0;
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 500;
+  color: #796246;
+  line-height: 1.4;
+}
+
+.deck-page-shell .vintage-fc-main-def {
+  margin: 0 0 10px;
+  font-family: 'Merriweather', 'Playfair Display', 'Times New Roman', serif;
+  font-size: clamp(22px, 2.8vw, 30px);
+  font-weight: 800;
+  color: #3B2B1C;
+  line-height: 1.3;
+}
+
+.deck-page-shell .vintage-fc-example {
+  margin: 6px 0 10px;
+  padding: 6px 14px;
+  font-family: 'Times New Roman', serif;
+  font-size: 14.5px;
+  font-style: italic;
+  color: #5A452E;
+  border-left: 2.5px solid #A8783E;
+  background: rgba(243, 230, 200, 0.55);
+  border-radius: 0 6px 6px 0;
+  max-width: 400px;
+}
+
+.deck-page-shell .vintage-fc-synonyms {
+  font-size: 13px;
+  color: #6B533B;
+  margin-bottom: 8px;
+}
+
+.deck-page-shell .vintage-fc-syn-label {
+  font-weight: 700;
+  color: #3B2B1C;
+}
+
+.deck-page-shell .vintage-fc-reminder {
+  margin-top: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(185, 154, 106, 0.22);
+  border: 1px solid rgba(168, 120, 62, 0.42);
+  font-size: 12.5px;
+  color: #3B2B1C;
+  font-weight: 700;
+}
+
+.deck-page-shell .vintage-fc-reminder-ipa {
+  font-weight: 500;
+  font-style: italic;
+  color: #796246;
+}
+
+/* ==========================================================================
+   SECTION 2.4 — VINTAGE TOOLBAR & HOTKEYS UNDER FLASHCARD
+   [ < ]   [ ◆ 1 / 12 | ⚙ | 🔀 | ↻ | ⛶ ◆ ]   [ > ] [ ⛶ ]
+   ========================================================================== */
+.deck-page-shell .vintage-fc-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 670px;
+  margin: 0 auto 12px;
+  gap: 12px;
+}
+
+/* Circular Vintage Navigation Buttons (< and >) */
+.deck-page-shell .vintage-card-nav-arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 35% 30%, #FAF0DA 0%, #E7D3AD 75%, #D7BE92 100%) !important;
+  border: 1.5px solid #A88757 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 242, 0.85), 0 3px 7px rgba(59, 43, 28, 0.2) !important;
+  color: #3B2B1C !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  flex-shrink: 0;
+}
+
+.deck-page-shell .vintage-card-nav-arrow:hover:not(:disabled) {
+  transform: scale(1.06);
+  filter: brightness(1.04);
+}
+
+.deck-page-shell .vintage-card-nav-arrow:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Central Vintage Parchment Capsule */
+.deck-page-shell .vintage-fc-controls-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: linear-gradient(180deg, #F8EED7 0%, #EAD8B5 100%) !important;
+  border: 1.5px solid #B09062 !important;
+  border-radius: 999px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 252, 245, 0.9),
+    inset 0 0 0 2px rgba(185, 154, 106, 0.25),
+    0 4px 10px rgba(59, 43, 28, 0.18) !important;
+}
+
+.deck-page-shell .vintage-fc-capsule-ornament {
+  font-size: 9px;
+  color: #9C7A4C;
+  padding: 0 2px;
+  user-select: none;
+}
+
+.deck-page-shell .vintage-fc-counter {
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: #3B2B1C;
+  padding: 0 8px 0 4px;
+  white-space: nowrap;
+}
+
+.deck-page-shell .vintage-fc-bar-sep {
+  width: 1px;
+  height: 20px;
+  background: #C4A77D;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.deck-page-shell .vintage-fc-tool-btn {
+  width: 32px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #3B2B1C;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.deck-page-shell .vintage-fc-tool-btn:hover {
+  background: rgba(168, 120, 62, 0.18);
+}
+
+.deck-page-shell .vintage-fc-tool-btn.is-active,
+.deck-page-shell .vintage-fc-tool-btn.is-active-moss {
+  background: #46583A !important;
+  border-color: #35442B !important;
+  color: #FAF0DA !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Right Group: Circular Next + Standalone Rounded Zen Button */
+.deck-page-shell .vintage-fc-right-nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deck-page-shell .vintage-fc-side-zen-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #F8EED7 0%, #E7D3AD 100%);
+  border: 1.5px solid #A88757;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 242, 0.85), 0 3px 7px rgba(59, 43, 28, 0.18);
+  color: #3B2B1C;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.deck-page-shell .vintage-fc-side-zen-btn:hover {
+  transform: translateY(-1px);
+}
+
+.deck-page-shell .vintage-fc-side-zen-btn.is-active {
+  background: #46583A;
+  border-color: #35442B;
+  color: #FAF0DA;
+}
+
+/* Settings Popover */
+.deck-page-shell .vintage-fc-settings-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 230px;
+  background: #FAF0DA;
+  border: 1.5px solid #B09062;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #3B2B1C;
+  box-shadow: 0 10px 24px rgba(59, 43, 28, 0.25);
+  z-index: 40;
+  text-align: left;
+}
+
+/* Bottom Hotkeys Legend Strip */
+.deck-page-shell .vintage-fc-pill-legend-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto;
+}
+
+.deck-page-shell .vintage-fc-pill-wing {
+  width: 64px;
+  height: 16px;
+  object-fit: contain;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.deck-page-shell .vintage-fc-pill-wing.is-right {
+  transform: scaleX(-1);
+}
+
+.deck-page-shell .vintage-fc-pill-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px;
+  background: linear-gradient(180deg, #F6E9CE 0%, #E7D4B0 100%);
+  border: 1px solid #B99A6A;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 251, 240, 0.8), 0 2px 6px rgba(59, 43, 28, 0.14);
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3B2B1C;
+}
+
+.deck-page-shell .vintage-fc-pill-legend kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  margin-right: 3px;
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #3B2B1C;
+  background: #FAF0DA;
+  border: 1px solid #A68658;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 #8C6D44;
+}
+
+.deck-page-shell .vintage-fc-pill-divider {
+  color: #9C7D52;
+  font-weight: 400;
+}
+
+/* Zen Mode Fullscreen Overlay */
+.deck-page-shell .vintage-flashcard-experience.is-zen-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.jpg') no-repeat center center / cover;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  margin: 0;
+}
+
+/* ==========================================================================
+   SECTION 5 — VOCABULARY INVENTORY SECTION (PARCHMENT TABLE & CARDS)
+   ========================================================================== */
+.deck-page-shell .vintage-vocab-section {
+  width: 100%;
+  max-width: 1080px;
+  margin: 12px auto 0;
+  padding: 22px 26px;
+  background: rgba(250, 240, 218, 0.9);
+  border: 1.5px solid #B99A6A;
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(59, 43, 28, 0.12);
+}
+
+.deck-page-shell .vintage-vocab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.deck-page-shell .vintage-vocab-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deck-page-shell .vintage-vocab-title {
+  margin: 0;
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 19px;
+  font-weight: 800;
+  color: #3B2B1C;
+}
+
+.deck-page-shell .vintage-vocab-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #E8D6B3;
+  border: 1px solid #B99A6A;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #3B2B1C;
+}
+
+.deck-page-shell .vocab-view-btn,
+.deck-page-shell .vocab-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid #B99A6A;
+  background: #F6E9CE;
+  color: #3B2B1C;
+  font-family: 'Merriweather', 'Times New Roman', serif !important;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em !important;
+  cursor: pointer;
+}
+
+.deck-page-shell .vocab-view-btn.is-active,
+.deck-page-shell .vocab-filter-chip.is-active {
+  background: #46583A !important;
+  border-color: #35442B !important;
+  color: #FAF0DA !important;
+}
+
+.deck-page-shell .vintage-vocab-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.deck-page-shell .vintage-vocab-search-box {
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 1 1 280px;
+  max-width: 420px;
+  background: #FAF3E3 !important;
+  border: 1px solid #B99A6A !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+}
+
+.deck-page-shell .vintage-vocab-search-box .vocab-search-icon {
+  position: static !important;
+  transform: none !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  pointer-events: none;
+}
+
+.deck-page-shell .vintage-vocab-search-input {
+  width: 100%;
+  border: none !important;
+  background: transparent !important;
+  padding: 9px 4px !important;
+  font-family: 'Merriweather', 'Times New Roman', serif !important;
+  font-size: 13.5px !important;
+  color: #3B2B1C !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.deck-page-shell .vintage-vocab-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #C8AD82;
+  border-radius: 10px;
+  background: #FAF2E1;
+}
+
+.deck-page-shell .vintage-vocab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Merriweather', 'Times New Roman', serif !important;
+  font-size: 14px;
+  color: #3B2B1C;
+}
+
+.deck-page-shell .vintage-vocab-table th {
+  background: #EAD8B6 !important;
+  color: #3B2B1C !important;
+  font-family: 'Merriweather', 'Times New Roman', serif !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 11px 12px;
+  border-bottom: 1.5px solid #B99A6A;
+}
+
+.deck-page-shell .vintage-vocab-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #DFCCA8;
+  vertical-align: middle;
+}
+
+.deck-page-shell .vintage-vocab-table tr:last-child td {
+  border-bottom: none;
+}
+
+.deck-page-shell .vocab-pos-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #DCE0C2;
+  border: 1px solid #8A9A78;
+  color: #334228;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.deck-page-shell .vintage-vocab-audio-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #B99A6A;
+  background: #F3E3C2;
+  color: #3B2B1C;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.deck-page-shell .vintage-vocab-audio-btn:hover {
+  background: #E5CE9E;
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS (TABLET & MOBILE)
+   ========================================================================== */
+@media (max-width: 1100px) {
+  .deck-page-shell .vintage-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .deck-page-shell.lexicon-journal-shell {
+    flex-direction: column !important;
+  }
+
+  .deck-page-shell .deck-page-main.lexicon-journal-main {
+    padding: 16px 14px 40px;
+  }
+
+  .deck-page-shell .vintage-deck-header-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .deck-page-shell .vintage-header-title-ribbon {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+    justify-content: center;
+  }
+
+  .deck-page-shell .vintage-title-flourish .flourish-line {
+    width: 28px;
+  }
+
+  .deck-page-shell .vintage-mode-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .deck-page-shell .vintage-card-scene {
+    height: 320px;
+  }
+
+  .deck-page-shell .vintage-card-face {
+    padding: 48px 28px 54px;
+  }
+
+  .deck-page-shell .vintage-fc-compass {
+    width: 46px;
+    height: 46px;
+    top: 14px;
+    left: 16px;
+  }
+
+  .deck-page-shell .vintage-fc-sound-btn,
+  .deck-page-shell .vintage-fc-sound-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .deck-page-shell .vintage-fc-landscape {
+    width: 120px;
+    height: 70px;
+  }
+
+  .deck-page-shell .vintage-fc-ship {
+    width: 60px;
+    height: 86px;
+  }
+
+  .deck-page-shell .vintage-fc-pill-wing {
+    display: none;
+  }
+}

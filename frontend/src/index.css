@@ -715,3 +715,11 @@ button, input, select, textarea {
   background-color: var(--border-color);
   width: 100%;
 }
+
+
+/* Global Ripple Loader styling */
+.ripple-loader {
+  display: inline-block;
+  vertical-align: middle;
+  stroke: currentColor;
+}

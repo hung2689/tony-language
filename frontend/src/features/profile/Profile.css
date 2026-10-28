@@ -1,0 +1,1499 @@
+/* ==========================================================================
+   LEXICON VINTAGE EXPLORER & WANTED POSTER PROFILE PAGE
+   Matches reference: profile.png & asset-catalog.png
+   ========================================================================== */
+
+:root {
+  --profile-paper: #E8D0A0;
+  --profile-paper-light: #F4E4BF;
+  --profile-paper-deep: #D7BA84;
+  --profile-ink: #392719;
+  --profile-ink-soft: #5A402A;
+  --profile-border: #795431;
+  --profile-moss: #59613B;
+  --profile-moss-dark: #414A2F;
+  --profile-crimson: #8E3524;
+  --profile-gold: #C69A45;
+  --profile-serif: 'Times New Roman', Georgia, serif;
+  --profile-body: 'Times New Roman', Georgia, serif;
+}
+
+.lexicon-profile-shell,
+.lexicon-profile-shell * {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   1. SHELL & WORKSPACE LAYOUT (3 REGIONS: HEADER + SIDEBAR + 2-COL PROFILE)
+   -------------------------------------------------------------------------- */
+.lexicon-profile-shell {
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  background: var(--profile-paper) url('/assets/nen_texture/texture_parchment_main.png') center / cover no-repeat;
+  color: var(--profile-ink);
+}
+
+.lexicon-profile-main {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 18px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background: linear-gradient(
+      180deg,
+      rgba(232, 208, 160, 0.55) 0%,
+      rgba(218, 189, 134, 0.65) 100%
+    ),
+    url('/assets/nen_texture/texture_parchment_main.png') center / cover no-repeat;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.lexicon-profile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 460px;
+  font-family: var(--profile-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--profile-ink);
+}
+
+/* Two main side-by-side blocks */
+.lexicon-profile-two-col {
+  display: grid;
+  grid-template-columns: minmax(390px, 41.5%) minmax(520px, 58.5%);
+  gap: 16px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1360px;
+  margin: auto;
+}
+
+/* --------------------------------------------------------------------------
+   2. LEFT BLOCK: CLASSIC PIRATE WANTED POSTER
+   -------------------------------------------------------------------------- */
+.lexicon-wanted-poster-col {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 0;
+}
+
+.lexicon-wanted-poster-card,
+.wanted-poster {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  aspect-ratio: 527 / 748;
+  margin: 0 auto;
+  padding: 5.5% 11% 6.2%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background-image: url("/assets/profile/backgrounds/wanted-poster-bg.png");
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  user-select: none;
+  filter: drop-shadow(0 8px 18px rgba(42, 26, 12, 0.26));
+}
+
+/* 2.A WANTED Header */
+.wanted-poster__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 1.5%;
+}
+
+.wanted-poster__title {
+  display: inline-block;
+  font-family: Impact, 'Times New Roman', Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(3.3rem, 5.4vw, 5.15rem);
+  line-height: 0.92;
+  letter-spacing: 0.04em;
+  color: #352113;
+  transform: scaleY(1.18);
+  text-shadow:
+    0 1px 0 rgba(244, 228, 191, 0.55),
+    1px 2px 0 rgba(53, 33, 19, 0.18);
+}
+
+/* 2.B Rectangular Portrait Box inside the Wanted Poster */
+.lexicon-wanted-portrait-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 418 / 348;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.lexicon-wanted-portrait-img {
+  position: absolute;
+  left: 5.74%;
+  top: 6.08%;
+  width: 88.52%;
+  height: 87.85%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  filter: sepia(0.14) contrast(1.03);
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+.lexicon-wanted-portrait-box:hover .lexicon-wanted-portrait-img {
+  transform: scale(1.015);
+  filter: sepia(0.06) contrast(1.06);
+}
+
+.lexicon-wanted-portrait-frame-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 2.C Dynamic Bounty Section: DEAD OR ALIVE + Name + Bounty + MARINE */
+.wanted-bounty {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding-top: 2.2%;
+  color: #332012;
+}
+
+.wanted-bounty__flourish {
+  width: 24px;
+  height: 100%;
+  max-height: 185px;
+  color: #3B2515;
+  flex-shrink: 0;
+  align-self: center;
+  opacity: 0.9;
+}
+
+.wanted-bounty__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.wanted-bounty__label-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.wanted-bounty__wing {
+  flex: 1;
+  max-width: 34px;
+  height: 3px;
+  background: #3B2515;
+  border-radius: 2px;
+  position: relative;
+}
+
+.wanted-bounty__wing::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: -4px;
+  height: 1.5px;
+  background: #3B2515;
+}
+
+.wanted-bounty__label {
+  font-family: var(--profile-serif);
+  font-weight: 900;
+  font-size: clamp(1.25rem, 2.05vw, 1.95rem);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: #332012;
+  white-space: nowrap;
+}
+
+.wanted-bounty__name {
+  margin: 2px 0;
+  font-family: var(--profile-serif);
+  font-weight: 800;
+  font-size: clamp(2rem, 3.1vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  color: #2D1C10;
+  text-shadow: 0 1px 0 rgba(244, 228, 191, 0.45);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wanted-bounty__amount {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--profile-serif);
+  font-weight: 900;
+  font-size: clamp(1.35rem, 2.25vw, 2.15rem);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: #332012;
+  white-space: nowrap;
+}
+
+.wanted-bounty__berry {
+  font-family: var(--profile-serif);
+  font-weight: 900;
+  font-size: 1.06em;
+  display: inline-block;
+  transform: translateY(1px);
+}
+
+.wanted-bounty__number {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.wanted-bounty__footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.wanted-bounty__double-lines {
+  flex: 1;
+  height: 5px;
+  border-top: 2px solid #3B2515;
+  border-bottom: 1.5px solid #3B2515;
+}
+
+.wanted-bounty__authority {
+  font-family: var(--profile-serif);
+  font-weight: 900;
+  font-size: clamp(0.95rem, 1.4vw, 1.35rem);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: #332012;
+}
+
+/* --------------------------------------------------------------------------
+   3. RIGHT BLOCK: PROFILE INFORMATION & LEARNING LEDGER
+   -------------------------------------------------------------------------- */
+.lexicon-profile-ledger,
+.profile-paper {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-width: 0;
+  background-image: url("/assets/profile/backgrounds/profile-paper-bg.png");
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 8px 18px rgba(42, 26, 12, 0.22));
+  display: flex;
+  flex-direction: column;
+}
+
+.lexicon-profile-ledger-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px 32px 24px 30px;
+}
+
+/* --------------------------------------------------------------------------
+   4.A USER IDENTITY HEADER + CARTOGRAPHY SHIP ILLUSTRATION
+   -------------------------------------------------------------------------- */
+.lexicon-profile-identity-header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: 184px;
+  padding-bottom: 10px;
+}
+
+.lexicon-profile-identity-left {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-top: 8px;
+  max-width: 56%;
+}
+
+.lexicon-profile-compass-stamp {
+  width: 86px;
+  height: 102px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.lexicon-profile-identity-text {
+  display: flex;
+  flex-direction: column;
+  padding-top: 10px;
+}
+
+.lexicon-profile-display-name {
+  margin: 0;
+  font-family: var(--profile-serif);
+  font-size: clamp(2.1rem, 2.75vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.05;
+  color: #2B1B10;
+  letter-spacing: -0.01em;
+}
+
+.lexicon-profile-handle {
+  margin: 4px 0 12px;
+  font-family: var(--profile-body);
+  font-size: 1.08rem;
+  font-weight: 500;
+  color: #46301E;
+}
+
+.lexicon-profile-motto {
+  margin: 0;
+  font-family: var(--profile-body);
+  font-size: 1.12rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.38;
+  color: #322114;
+}
+
+.lexicon-profile-ship-art {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 56%;
+  height: 194px;
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lexicon-profile-ship-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right top;
+}
+
+/* --------------------------------------------------------------------------
+   4.B EXPLORER LEVEL BAR
+   -------------------------------------------------------------------------- */
+.lexicon-profile-level-box {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 20px 13px 16px;
+  border: 1.5px solid rgba(98, 67, 38, 0.72);
+  border-radius: 5px;
+  background: linear-gradient(
+    180deg,
+    rgba(235, 212, 168, 0.45) 0%,
+    rgba(222, 194, 144, 0.45) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(249, 237, 208, 0.35);
+}
+
+.lexicon-profile-level-compass,
+.lexicon-profile-level-badge-wrap {
+  width: 68px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.lexicon-profile-level-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lexicon-profile-level-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lexicon-profile-level-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lexicon-profile-level-eyebrow {
+  font-family: var(--profile-serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #3B2818;
+}
+
+.lexicon-profile-level-rank {
+  font-family: var(--profile-serif);
+  font-size: 1.48rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #2B1B10;
+}
+
+.lexicon-profile-level-xp {
+  font-family: var(--profile-serif);
+  font-size: 1.24rem;
+  font-weight: 800;
+  color: #2B1B10;
+  white-space: nowrap;
+}
+
+.lexicon-profile-xp-track {
+  width: 100%;
+  height: 15px;
+  border-radius: 999px;
+  background: #CDB486;
+  border: 1px solid #6F5235;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(45, 29, 15, 0.22);
+}
+
+.lexicon-profile-xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #525B36 0%, #5F6840 100%);
+  border-right: 1px solid #3F4728;
+  transition: width 0.35s ease;
+}
+
+/* --------------------------------------------------------------------------
+   4.C LEARNING STATS SECTION
+   -------------------------------------------------------------------------- */
+.lexicon-profile-stats-section {
+  position: relative;
+  z-index: 3;
+  margin-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid rgba(105, 73, 42, 0.52);
+}
+
+.lexicon-profile-stats-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.lexicon-profile-stats-title {
+  margin: 0;
+  font-family: var(--profile-serif);
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: #2B1B10;
+  white-space: nowrap;
+}
+
+.lexicon-profile-ornamental-rule {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(94, 64, 36, 0.72);
+  font-size: 0.9rem;
+}
+
+.lexicon-profile-ornamental-rule .rule-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(94, 64, 36, 0.58);
+}
+
+.lexicon-profile-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr 1.05fr 1.18fr 0.95fr;
+  align-items: center;
+}
+
+.lexicon-profile-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 12px;
+  border-left: 1px solid rgba(105, 73, 42, 0.48);
+}
+
+.lexicon-profile-stat-item:first-child {
+  padding-left: 4px;
+  border-left: none;
+}
+
+.lexicon-profile-stat-item:last-child {
+  padding-right: 2px;
+}
+
+.lexicon-stat-svg-icon {
+  width: 31px;
+  height: 31px;
+  color: #332113;
+  flex-shrink: 0;
+}
+
+.lexicon-stat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lexicon-stat-num {
+  font-family: var(--profile-serif);
+  font-size: 1.38rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #2B1B10;
+  white-space: nowrap;
+}
+
+.lexicon-stat-label {
+  font-family: var(--profile-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #513A24;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   4.D PROFILE TABS BAR
+   -------------------------------------------------------------------------- */
+.lexicon-profile-tabs-bar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  padding-bottom: 0;
+  border-bottom: 1.5px solid rgba(105, 73, 42, 0.52);
+}
+
+.lexicon-profile-tab-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(105, 73, 42, 0.42);
+  margin: 0 4px 6px;
+}
+
+.lexicon-profile-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 22px 10px;
+  margin-bottom: -1.5px;
+  border: 1.5px solid transparent;
+  border-radius: 9px 9px 2px 2px;
+  background: transparent;
+  font-family: var(--profile-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #332113;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.lexicon-profile-tab-btn:hover:not(.is-active) {
+  background: rgba(121, 84, 49, 0.1);
+}
+
+.lexicon-profile-tab-btn.is-active {
+  background: linear-gradient(180deg, #5F6840 0%, #4E5634 100%);
+  color: #F4E4BF;
+  border-color: #363C23;
+  border-bottom-color: #2B1B10;
+  box-shadow: 0 2px 0 #2B1B10, inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* --------------------------------------------------------------------------
+   4.E TAB CONTENT PANEL (THÔNG TIN CÁ NHÂN / BẢO MẬT / CẤP BẬC)
+   -------------------------------------------------------------------------- */
+.lexicon-profile-tab-panel {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 14px;
+}
+
+.lexicon-personal-info-panel {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.lexicon-personal-info-heading {
+  margin: 0 0 12px 4px;
+  font-family: var(--profile-serif);
+  font-size: 1.32rem;
+  font-weight: 800;
+  color: #2B1B10;
+}
+
+.lexicon-personal-info-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  padding-left: 2px;
+}
+
+/* Left Circular Avatar with Botanical Wreath Frame + Moss Camera Button */
+.lexicon-personal-avatar-wrap {
+  position: relative;
+  width: 154px;
+  height: 164px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lexicon-personal-avatar-circle {
+  position: absolute;
+  left: 16px;
+  top: 22px;
+  width: 122px;
+  height: 122px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #D8BE8E;
+  z-index: 1;
+}
+
+.lexicon-personal-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.lexicon-personal-avatar-wreath {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.lexicon-personal-camera-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 14px;
+  z-index: 4;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #3A2918;
+  background: linear-gradient(180deg, #626C43 0%, #4E5734 100%);
+  color: #F4E4BF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(38, 25, 12, 0.35);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.lexicon-personal-camera-btn:hover {
+  transform: scale(1.06);
+  filter: brightness(1.08);
+}
+
+/* Middle 4 Information Rows */
+.lexicon-personal-rows {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-top: 12px;
+  max-width: 390px;
+}
+
+.lexicon-personal-row {
+  display: grid;
+  grid-template-columns: 148px 1fr;
+  align-items: start;
+  gap: 12px;
+  font-family: var(--profile-body);
+  font-size: 1.02rem;
+  color: #2D1D11;
+}
+
+.lexicon-personal-row-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #46301D;
+  font-weight: 500;
+}
+
+.lexicon-personal-row-label svg {
+  color: #3B2717;
+  flex-shrink: 0;
+}
+
+.lexicon-personal-row-value {
+  font-weight: 500;
+  color: #2B1B10;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.lexicon-personal-row-value strong {
+  font-weight: 700;
+}
+
+.lexicon-bio-value {
+  line-height: 1.42;
+}
+
+/* Inline Display Name Edit Form */
+.lexicon-inline-name-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.lexicon-inline-name-input {
+  width: 145px;
+  padding: 4px 8px;
+  border: 1.5px solid #6E4F32;
+  border-radius: 4px;
+  background: #F7EBD0;
+  font-family: Georgia, serif;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #2B1B10;
+}
+
+.lexicon-inline-name-input.has-error {
+  border-color: var(--profile-crimson);
+}
+
+.lexicon-inline-bio-input {
+  width: 210px;
+}
+
+.lexicon-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #594028;
+  font-family: var(--profile-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lexicon-inline-btn.save {
+  background: var(--profile-moss);
+  border-color: var(--profile-moss-dark);
+  color: #F4E4BF;
+}
+
+.lexicon-inline-btn.cancel {
+  background: rgba(244, 228, 191, 0.8);
+  color: #392719;
+}
+
+.lexicon-inline-btn.delete-avatar {
+  background: rgba(142, 53, 36, 0.12);
+  border-color: var(--profile-crimson);
+  color: var(--profile-crimson);
+}
+
+.lexicon-inline-error {
+  width: 100%;
+  font-size: 0.78rem;
+  color: var(--profile-crimson);
+  font-weight: 600;
+}
+
+/* Top-Right Tilted Stamp Button CHỈNH SỬA */
+.lexicon-edit-stamp-btn {
+  position: absolute;
+  top: -12px;
+  right: 26px;
+  z-index: 4;
+  padding: 3px;
+  border: 2px solid var(--profile-crimson);
+  border-radius: 6px;
+  background: rgba(238, 214, 172, 0.78);
+  color: var(--profile-crimson);
+  transform: rotate(-8.5deg);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(142, 53, 36, 0.15);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.lexicon-edit-stamp-btn:hover {
+  transform: rotate(-6.5deg) scale(1.03);
+  background: rgba(244, 225, 188, 0.92);
+}
+
+.lexicon-edit-stamp-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 14px;
+  border: 1.2px solid var(--profile-crimson);
+  border-radius: 4px;
+  font-family: var(--profile-serif);
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lexicon-edit-quill-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Bottom-Right Decorative Mountain + Botanical + Keep Exploring Ribbon */
+.lexicon-keep-exploring-art {
+  position: absolute;
+  right: -12px;
+  bottom: -14px;
+  width: 262px;
+  height: 245px;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.lexicon-keep-exploring-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+}
+
+/* --------------------------------------------------------------------------
+   5. SUBPAGES (BẢO MẬT & CẤP BẬC) IN VINTAGE PARCHMENT THEME
+   -------------------------------------------------------------------------- */
+.lexicon-profile-subpage-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 6px;
+  max-height: 420px;
+}
+
+.lexicon-profile-subpage-scroll .profile-card,
+.lexicon-profile-subpage-scroll .profile-section-card {
+  background: rgba(244, 228, 191, 0.52);
+  border: 1.5px solid rgba(121, 84, 49, 0.55);
+  border-radius: 6px;
+  padding: 12px 16px;
+  box-shadow: none;
+}
+
+.lexicon-profile-subpage-scroll .profile-card-title,
+.lexicon-profile-subpage-scroll .profile-section-title {
+  margin: 0 0 4px;
+  font-family: var(--profile-serif);
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: var(--profile-ink);
+}
+
+.lexicon-profile-subpage-scroll .profile-card-desc,
+.lexicon-profile-subpage-scroll .profile-section-desc {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+  color: var(--profile-ink-soft);
+}
+
+.profile-form-group,
+.form-group {
+  margin-bottom: 10px;
+}
+
+.profile-form-label,
+.form-label {
+  display: block;
+  font-family: var(--profile-serif);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--profile-ink);
+  margin-bottom: 4px;
+}
+
+.profile-input-wrapper,
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--profile-ink-soft);
+  pointer-events: none;
+}
+
+.profile-input,
+.form-input {
+  width: 100%;
+  padding: 7px 36px 7px 34px;
+  border: 1.5px solid rgba(121, 84, 49, 0.65);
+  border-radius: 5px;
+  background: rgba(249, 238, 212, 0.88);
+  font-family: Georgia, serif;
+  font-size: 0.88rem;
+  color: var(--profile-ink);
+}
+
+.profile-input:focus,
+.form-input:focus {
+  outline: none;
+  border-color: var(--profile-moss);
+}
+
+.profile-input-toggle,
+.input-trailing-action {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--profile-ink-soft);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.profile-field-error,
+.field-error-text {
+  display: block;
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--profile-crimson);
+  font-weight: 600;
+}
+
+.profile-field-hint,
+.field-hint-text {
+  display: block;
+  margin: 4px 0 0;
+  font-size: 0.76rem;
+  color: var(--profile-ink-soft);
+}
+
+.btn-profile-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 5px;
+  border: 1.5px solid var(--profile-moss-dark);
+  background: var(--profile-moss);
+  color: #F4E4BF;
+  font-family: var(--profile-serif);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-profile-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-profile-secondary,
+.btn-profile-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(121, 84, 49, 0.6);
+  background: rgba(244, 228, 191, 0.8);
+  color: var(--profile-ink);
+  font-family: var(--profile-serif);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Tier List & XP Rules inside Cấp bậc Tab */
+.tier-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tier-settings-bar,
+.xp-rules-card {
+  background: rgba(244, 228, 191, 0.52);
+  border: 1.5px solid rgba(121, 84, 49, 0.5);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.tier-settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tier-settings-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tier-settings-title,
+.xp-rules-header h4 {
+  margin: 0;
+  font-family: var(--profile-serif);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--profile-ink);
+}
+
+.tier-settings-desc,
+.xp-rules-cap-note {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--profile-ink-soft);
+}
+
+.xp-rules-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--profile-ink);
+}
+
+.xp-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+}
+
+.xp-rule-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--profile-ink);
+}
+
+.xp-rule-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--profile-moss);
+  color: #F4E4BF;
+  font-weight: 700;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.tier-grid,
+.tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.tier-card {
+  position: relative;
+  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1.5px solid rgba(121, 84, 49, 0.55);
+  background: rgba(247, 233, 202, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.tier-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0 2px;
+  width: 100%;
+}
+
+.tier-card.is-current,
+.tier-card.is-current-tier {
+  border-color: var(--profile-moss);
+  background: rgba(89, 97, 59, 0.14);
+}
+
+.tier-card.is-locked,
+.tier-card.is-locked-tier {
+  opacity: 0.68;
+}
+
+.tier-card-badge,
+.current-tier-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--profile-moss);
+  color: #F4E4BF;
+}
+
+.tier-card-name-vi {
+  margin: 0;
+  font-family: var(--profile-serif);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--profile-ink);
+}
+
+.tier-card-name-en,
+.tier-card-range {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--profile-ink-soft);
+}
+
+/* --------------------------------------------------------------------------
+   6. AVATAR CROP MODAL (PRESERVED & STYLED IN VINTAGE PARCHMENT)
+   -------------------------------------------------------------------------- */
+.avatar-uploader-headless {
+  display: contents;
+}
+
+.avatar-crop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(28, 18, 10, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.avatar-crop-modal {
+  background: #F4E4BF;
+  border: 2px solid #594028;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  color: var(--profile-ink);
+}
+
+.avatar-crop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid rgba(121, 84, 49, 0.4);
+}
+
+.avatar-crop-header h3 {
+  margin: 0;
+  font-family: var(--profile-serif);
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--profile-ink);
+}
+
+.btn-icon-close {
+  background: transparent;
+  border: none;
+  color: var(--profile-ink);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+}
+
+.avatar-crop-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-crop-viewport {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1C130C;
+  user-select: none;
+  touch-action: none;
+  border: 2px solid #594028;
+}
+
+.avatar-crop-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  pointer-events: none;
+  user-select: none;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.avatar-crop-mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 140px at center,
+    transparent 139px,
+    rgba(28, 18, 10, 0.65) 140px
+  );
+}
+
+.avatar-crop-mask::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px dashed rgba(244, 228, 191, 0.85);
+}
+
+.avatar-crop-presets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-crop-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-family: var(--profile-serif);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--profile-ink);
+  background: rgba(232, 208, 160, 0.7);
+  border: 1px solid #795431;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.avatar-crop-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.btn-zoom {
+  background: rgba(232, 208, 160, 0.7);
+  border: 1px solid #795431;
+  color: var(--profile-ink);
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.zoom-slider {
+  flex: 1;
+  accent-color: var(--profile-moss);
+  cursor: pointer;
+}
+
+.avatar-crop-instruction {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--profile-ink-soft);
+  text-align: center;
+}
+
+.avatar-crop-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1.5px solid rgba(121, 84, 49, 0.4);
+  background: rgba(232, 208, 160, 0.45);
+}
+
+/* --------------------------------------------------------------------------
+   7. RESPONSIVE BREAKPOINTS (TABLET & MOBILE)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+  .lexicon-profile-shell {
+    height: auto !important;
+    min-height: calc(100vh - 64px);
+    overflow: visible !important;
+  }
+
+  .lexicon-profile-main {
+    overflow: visible;
+  }
+
+  .lexicon-profile-two-col {
+    grid-template-columns: 1fr;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .lexicon-wanted-poster-card,
+  .wanted-poster {
+    max-width: 460px;
+    max-height: none;
+  }
+
+  .lexicon-profile-ledger,
+  .profile-paper {
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .lexicon-profile-main {
+    padding: 10px 10px 84px;
+  }
+
+  .lexicon-profile-ledger-inner {
+    padding: 16px 14px 20px;
+  }
+
+  .lexicon-profile-identity-left {
+    max-width: 100%;
+  }
+
+  .lexicon-profile-ship-art {
+    opacity: 0.28;
+    width: 65%;
+  }
+
+  .lexicon-profile-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .lexicon-profile-stat-item {
+    border-left: none;
+    padding: 4px;
+  }
+
+  .lexicon-personal-info-body {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .lexicon-personal-rows {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .lexicon-personal-row {
+    grid-template-columns: 128px 1fr;
+  }
+
+  .lexicon-edit-stamp-btn {
+    position: static;
+    transform: none;
+    align-self: flex-start;
+    margin-top: 8px;
+  }
+
+  .lexicon-keep-exploring-art {
+    position: relative;
+    right: 0;
+    bottom: 0;
+    width: 200px;
+    height: 180px;
+    align-self: flex-end;
+    margin-top: -20px;
+  }
+}

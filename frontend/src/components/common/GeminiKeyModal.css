@@ -78,6 +78,52 @@
   text-decoration: underline;
 }
 
+.gemini-tip-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #1e40af;
+}
+
+.gemini-tip-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.gemini-tip-text code {
+  background: rgba(37, 99, 235, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #1d4ed8;
+}
+
+.gemini-force-save-btn {
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.gemini-force-save-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
 .gemini-key-form {
   display: flex;
   flex-direction: column;
@@ -268,4 +314,26 @@
 
 [data-theme='dark'] .gemini-cancel-btn:hover {
   background: #1e293b;
+}
+
+[data-theme='dark'] .gemini-tip-box {
+  background: rgba(30, 58, 138, 0.25);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #bfdbfe;
+}
+
+[data-theme='dark'] .gemini-tip-text code {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .gemini-force-save-btn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .gemini-force-save-btn:hover {
+  background: #334155;
+  color: #ffffff;
 }

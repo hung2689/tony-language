@@ -20,6 +20,7 @@ import { analyticsService } from '../../services/analyticsService';
 import ActivityHeatmap from './ActivityHeatmap';
 import RetentionDistribution from './RetentionDistribution';
 import WeakWordsList from './WeakWordsList';
+import Ripple from '../../components/common/Ripple';
 import './Analytics.css';
 
 export default function AnalyticsPage() {
@@ -198,8 +199,9 @@ export default function AnalyticsPage() {
   if (loading && !overview) {
     return (
       <div className="analytics-page">
-        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: '#6b7280' }}>
-          Đang tổng hợp dữ liệu học tập...
+        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-secondary, #6b7280)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+          <Ripple size={48} color="#3b82f6" />
+          <span>Đang tổng hợp dữ liệu học tập...</span>
         </div>
       </div>
     );

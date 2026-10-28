@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Settings, Volume2, AlertCircle } from 'lucide-react';
+import { Settings, AlertCircle } from 'lucide-react';
 import { speakEnglishTerm } from '../../utils/speechUtils';
 
 export default function LearnQuestion({
+  deck,
   currentQuestion,
   sessionStats,
   distinctCardCount,
@@ -91,38 +92,58 @@ export default function LearnQuestion({
     }
   };
 
-  // Progress bar: 10 equal segments with accurate fillRatio calculation
+  // Voyage Progress calculation
   const totalWords = sessionStats?.totalWords ?? sessionStats?.totalCards ?? 1;
   const masteredWords = sessionStats?.masteredWords ?? sessionStats?.masteredCount ?? 0;
-  const totalCards = totalWords;
-  const masteredCount = masteredWords;
-  const fillRatio = totalWords > 0 ? masteredWords / totalWords : 0;
-  const filledCount = Math.round(fillRatio * 10);
-  const segments = Array.from({ length: 10 }, (_, i) => i < filledCount);
+  const fillRatio = totalWords > 0 ? Math.min(1, Math.max(0, masteredWords / totalWords)) : 0;
+  const percent = Math.round(fillRatio * 100);
 
   // Card mastery level (0 to 3)
   const masteryLevel = currentQuestion.masteryLevel || 0;
 
   return (
-    <div className="learn-session-wrapper">
-      {/* Top Bar */}
-      <header className="learn-top-bar">
+    <div className="learn-session-wrapper vintage-learn-container">
+      {/* Top Header Row with Vintage Pirate Navigation */}
+      <header className="vintage-deck-header-row learn-vintage-header">
+        {/* Left: Vintage Back Button */}
         <button
           type="button"
-          className="learn-back-btn"
+          className="vintage-header-back-btn"
           onClick={onExit}
+          title="Thoát phiên học"
           aria-label="Thoát phiên học"
         >
-          <ArrowLeft size={18} />
-          <span>Thoát</span>
+          <img src="/assets/flashcard/button-back.png" alt="Thoát" />
         </button>
 
-        <div className="learn-top-bar-center" />
+        {/* Center: Classic Ornamental Book Title */}
+        <div className="vintage-header-title-ribbon" title={deck?.name}>
+          <span className="vintage-title-flourish is-left" aria-hidden="true">
+            <span className="flourish-line" />
+            <span className="flourish-diamond">◆</span>
+            <span className="flourish-dot">•</span>
+          </span>
+          <div className="vintage-ribbon-content">
+            <img
+              src="/assets/decor_icon/decor_vocabulary_book.png"
+              alt=""
+              className="vintage-title-book-icon"
+            />
+            <h1 className="vintage-ribbon-text">{deck?.name || 'Hải trình Học tập'}</h1>
+          </div>
+          <span className="vintage-title-flourish is-right" aria-hidden="true">
+            <span className="flourish-dot">•</span>
+            <span className="flourish-diamond">◆</span>
+            <span className="flourish-line" />
+          </span>
+        </div>
 
+        {/* Right: Vintage Settings Button */}
         <button
           type="button"
-          className="learn-settings-trigger-btn"
+          className="vintage-header-settings-btn"
           onClick={onOpenSettings}
+          title="Cài đặt phiên học"
           aria-label="Cài đặt phiên học"
         >
           <Settings size={18} />
@@ -130,40 +151,83 @@ export default function LearnQuestion({
         </button>
       </header>
 
-      {/* Segmented Progress Bar (10 equal segments, accessible aria values) */}
+      {/* Voyage Nautical Progress Bar: [⚓ Bến] ───⛵─── [🏝 Đảo Kho Báu] */}
       <div
-        className="learn-progress-container"
+        className="vintage-voyage-progress-container"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={Math.round(fillRatio * 100)}
-        aria-label="Tiến độ học tập"
+        aria-valuenow={percent}
+        aria-label="Tiến độ hải trình"
       >
-        <div className="learn-progress-segments">
-          {segments.map((isFilled, idx) => (
+        <div className="vintage-voyage-track">
+          <div className="voyage-landmark start-harbor" title="Bến xuất phát">
+            <span className="landmark-icon">⚓</span>
+            <span className="landmark-label">Bến Cảng</span>
+          </div>
+
+          <div className="voyage-sea-line">
             <div
-              key={idx}
-              className={`learn-progress-segment ${isFilled ? 'is-filled' : ''}`}
+              className="voyage-sea-progress"
+              style={{ width: `${percent}%` }}
             />
-          ))}
+            <div
+              className="voyage-ship-marker"
+              style={{ left: `${percent}%` }}
+              title={`Đã thuộc: ${masteredWords}/${totalWords} từ`}
+            >
+              <img
+                src="/assets/flashcard/flashcard-ship.png"
+                alt="Thuyền thám hiểm"
+                className="voyage-ship-img"
+              />
+            </div>
+          </div>
+
+          <div className="voyage-landmark end-island" title="Đảo Kho Báu">
+            <span className="landmark-icon">🏝</span>
+            <span className="landmark-label">Kho Báu</span>
+          </div>
+        </div>
+
+        <div className="voyage-progress-counter">
+          <span>Tiến độ: <strong>{masteredWords}</strong> / {totalWords} từ đã thuộc ({percent}%)</span>
         </div>
       </div>
 
-      {/* Main Question Card */}
-      <main className="learn-question-card">
-        <div className="learn-card-top-row">
-          <div className="learn-card-badge">
-            {isViToEn ? 'Định nghĩa' : 'Thuật ngữ'}
+      {/* Main Question Parchment Scroll */}
+      <main className="vintage-question-scroll-wrapper">
+        {/* Antique Corner Illustrations */}
+        <img
+          src="/assets/flashcard/flashcard-compass.png"
+          alt=""
+          className="vintage-corner-compass"
+          aria-hidden="true"
+        />
+        <img
+          src="/assets/flashcard/flashcard-landscape.png"
+          alt=""
+          className="vintage-corner-landscape"
+          aria-hidden="true"
+        />
+
+        {/* Top Meta Row */}
+        <div className="vintage-card-top-row">
+          <div className="vintage-card-type-tag">
+            {isViToEn ? '📖 Định nghĩa tiếng Việt' : '🧭 Thuật ngữ tiếng Anh'}
           </div>
 
-          {/* Retention Mastery Indicator (3 mini-dots) */}
-          <div className="learn-mastery-indicator" title={`Mức độ thành thạo: ${masteryLevel}/3`}>
-            <span className="learn-mastery-text">Đã thuộc: {masteryLevel}/3</span>
-            <div className="learn-mastery-dots">
+          {/* Retention Mastery Indicator (3 Wax Coins / Dots) */}
+          <div
+            className="vintage-mastery-indicator"
+            title={`Mức độ thành thạo: ${masteryLevel}/3`}
+          >
+            <span className="vintage-mastery-text">Đã thuộc: {masteryLevel}/3</span>
+            <div className="vintage-mastery-dots">
               {[1, 2, 3].map((level) => (
                 <span
                   key={level}
-                  className={`learn-mastery-dot ${masteryLevel >= level ? 'is-active' : ''}`}
+                  className={`vintage-mastery-dot ${masteryLevel >= level ? 'is-active' : ''}`}
                 />
               ))}
             </div>
@@ -171,9 +235,9 @@ export default function LearnQuestion({
         </div>
 
         {/* Prompt Section */}
-        <div className="learn-prompt-area">
-          <div className="learn-prompt-header">
-            <h2 className="learn-prompt-text">
+        <div className="vintage-prompt-area">
+          <div className="vintage-prompt-header">
+            <h2 className="vintage-prompt-text">
               {isViToEn ? card.definition : card.term}
             </h2>
 
@@ -181,12 +245,12 @@ export default function LearnQuestion({
             {!isViToEn && (
               <button
                 type="button"
-                className="learn-audio-btn"
+                className="vintage-sound-btn"
                 onClick={handleSpeakTerm}
                 title="Nghe phát âm"
                 aria-label="Nghe phát âm tiếng Anh"
               >
-                <Volume2 size={22} />
+                <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
               </button>
             )}
           </div>
@@ -194,12 +258,12 @@ export default function LearnQuestion({
           {/* Subtitle meta: never leak IPA/example for Việt -> Anh */}
           {isViToEn ? (
             card.partOfSpeech && (
-              <div className="learn-meta-text">
-                <span className="learn-pos-badge">{card.partOfSpeech}</span>
+              <div className="vintage-meta-text">
+                <span className="vintage-pos-badge">{card.partOfSpeech}</span>
               </div>
             )
           ) : (
-            <div className="learn-meta-text">
+            <div className="vintage-meta-text">
               {card.partOfSpeech && <span>{card.partOfSpeech}</span>}
               {card.partOfSpeech && card.pronunciation && <span> · </span>}
               {card.pronunciation && <span>/{card.pronunciation}/</span>}
@@ -209,17 +273,17 @@ export default function LearnQuestion({
 
         {/* Nudge Alert if 'almost' */}
         {nudge && (
-          <div className="learn-nudge-box" role="alert">
-            <AlertCircle size={18} className="learn-nudge-icon" />
-            <span className="learn-nudge-text">
+          <div className="vintage-nudge-box" role="alert">
+            <AlertCircle size={18} className="vintage-nudge-icon" />
+            <span className="vintage-nudge-text">
               {typeof nudge === 'object' ? (nudge.message || nudge.reason || '') : nudge}
             </span>
           </div>
         )}
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="learn-answer-form">
-          <div className="learn-input-group">
+        {/* Antique Quill & Ink Input Form */}
+        <form onSubmit={handleSubmit} className="vintage-answer-form">
+          <div className="vintage-input-group">
             <label htmlFor="learn-answer-input" className="visually-hidden">
               Câu trả lời của bạn
             </label>
@@ -227,8 +291,8 @@ export default function LearnQuestion({
               ref={inputRef}
               id="learn-answer-input"
               type="text"
-              className={`learn-answer-input ${nudge ? 'is-nudged' : ''}`}
-              placeholder="Nhập câu trả lời của bạn..."
+              className={`vintage-answer-input ${nudge ? 'is-nudged' : ''}`}
+              placeholder="Gõ câu trả lời của bạn vào đây..."
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -240,35 +304,35 @@ export default function LearnQuestion({
             />
           </div>
 
-          <div className="learn-action-buttons">
+          <div className="vintage-action-buttons">
             <button
               type="submit"
-              className={`learn-submit-btn ${inputVal.trim() ? 'is-active' : 'is-disabled'}`}
+              className={`vintage-submit-btn ${inputVal.trim() ? 'is-active' : 'is-disabled'}`}
               disabled={!inputVal.trim()}
             >
               <span>Kiểm tra</span>
-              <kbd className="learn-key-badge">↵</kbd>
+              <kbd className="vintage-key-badge">↵</kbd>
             </button>
 
             <button
               type="button"
-              className="learn-skip-btn"
+              className="vintage-skip-btn"
               onClick={handleSkip}
             >
-              <span>Tôi không biết</span>
+              <span>Tôi chưa biết</span>
             </button>
           </div>
         </form>
       </main>
 
       {/* Footer */}
-      <footer className="learn-session-footer">
+      <footer className="vintage-session-footer">
         <span>
-          Đã hoàn thành: {masteredCount} / {totalCards}
+          Hải trình: {distinctCardCount} / {totalWords} từ khảo nghiệm
         </span>
-        <span className="learn-footer-divider">•</span>
+        <span className="vintage-footer-divider">•</span>
         <span>
-          Câu hỏi: {distinctCardCount} / {totalCards}
+          Đã thành thạo: {masteredWords} / {totalWords} từ
         </span>
       </footer>
     </div>

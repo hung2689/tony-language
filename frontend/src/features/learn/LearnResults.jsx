@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { RotateCcw, ArrowLeft, Trophy, Sparkles } from 'lucide-react';
-import Button from '../../components/common/Button';
+import { RotateCcw, ArrowLeft, Sparkles, Zap, Award } from 'lucide-react';
 
 export default function LearnResults({
   deck,
@@ -8,6 +7,7 @@ export default function LearnResults({
   stats = {},
   cardStats = {},
   sessionStats = {},
+  xpResult = null,
   onRetryMissed,
   onRetryAll,
   onExit,
@@ -47,7 +47,7 @@ export default function LearnResults({
   const hasMissed = missedCards.length > 0;
 
   return (
-    <div className="learn-results-container">
+    <div className="learn-results-container vintage-learn-container">
       {/* Confetti Celebration Particles */}
       <div className="learn-confetti-layer" aria-hidden="true">
         {Array.from({ length: 24 }).map((_, i) => (
@@ -55,24 +55,38 @@ export default function LearnResults({
         ))}
       </div>
 
-      {/* Header Card */}
-      <div className="learn-results-card">
-        <div className="learn-results-header">
-          <div className="learn-results-trophy">
-            <Trophy size={48} className="learn-trophy-icon" />
+      {/* Main Victory Parchment Panel */}
+      <div className="vintage-results-parchment-panel">
+        <div className="vintage-results-header">
+          {/* Ornate Compass Rose Crest */}
+          <div className="vintage-results-crest-wrapper">
+            <img
+              src="/assets/decor_icon/decor_compass_ornate.png"
+              alt=""
+              className="vintage-results-crest"
+            />
           </div>
-          <h1 className="learn-results-title">Hoàn thành!</h1>
-          <p className="learn-results-deck-name">{deck?.name}</p>
 
-          {/* SVG Accuracy Gauge */}
-          <div className="learn-results-gauge-wrapper">
-            <svg className="learn-results-gauge-svg" viewBox="0 0 120 120" width="110" height="110">
+          <h1 className="vintage-results-title">Cập Bến Thành Công!</h1>
+
+          <div className="vintage-results-deck-ribbon">
+            <img
+              src="/assets/decor_icon/decor_vocabulary_book.png"
+              alt=""
+              className="vintage-ribbon-icon"
+            />
+            <span className="vintage-results-deck-name">{deck?.name || 'Bộ từ vựng'}</span>
+          </div>
+
+          {/* SVG Nautical Accuracy Gauge */}
+          <div className="vintage-results-gauge-wrapper">
+            <svg className="vintage-results-gauge-svg" viewBox="0 0 120 120" width="124" height="124">
               <circle
                 className="gauge-bg"
                 cx="60"
                 cy="60"
                 r="50"
-                strokeWidth="9"
+                strokeWidth="10"
                 fill="none"
               />
               <circle
@@ -82,80 +96,111 @@ export default function LearnResults({
                 cx="60"
                 cy="60"
                 r="50"
-                strokeWidth="9"
+                strokeWidth="10"
                 fill="none"
                 strokeDasharray={2 * Math.PI * 50}
                 strokeDashoffset={2 * Math.PI * 50 * (1 - accuracyPercent / 100)}
                 strokeLinecap="round"
               />
             </svg>
-            <div className="gauge-center-content">
+            <div className="vintage-gauge-center">
               <span className="gauge-percent-text">{accuracyPercent}%</span>
               <span className="gauge-label-text">Chính xác</span>
             </div>
           </div>
 
           {!hasMissed ? (
-            <div className="learn-perfect-banner">
-              <Sparkles size={20} />
-              <span>Xuất sắc! Bạn đã trả lời đúng tất cả các từ ngay từ lần đầu tiên.</span>
+            <div className="vintage-perfect-banner">
+              <Sparkles size={20} className="vintage-sparkle-icon" />
+              <span>Hải trình hoàn hảo! Bạn đã trả lời chính xác tất cả các từ ngay vòng đầu.</span>
             </div>
           ) : (
-            <p className="learn-results-subtext">
-              Bạn đã hoàn thành phiên luyện tập và ghi nhớ tất cả các thẻ!
+            <p className="vintage-results-subtext">
+              Bạn đã hoàn thành chuyến hải trình và ghi nhớ toàn bộ các thẻ từ vựng!
             </p>
+          )}
+
+          {/* XP & Level Up Reward Banner */}
+          {xpResult && (
+            <div className="vintage-xp-reward-section">
+              {xpResult.leveledUp && (
+                <div className="vintage-levelup-banner">
+                  <Sparkles size={20} className="vintage-sparkle-icon" />
+                  <span className="vintage-levelup-text">
+                    Thăng cấp {xpResult.level} – {xpResult.tier?.name || 'Nhà Thám Hiểm'}!
+                  </span>
+                </div>
+              )}
+              <div className="vintage-xp-pill-container">
+                <div className="vintage-xp-gain-chip">
+                  <Zap size={16} className="text-amber-500" />
+                  <span>+{xpResult.xpGained || 0} XP Thưởng</span>
+                </div>
+                {xpResult.level && (
+                  <div className="vintage-xp-level-chip">
+                    <Award size={16} />
+                    <span>
+                      {xpResult.tier?.name || 'Tập sự'} • Cấp {xpResult.level}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Stats Grid */}
-        <div className="learn-stats-grid">
-          <div className="learn-stat-box">
-            <span className="learn-stat-val">{totalCards}</span>
-            <span className="learn-stat-lbl">Tổng số từ</span>
+        {/* 6 Antique Stat Cards Grid */}
+        <div className="vintage-stats-grid">
+          <div className="vintage-stat-box">
+            <span className="vintage-stat-val">{totalCards}</span>
+            <span className="vintage-stat-lbl">Tổng số từ</span>
           </div>
 
-          <div className="learn-stat-box">
-            <span className="learn-stat-val text-success">{firstTryCorrectCount}</span>
-            <span className="learn-stat-lbl">Đúng ngay lần đầu</span>
+          <div className="vintage-stat-box">
+            <span className="vintage-stat-val is-green">{firstTryCorrectCount}</span>
+            <span className="vintage-stat-lbl">Đúng vòng đầu</span>
           </div>
 
-          <div className="learn-stat-box">
-            <span className="learn-stat-val text-warning">{missedCards.length}</span>
-            <span className="learn-stat-lbl">Cần ôn lại</span>
+          <div className="vintage-stat-box">
+            <span className="vintage-stat-val is-red">{missedCards.length}</span>
+            <span className="vintage-stat-lbl">Cần rèn luyện</span>
           </div>
 
-          <div className="learn-stat-box">
-            <span className="learn-stat-val">{accuracyPercent}%</span>
-            <span className="learn-stat-lbl">Độ chính xác</span>
+          <div className="vintage-stat-box">
+            <span className="vintage-stat-val">{accuracyPercent}%</span>
+            <span className="vintage-stat-lbl">Độ chính xác</span>
           </div>
 
-          <div className="learn-stat-box">
-            <span className="learn-stat-val">{totalAttempts}</span>
-            <span className="learn-stat-lbl">Tổng lượt gõ</span>
+          <div className="vintage-stat-box">
+            <span className="vintage-stat-val">{totalAttempts}</span>
+            <span className="vintage-stat-lbl">Tổng lượt gõ</span>
           </div>
 
-          <div className="learn-stat-box">
-            <span className="learn-stat-val">{formattedTime}</span>
-            <span className="learn-stat-lbl">Thời gian học</span>
+          <div className="vintage-stat-box">
+            <span className="vintage-stat-val">{formattedTime}</span>
+            <span className="vintage-stat-lbl">Thời gian hải trình</span>
           </div>
         </div>
 
-        {/* Missed Cards Section */}
+        {/* Missed Cards Section: Sổ tay ghi chép từ cần ôn lại */}
         {hasMissed && (
-          <div className="learn-missed-section">
-            <h2 className="learn-missed-title">
-              Các từ cần ôn lại ({missedCards.length})
-            </h2>
-            <div className="learn-missed-list">
+          <div className="vintage-missed-section">
+            <div className="vintage-missed-header">
+              <span className="vintage-missed-icon">📖</span>
+              <h2 className="vintage-missed-title">
+                Sổ tay từ cần rèn luyện ({missedCards.length})
+              </h2>
+            </div>
+            <div className="vintage-missed-list">
               {missedCards.map((stat, idx) => {
                 const card = stat.card || stat;
                 return (
-                  <div key={card.id || stat.cardId || idx} className="learn-missed-item">
-                    <div className="learn-missed-content">
-                      <span className="learn-missed-term">{card.term}</span>
-                      <span className="learn-missed-def">{card.definition}</span>
+                  <div key={card.id || stat.cardId || idx} className="vintage-missed-item">
+                    <div className="vintage-missed-content">
+                      <span className="vintage-missed-term">{card.term}</span>
+                      <span className="vintage-missed-def">{card.definition}</span>
                     </div>
-                    <span className="learn-missed-badge">
+                    <span className="vintage-missed-badge">
                       {stat.wrongCount} lần chưa đúng
                     </span>
                   </div>
@@ -166,37 +211,34 @@ export default function LearnResults({
         )}
 
         {/* Action Buttons */}
-        <div className="learn-results-actions">
+        <div className="vintage-results-actions">
           {hasMissed && (
-            <Button
-              variant="primary"
-              size="large"
+            <button
+              type="button"
               onClick={onRetryMissed}
-              className="learn-action-btn-main"
+              className="vintage-action-btn-main"
             >
               <RotateCcw size={18} />
               <span>Luyện lại các từ sai ({missedCards.length})</span>
-            </Button>
+            </button>
           )}
 
-          <Button
-            variant="secondary"
-            size="large"
+          <button
+            type="button"
             onClick={onRetryAll}
-            className="learn-action-btn-sub"
+            className="vintage-action-btn-sub"
           >
-            <span>Học lại cả bộ</span>
-          </Button>
+            <span>⟲ Học lại cả bộ</span>
+          </button>
 
-          <Button
-            variant="outline"
-            size="large"
+          <button
+            type="button"
             onClick={onExit}
-            className="learn-action-btn-back"
+            className="vintage-action-btn-back"
           >
             <ArrowLeft size={18} />
-            <span>Quay lại bộ từ</span>
-          </Button>
+            <span>Về trang bộ từ</span>
+          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useCallback } from 'react';
+import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
 import { learnReducer, INITIAL_LEARN_STATE } from '../../utils/learnReducer';
 import { checkAnswer } from '../../utils/checkAnswer';
 import { loadLearnSettings, saveLearnSettings } from '../../utils/learnSettings';
@@ -8,6 +8,7 @@ import { getAccessToken } from '../../services/api';
 
 export function useLearnSession(deck, cards = []) {
   const [state, dispatch] = useReducer(learnReducer, INITIAL_LEARN_STATE);
+  const [xpResult, setXpResult] = useState(null);
   const syncRef = useRef(null);
   const sessionIdRef = useRef(null);
 
@@ -194,10 +195,13 @@ export function useLearnSession(deck, cards = []) {
           await getSync().flush();
           const totalQuestions = state.stats?.totalWords ?? state.sessionStats?.totalCards ?? 0;
           const correctCount = state.stats?.firstTryCorrectCount ?? state.sessionStats?.firstTryCorrectCount ?? 0;
-          await studyService.finishSession(sessionIdRef.current, {
+          const res = await studyService.finishSession(sessionIdRef.current, {
             totalQuestions,
             correctCount,
           });
+          if (res) {
+            setXpResult(res);
+          }
         } catch (err) {
           console.warn('Error finalizing study session:', err);
         }
@@ -244,6 +248,7 @@ export function useLearnSession(deck, cards = []) {
 
   return {
     state,
+    xpResult,
     updateOptions,
     startSession,
     submitAnswer,

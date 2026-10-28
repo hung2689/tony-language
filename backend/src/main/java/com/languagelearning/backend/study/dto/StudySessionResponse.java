@@ -13,6 +13,13 @@ public class StudySessionResponse {
     private int correctAnswers;
     private int wrongAnswers;
 
+    // Student Level & XP fields
+    private Integer xpGained;
+    private Long totalXp;
+    private Integer level;
+    private String tier;
+    private Boolean leveledUp;
+
     public StudySessionResponse() {
     }
 
@@ -90,5 +97,45 @@ public class StudySessionResponse {
 
     public void setWrongAnswers(int wrongAnswers) {
         this.wrongAnswers = wrongAnswers;
+    }
+
+    public Integer getXpGained() {
+        return xpGained;
+    }
+
+    public void setXpGained(Integer xpGained) {
+        this.xpGained = xpGained;
+    }
+
+    public Long getTotalXp() {
+        return totalXp;
+    }
+
+    public void setTotalXp(Long totalXp) {
+        this.totalXp = totalXp;
+    }
+
+    public Integer getLevel() {
+        return level;
+    }
+
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public String getTier() {
+        return tier;
+    }
+
+    public void setTier(String tier) {
+        this.tier = tier;
+    }
+
+    public Boolean getLeveledUp() {
+        return leveledUp;
+    }
+
+    public void setLeveledUp(Boolean leveledUp) {
+        this.leveledUp = leveledUp;
     }
 }

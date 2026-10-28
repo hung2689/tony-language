@@ -108,4 +108,29 @@ public class SentenceChallengeItemDto {
     public void setAcceptableKeywords(List<String> acceptableKeywords) {
         this.acceptableKeywords = acceptableKeywords;
     }
+
+    // Aliases for seamless frontend compatibility
+    public String getPromptVi() {
+        return vietnamesePrompt;
+    }
+
+    public void setPromptVi(String promptVi) {
+        this.vietnamesePrompt = promptVi;
+    }
+
+    public String getReferenceEn() {
+        return referenceEnglish;
+    }
+
+    public void setReferenceEn(String referenceEn) {
+        this.referenceEnglish = referenceEn;
+    }
+
+    public Long getCardId() {
+        return termId;
+    }
+
+    public void setCardId(Long cardId) {
+        this.termId = cardId;
+    }
 }

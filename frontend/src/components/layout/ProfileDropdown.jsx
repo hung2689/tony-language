@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, LogOut, User } from 'lucide-react';
 import { BorderBeam } from '@/registry/magicui/border-beam';
 import { cn } from '@/lib/utils';
+import AvatarFrame from '../common/AvatarFrame';
+import RankBadge from '../common/RankBadge';
 
 export function ProfileDropdown({
   user = null,
@@ -52,9 +55,14 @@ export function ProfileDropdown({
         aria-haspopup="true"
         title={displayName}
       >
-        {/* Avatar */}
-        <div className="topbar-user-avatar">
-          <span>{initial}</span>
+        {/* Avatar with Student Tier Frame */}
+        <div className="topbar-user-avatar-frame-wrap">
+          <AvatarFrame
+            size="sm"
+            tierId={user?.tierId || 1}
+            src={user?.avatarUrl || '/assets/trang_thai_thong_bao/avatar_anime_explorer.png'}
+            name={displayName}
+          />
         </div>
 
         {/* Username */}
@@ -74,10 +82,30 @@ export function ProfileDropdown({
       {isOpen && (
         <div className="topbar-user-dropdown" role="menu" aria-orientation="vertical">
           <div className="topbar-dropdown-header">
-            <p className="topbar-dropdown-name">{displayName}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="topbar-dropdown-name">{displayName}</p>
+              {user?.tierName && (
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200">
+                  <RankBadge level={user.level || 1} size="xs" />
+                  <span>{user.tierName} • Cấp {user.level || 1}</span>
+                </span>
+              )}
+            </div>
             <p className="topbar-dropdown-email">{email}</p>
           </div>
           <div className="topbar-dropdown-divider" />
+
+          {/* Profile Navigation Option */}
+          <Link
+            to="/profile"
+            className="topbar-dropdown-item"
+            onClick={() => setIsOpen(false)}
+            role="menuitem"
+          >
+            <User size={16} />
+            <span>Hồ sơ</span>
+          </Link>
+
           <button
             type="button"
             className="topbar-dropdown-item topbar-logout-btn"

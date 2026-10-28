@@ -13,6 +13,8 @@ import {
   BookOpen,
   Award,
   Check,
+  CheckCheck,
+  Lightbulb,
   X,
   RefreshCw,
   Key,
@@ -21,6 +23,7 @@ import { sentenceChallengeService } from '../../services/sentenceChallengeServic
 import { speakEnglishTerm } from '../../utils/speechUtils';
 import { hasGeminiApiKey } from '../../utils/aiKeyStorage';
 import GeminiKeyModal from '../../components/common/GeminiKeyModal';
+import Ripple from '../../components/common/Ripple';
 import './SentenceChallenge.css';
 
 export default function SentenceChallengeView({
@@ -117,11 +120,11 @@ export default function SentenceChallengeView({
     setEvaluating(true);
     try {
       const payload = {
-        cardId: currentChallenge.cardId,
+        cardId: currentChallenge.cardId || currentChallenge.termId,
         targetWord: currentChallenge.targetWord,
-        promptVi: currentChallenge.promptVi,
+        promptVi: currentChallenge.promptVi || currentChallenge.vietnamesePrompt,
         userSentence: userSentence.trim(),
-        referenceSentence: currentChallenge.referenceEn,
+        referenceSentence: currentChallenge.referenceEn || currentChallenge.referenceEnglish,
       };
 
       const result = await sentenceChallengeService.evaluateSentence(
@@ -185,7 +188,7 @@ export default function SentenceChallengeView({
   if (loading) {
     return (
       <div className="sentence-challenge-state-box">
-        <RefreshCw size={36} className="sentence-challenge-spinner" />
+        <Ripple size={48} color="#3b82f6" style={{ margin: '0 auto 16px auto' }} />
         <h3 className="sentence-challenge-state-title">
           AI đang tạo thử thách đặt câu...
         </h3>
@@ -303,7 +306,8 @@ export default function SentenceChallengeView({
                 </div>
 
                 <div className="sentence-review-prompt">
-                  <em>Gợi ý tiếng Việt:</em> {item.challenge.promptVi}
+                  <em>Gợi ý tiếng Việt:</em>{' '}
+                  {item.challenge.promptVi || item.challenge.vietnamesePrompt}
                 </div>
 
                 <div className="sentence-review-answer-grid">
@@ -311,6 +315,24 @@ export default function SentenceChallengeView({
                     <span className="sentence-col-label">Câu bạn viết:</span>
                     <p className="sentence-col-text">{item.userSentence}</p>
                   </div>
+                  {item.evaluation.correctedSentence && (
+                    <div className="sentence-review-col">
+                      <span className="sentence-col-label">
+                        Câu sửa lỗi chuẩn:
+                        <button
+                          type="button"
+                          className="sentence-audio-btn-small"
+                          onClick={() => handlePronounce(item.evaluation.correctedSentence)}
+                          title="Nghe phát âm"
+                        >
+                          <Volume2 size={14} />
+                        </button>
+                      </span>
+                      <p className="sentence-col-text is-corrected">
+                        {item.evaluation.correctedSentence}
+                      </p>
+                    </div>
+                  )}
                   <div className="sentence-review-col">
                     <span className="sentence-col-label">
                       Câu bản xứ gợi ý:
@@ -320,7 +342,8 @@ export default function SentenceChallengeView({
                         onClick={() =>
                           handlePronounce(
                             item.evaluation.nativeAlternative ||
-                              item.challenge.referenceEn
+                              item.challenge.referenceEn ||
+                              item.challenge.referenceEnglish
                           )
                         }
                         title="Nghe phát âm"
@@ -330,7 +353,8 @@ export default function SentenceChallengeView({
                     </span>
                     <p className="sentence-col-text is-native">
                       {item.evaluation.nativeAlternative ||
-                        item.challenge.referenceEn}
+                        item.challenge.referenceEn ||
+                        item.challenge.referenceEnglish}
                     </p>
                   </div>
                 </div>
@@ -463,7 +487,9 @@ export default function SentenceChallengeView({
             <span className="sentence-prompt-title">Đề bài tiếng Việt</span>
           </div>
           <p className="sentence-prompt-content">
-            {currentChallenge.promptVi}
+            {currentChallenge.promptVi ||
+              currentChallenge.vietnamesePrompt ||
+              `Dịch câu hoặc viết một câu tiếng Anh hoàn chỉnh có chứa từ "${currentChallenge.targetWord}".`}
           </p>
 
           {currentChallenge.hint && (
@@ -516,7 +542,7 @@ export default function SentenceChallengeView({
               >
                 {evaluating ? (
                   <>
-                    <RefreshCw size={16} className="sentence-spin-icon" />
+                    <Ripple size={18} color="currentColor" />
                     <span>AI đang phân tích...</span>
                   </>
                 ) : (
@@ -577,24 +603,35 @@ export default function SentenceChallengeView({
             {/* AI Review Text */}
             <p className="sentence-ai-comment">{evaluation.feedback}</p>
 
-            {/* Grammar / Syntax Tips */}
-            {evaluation.grammarNotes && evaluation.grammarNotes.length > 0 && (
-              <div className="sentence-notes-box">
-                <span className="sentence-notes-title">Lưu ý ngữ pháp:</span>
-                <ul>
-                  {evaluation.grammarNotes.map((note, idx) => (
-                    <li key={idx}>{note}</li>
-                  ))}
-                </ul>
+            {/* AI Corrected Sentence */}
+            {evaluation.correctedSentence && (
+              <div className="sentence-corrected-card">
+                <div className="sentence-native-header">
+                  <span className="sentence-corrected-title">
+                    <CheckCheck size={16} /> Câu sửa lại chuẩn ngữ pháp & chính tả:
+                  </span>
+                  <button
+                    type="button"
+                    className="sentence-audio-btn-medium"
+                    onClick={() => handlePronounce(evaluation.correctedSentence)}
+                    title="Nghe cách phát âm câu sửa"
+                  >
+                    <Volume2 size={16} />
+                    <span>Nghe</span>
+                  </button>
+                </div>
+                <p className="sentence-corrected-text">
+                  "{evaluation.correctedSentence}"
+                </p>
               </div>
             )}
 
-            {/* Native Suggestion */}
+            {/* Native & Usual Suggestion */}
             {evaluation.nativeAlternative && (
               <div className="sentence-native-card">
                 <div className="sentence-native-header">
                   <span className="sentence-native-title">
-                    Gợi ý cách viết tự nhiên của người bản xứ:
+                    <Sparkles size={15} /> Gợi ý cách nói tự nhiên ngoài đời (Native & Usual):
                   </span>
                   <button
                     type="button"
@@ -609,6 +646,30 @@ export default function SentenceChallengeView({
                 <p className="sentence-native-text">
                   "{evaluation.nativeAlternative}"
                 </p>
+              </div>
+            )}
+
+            {/* Grammar, Spelling & Collocation Notes */}
+            {evaluation.grammarNotes && evaluation.grammarNotes.length > 0 && (
+              <div className="sentence-notes-box">
+                <span className="sentence-notes-title">
+                  <AlertCircle size={15} /> Lưu ý chi tiết ngữ pháp & chính tả:
+                </span>
+                <ul>
+                  {evaluation.grammarNotes.map((note, idx) => (
+                    <li key={idx}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Contextual Real-world Usage Tip */}
+            {evaluation.contextTip && (
+              <div className="sentence-context-tip-box">
+                <span className="sentence-context-tip-title">
+                  <Lightbulb size={15} /> Mẹo dùng từ đời thường:
+                </span>
+                <p className="sentence-context-tip-text">{evaluation.contextTip}</p>
               </div>
             )}
 

@@ -13,11 +13,10 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Toast from '../../components/common/Toast';
 import { useStudyPlan } from '../studyplan/StudyPlanContext';
 import SpacedRepetitionForecastModal from '../studyplan/SpacedRepetitionForecastModal';
+import Ripple from '../../components/common/Ripple';
+import './DeckDetailPage.css';
 import {
   ArrowLeft,
-  Folder as FolderIcon,
-  Repeat,
-  MoreVertical,
   Edit2,
   FolderInput,
   Trash2,
@@ -36,7 +35,17 @@ export default function DeckDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Enforce Study Mode route guard: coming-soon modes cannot be accessed by typing URL
+  // Scoped class on body for vintage pirate parchment theme
+  useEffect(() => {
+    document.body.classList.add('rpg-library-active');
+    document.body.classList.add('deck-vintage-active');
+    return () => {
+      document.body.classList.remove('rpg-library-active');
+      document.body.classList.remove('deck-vintage-active');
+    };
+  }, []);
+
+  // Enforce Study Mode route guard
   useEffect(() => {
     if (deckId) {
       const guard = resolveStudyModeRoute(deckId, location.pathname);
@@ -49,7 +58,7 @@ export default function DeckDetailPage() {
   const [deck, setDeck] = useState(null);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [errorStatus, setErrorStatus] = useState(null); // null | 404 | 500
+  const [errorStatus, setErrorStatus] = useState(null);
   const { refreshPlan } = useStudyPlan();
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -57,8 +66,8 @@ export default function DeckDetailPage() {
 
   // Vocabulary inventory search and view mode
   const [vocabSearchQuery, setVocabSearchQuery] = useState('');
-  const [vocabFilter, setVocabFilter] = useState('all'); // all | has_example | has_ipa
-  const [vocabViewMode, setVocabViewMode] = useState('table'); // table | cards
+  const [vocabFilter, setVocabFilter] = useState('all');
+  const [vocabViewMode, setVocabViewMode] = useState('table');
 
   // Actions menu state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -82,7 +91,6 @@ export default function DeckDetailPage() {
     }, 4000);
   }, []);
 
-  // Cleanup toast timer on unmount (BUG-04)
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) {
@@ -104,7 +112,7 @@ export default function DeckDetailPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
-  // Load folders for move/edit modal
+  // Load folders
   const loadFolders = useCallback(async () => {
     try {
       const data = await folderService.getFolders();
@@ -142,11 +150,6 @@ export default function DeckDetailPage() {
     loadDeck();
   }, [loadDeck]);
 
-  // Folder name for chip
-  const currentFolder = folders.find((f) => f.id === deck?.folderId);
-  const folderChipName = deck?.folderId ? currentFolder?.name || 'Thư mục' : 'Chưa phân loại';
-
-  // Handle Edit Deck
   const handleSaveDeck = async (deckData) => {
     try {
       await deckService.updateDeck(deck.id, deckData);
@@ -159,7 +162,6 @@ export default function DeckDetailPage() {
     }
   };
 
-  // Handle Move Deck
   const handleMoveDeckConfirm = async (targetDeckId, targetFolderId) => {
     try {
       await deckService.moveDeck(targetDeckId, targetFolderId);
@@ -172,7 +174,6 @@ export default function DeckDetailPage() {
     }
   };
 
-  // Handle Delete Deck (BUG-11: refreshPlan after delete)
   const handleDeleteDeckConfirm = async () => {
     try {
       await deckService.deleteDeck(deck.id);
@@ -190,7 +191,6 @@ export default function DeckDetailPage() {
     }
   };
 
-  // Quick folder create inside modal
   const handleQuickCreateFolder = async (name) => {
     try {
       const newFolder = await folderService.createFolder(name);
@@ -228,17 +228,19 @@ export default function DeckDetailPage() {
   const currentModeInfo = resolveStudyModeRoute(deckId, location.pathname);
   const activeModeId = currentModeInfo.modeId || 'flashcard';
 
-  // Render State 1: Loading
+  // Loading State
   if (loading) {
     return (
       <div className="deck-detail-state-screen">
-        <RefreshCw size={28} className="deck-loading-spinner" />
-        <p>Đang tải bộ từ vựng...</p>
+        <Ripple size={48} color="#8A7152" />
+        <p style={{ marginTop: '14px', color: '#5C4F3E', fontSize: '14px', fontFamily: 'Georgia, serif' }}>
+          Đang lật mở trang nhật ký từ vựng...
+        </p>
       </div>
     );
   }
 
-  // Render State 2: 404 / Not Found or Belongs to another user
+  // 404 Not Found State
   if (errorStatus === 404) {
     return (
       <div className="deck-detail-state-screen">
@@ -249,7 +251,7 @@ export default function DeckDetailPage() {
         <p className="deck-state-desc">
           Bộ từ vựng này không tồn tại hoặc bạn không có quyền truy cập.
         </p>
-        <Link to="/" className="monochrome-btn-primary" style={{ textDecoration: 'none' }}>
+        <Link to="/library" className="monochrome-btn-primary" style={{ textDecoration: 'none' }}>
           <ArrowLeft size={16} />
           <span>Quay lại thư viện</span>
         </Link>
@@ -257,7 +259,7 @@ export default function DeckDetailPage() {
     );
   }
 
-  // Render State 3: Other Error with Retry
+  // Other Error State
   if (errorStatus) {
     return (
       <div className="deck-detail-state-screen">
@@ -271,7 +273,7 @@ export default function DeckDetailPage() {
             <RefreshCw size={16} />
             <span>Thử lại</span>
           </button>
-          <Link to="/" className="monochrome-btn-secondary" style={{ textDecoration: 'none' }}>
+          <Link to="/library" className="monochrome-btn-secondary" style={{ textDecoration: 'none' }}>
             <span>Về thư viện</span>
           </Link>
         </div>
@@ -282,316 +284,337 @@ export default function DeckDetailPage() {
   if (!deck) return null;
 
   return (
-    <div className="deck-detail-page">
-      {/* 1. Header Row */}
-      <header className="deck-detail-header-row">
-        {/* Left: Back button + Title & Folder chip */}
-        <div className="deck-header-left">
+    <div className="deck-page-shell lexicon-journal-shell">
+      {/* Main Deck Journal Content */}
+      <div className="deck-page-main lexicon-journal-main">
+        {/* Top Header Row with Vintage Pirate Navigation */}
+        <header className="vintage-deck-header-row">
+          {/* Left: Vintage Back Button */}
           <button
             type="button"
-            className="deck-back-btn"
+            className="vintage-header-back-btn"
             onClick={() => navigate(backTargetUrl)}
             title="Quay lại thư viện"
+            aria-label="Quay lại thư viện"
           >
-            <ArrowLeft size={18} />
-            <span>Quay lại</span>
+            <img src="/assets/flashcard/button-back.png" alt="Quay lại" />
           </button>
 
-          <div className="deck-title-group">
-            <h1 className="deck-detail-title">{deck.name}</h1>
-            <span className="deck-folder-chip" title={`Thư mục: ${folderChipName}`}>
-              <FolderIcon size={13} />
-              <span>{folderChipName}</span>
+          {/* Center: Classic Ornamental Book Title (───• 📖 Tên bộ từ •───) */}
+          <div className="vintage-header-title-ribbon" title={deck.name}>
+            <span className="vintage-title-flourish is-left" aria-hidden="true">
+              <span className="flourish-line" />
+              <span className="flourish-diamond">◆</span>
+              <span className="flourish-dot">•</span>
+            </span>
+            <div className="vintage-ribbon-content">
+              <img
+                src="/assets/decor_icon/decor_vocabulary_book.png"
+                alt=""
+                className="vintage-title-book-icon"
+              />
+              <h1 className="vintage-ribbon-text">{deck.name || 'Từ vựng của tôi'}</h1>
+            </div>
+            <span className="vintage-title-flourish is-right" aria-hidden="true">
+              <span className="flourish-dot">•</span>
+              <span className="flourish-diamond">◆</span>
+              <span className="flourish-line" />
             </span>
           </div>
-        </div>
 
-        {/* Right: SRS Quick button + More actions menu */}
-        <div className="deck-header-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            type="button"
-            className="srs-quick-header-btn"
-            onClick={() => setIsSrsModalOpen(true)}
-            title="Dự báo và ôn tập lặp lại ngắt quãng (SM-2)"
-          >
-            <Repeat size={16} />
-            <span>Lặp lại ngắt quãng</span>
-          </button>
-
-          <div className="deck-more-menu-wrapper" ref={menuRef}>
+          {/* Right: SRS Quick Button & Options Menu */}
+          <div className="vintage-header-right-actions">
             <button
               type="button"
-              className="deck-more-btn"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Tùy chọn bộ từ"
-              aria-expanded={isMenuOpen}
+              className="vintage-header-srs-btn"
+              onClick={() => setIsSrsModalOpen(true)}
+              title="Dự báo và ôn tập lặp lại ngắt quãng (SM-2)"
+              aria-label="Lặp lại ngắt quãng"
             >
-              <MoreVertical size={18} />
+              <img src="/assets/flashcard/button-srs.png" alt="Lặp lại ngắt quãng" />
             </button>
 
-            {isMenuOpen && (
-              <div className="deck-dropdown-menu" role="menu">
-                <button
-                  type="button"
-                  className="deck-dropdown-item"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setIsEditModalOpen(true);
-                  }}
-                  role="menuitem"
-                >
-                  <Edit2 size={15} />
-                  <span>Chỉnh sửa bộ từ</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="deck-dropdown-item"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setIsMoveModalOpen(true);
-                  }}
-                  role="menuitem"
-                >
-                  <FolderInput size={15} />
-                  <span>Chuyển thư mục</span>
-                </button>
-
-                <div className="deck-dropdown-divider" />
-
-                <button
-                  type="button"
-                  className="deck-dropdown-item is-danger"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setIsDeleteConfirmOpen(true);
-                  }}
-                  role="menuitem"
-                >
-                  <Trash2 size={15} />
-                  <span>Xóa bộ từ</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* 2. Study Mode Bar directly above the Flashcard */}
-      <StudyModeBar deckId={deck.id} activeModeId={activeModeId} />
-
-      {/* 3. Main Body: Flashcard or Empty State */}
-      <main className="deck-detail-content">
-        {cards.length === 0 ? (
-          /* Empty Deck State */
-          <div className="deck-empty-cards-box">
-            <div className="empty-cards-icon-wrap">
-              <Plus size={32} />
-            </div>
-            <h2 className="empty-cards-title">Bộ từ chưa có thẻ nào</h2>
-            <p className="empty-cards-desc">
-              Hãy thêm từ vựng, phiên âm và ví dụ vào bộ từ này để bắt đầu học flashcard.
-            </p>
-            <button
-              type="button"
-              className="monochrome-btn-primary"
-              onClick={() => setIsEditModalOpen(true)}
-            >
-              <Plus size={16} />
-              <span>Thêm thẻ</span>
-            </button>
-          </div>
-        ) : (
-          (() => {
-            const ActiveComponent = getModeById(activeModeId)?.component || FlashcardView;
-            return (
-              <ActiveComponent
-                cards={cards}
-                deck={deck}
-                onToast={showToast}
-                onBackToCard={() => navigate(`/decks/${deck.id}`)}
-              />
-            );
-          })()
-        )}
-      </main>
-
-      {/* 4. Vocabulary Inventory Section (Search, Filter, Table/Grid View) */}
-      {cards.length > 0 && (
-        <section className="deck-vocab-inventory-section">
-          <div className="vocab-inventory-header">
-            <div className="vocab-inventory-title-group">
-              <h2 className="vocab-inventory-title">Từ vựng trong bộ này</h2>
-              <span className="vocab-count-badge">
-                {filteredCards.length} / {cards.length} thẻ
-              </span>
-            </div>
-
-            {/* View Switcher: Table vs Cards */}
-            <div className="vocab-view-switcher">
+            <div className="vintage-more-menu-wrapper" ref={menuRef}>
               <button
                 type="button"
-                className={`vocab-view-btn ${vocabViewMode === 'table' ? 'is-active' : ''}`}
-                onClick={() => setVocabViewMode('table')}
-                title="Dạng bảng chi tiết"
-                aria-label="Dạng bảng chi tiết"
+                className="vintage-header-more-btn"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Tùy chọn bộ từ"
+                aria-expanded={isMenuOpen}
               >
-                <List size={16} />
-                <span>Bảng</span>
+                <img src="/assets/flashcard/button-more.png" alt="Tùy chọn" />
               </button>
-              <button
-                type="button"
-                className={`vocab-view-btn ${vocabViewMode === 'cards' ? 'is-active' : ''}`}
-                onClick={() => setVocabViewMode('cards')}
-                title="Dạng thẻ lưới"
-                aria-label="Dạng thẻ lưới"
-              >
-                <LayoutGrid size={16} />
-                <span>Thẻ</span>
-              </button>
-            </div>
-          </div>
 
-          {/* Search & Filter Toolbar */}
-          <div className="vocab-inventory-toolbar">
-            <div className="vocab-search-box">
-              <Search size={16} className="vocab-search-icon" />
-              <input
-                type="text"
-                className="vocab-search-input"
-                placeholder="Tìm từ vựng, nghĩa, ví dụ..."
-                value={vocabSearchQuery}
-                onChange={(e) => setVocabSearchQuery(e.target.value)}
-              />
-              {vocabSearchQuery && (
-                <button
-                  type="button"
-                  className="vocab-search-clear-btn"
-                  onClick={() => setVocabSearchQuery('')}
-                  title="Xóa tìm kiếm"
-                  aria-label="Xóa tìm kiếm"
-                >
-                  ✕
-                </button>
+              {isMenuOpen && (
+                <div className="vintage-dropdown-menu deck-dropdown-menu" role="menu">
+                  <button
+                    type="button"
+                    className="deck-dropdown-item"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsEditModalOpen(true);
+                    }}
+                    role="menuitem"
+                  >
+                    <Edit2 size={15} />
+                    <span>Chỉnh sửa bộ từ</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="deck-dropdown-item"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsMoveModalOpen(true);
+                    }}
+                    role="menuitem"
+                  >
+                    <FolderInput size={15} />
+                    <span>Chuyển thư mục</span>
+                  </button>
+
+                  <div className="deck-dropdown-divider" />
+
+                  <button
+                    type="button"
+                    className="deck-dropdown-item is-danger"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsDeleteConfirmOpen(true);
+                    }}
+                    role="menuitem"
+                  >
+                    <Trash2 size={15} />
+                    <span>Xóa bộ từ</span>
+                  </button>
+                </div>
               )}
             </div>
-
-            <div className="vocab-filter-chips">
-              <button
-                type="button"
-                className={`vocab-filter-chip ${vocabFilter === 'all' ? 'is-active' : ''}`}
-                onClick={() => setVocabFilter('all')}
-              >
-                Tất cả ({cards.length})
-              </button>
-              <button
-                type="button"
-                className={`vocab-filter-chip ${vocabFilter === 'has_example' ? 'is-active' : ''}`}
-                onClick={() => setVocabFilter('has_example')}
-              >
-                Có ví dụ ({cards.filter((c) => Boolean(c.example?.trim())).length})
-              </button>
-              <button
-                type="button"
-                className={`vocab-filter-chip ${vocabFilter === 'has_ipa' ? 'is-active' : ''}`}
-                onClick={() => setVocabFilter('has_ipa')}
-              >
-                Có phiên âm ({cards.filter((c) => Boolean(c.pronunciation?.trim())).length})
-              </button>
-            </div>
           </div>
+        </header>
 
-          {/* Vocabulary Content: Table or Grid */}
-          {filteredCards.length === 0 ? (
-            <div className="vocab-inventory-empty">
-              <p>Không tìm thấy từ vựng nào khớp với bộ lọc.</p>
-            </div>
-          ) : vocabViewMode === 'table' ? (
-            <div className="vocab-table-container">
-              <table className="vocab-inventory-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '48px' }}>#</th>
-                    <th style={{ width: '22%' }}>Thuật ngữ (Tiếng Anh)</th>
-                    <th style={{ width: '12%' }}>Loại từ</th>
-                    <th style={{ width: '18%' }}>Phiên âm</th>
-                    <th style={{ width: '24%' }}>Định nghĩa</th>
-                    <th>Ví dụ câu</th>
-                    <th style={{ width: '56px', textAlign: 'center' }}>Nghe</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCards.map((card, idx) => (
-                    <tr key={card.id || idx}>
-                      <td className="vocab-col-index">{idx + 1}</td>
-                      <td className="vocab-col-term">
-                        <span className="vocab-term-text">{card.term}</span>
-                      </td>
-                      <td className="vocab-col-pos">
-                        {card.partOfSpeech && (
-                          <span className="vocab-pos-pill">{card.partOfSpeech}</span>
-                        )}
-                      </td>
-                      <td className="vocab-col-ipa">
-                        {card.pronunciation ? `/${card.pronunciation}/` : '—'}
-                      </td>
-                      <td className="vocab-col-def">{card.definition}</td>
-                      <td className="vocab-col-example">
-                        {card.example ? <span className="vocab-example-italic">"{card.example}"</span> : '—'}
-                      </td>
-                      <td className="vocab-col-audio">
-                        <button
-                          type="button"
-                          className="vocab-audio-btn"
-                          onClick={() => speakEnglishTerm(card.term, (msg) => showToast(msg, 'warning'))}
-                          title={`Nghe phát âm "${card.term}"`}
-                          aria-label={`Nghe phát âm ${card.term}`}
-                        >
-                          <Volume2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* 3. Study Mode Bar (3x2 Vintage Categories Grid) */}
+        <StudyModeBar deckId={deck.id} activeModeId={activeModeId} cardCount={cards.length} />
+
+        {/* 4. Active Study Mode or Empty State */}
+        <main className="deck-detail-content" style={{ width: '100%' }}>
+          {cards.length === 0 ? (
+            <div className="deck-empty-cards-box" style={{ background: '#FAF1DE', border: '1.5px dashed #A68D6C', borderRadius: '12px', padding: '36px', textAlign: 'center' }}>
+              <div className="empty-cards-icon-wrap" style={{ display: 'inline-flex', padding: '12px', background: '#EFE0C2', borderRadius: '50%', marginBottom: '14px' }}>
+                <Plus size={32} color="#4C3C2A" />
+              </div>
+              <h2 className="empty-cards-title" style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#2C1A0E', fontSize: '20px', marginBottom: '8px' }}>
+                Bộ từ chưa có thẻ nào
+              </h2>
+              <p className="empty-cards-desc" style={{ color: '#5C4F3E', fontSize: '14px', maxWidth: '420px', margin: '0 auto 18px' }}>
+                Hãy thêm từ vựng, phiên âm và ví dụ vào bộ từ này để bắt đầu hành trình thám hiểm ngôn ngữ.
+              </p>
+              <button
+                type="button"
+                className="monochrome-btn-primary"
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                <Plus size={16} />
+                <span>Thêm thẻ từ vựng</span>
+              </button>
             </div>
           ) : (
-            <div className="vocab-cards-grid">
-              {filteredCards.map((card, idx) => (
-                <div key={card.id || idx} className="vocab-item-card">
-                  <div className="vocab-card-header">
-                    <div className="vocab-card-term-wrap">
-                      <span className="vocab-card-term">{card.term}</span>
-                      {card.partOfSpeech && (
-                        <span className="vocab-pos-pill">{card.partOfSpeech}</span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="vocab-audio-btn"
-                      onClick={() => speakEnglishTerm(card.term, (msg) => showToast(msg, 'warning'))}
-                      title="Nghe phát âm"
-                      aria-label="Nghe phát âm"
-                    >
-                      <Volume2 size={16} />
-                    </button>
-                  </div>
-                  {card.pronunciation && (
-                    <div className="vocab-card-ipa">/{card.pronunciation}/</div>
-                  )}
-                  <div className="vocab-card-def">{card.definition}</div>
-                  {card.example && (
-                    <div className="vocab-card-example">"{card.example}"</div>
-                  )}
-                </div>
-              ))}
-            </div>
+            (() => {
+              const ActiveComponent = getModeById(activeModeId)?.component || FlashcardView;
+              return (
+                <ActiveComponent
+                  cards={cards}
+                  deck={deck}
+                  onToast={showToast}
+                  onBackToCard={() => navigate(`/decks/${deck.id}`)}
+                />
+              );
+            })()
           )}
-        </section>
-      )}
+        </main>
 
-      {/* Modals & Dialogs */}
-      {/* SRS Forecast Modal */}
+        {/* 5. Vocabulary Inventory Section */}
+        {cards.length > 0 && (
+          <section className="vintage-vocab-section deck-vocab-inventory-section" aria-label="Từ vựng trong bộ này">
+            <div className="vintage-vocab-header vocab-inventory-header">
+              <div className="vintage-vocab-title-wrap vocab-inventory-title-group">
+                <h2 className="vintage-vocab-title vocab-inventory-title">Từ vựng trong bộ này</h2>
+                <span className="vintage-vocab-badge vocab-count-badge">
+                  {filteredCards.length} / {cards.length} thẻ
+                </span>
+              </div>
+
+              {/* View Switcher: Table vs Cards */}
+              <div className="vocab-view-switcher" style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  className={`vocab-view-btn ${vocabViewMode === 'table' ? 'is-active' : ''}`}
+                  onClick={() => setVocabViewMode('table')}
+                  title="Dạng bảng chi tiết"
+                  aria-label="Dạng bảng chi tiết"
+                >
+                  <List size={16} />
+                  <span>Bảng</span>
+                </button>
+                <button
+                  type="button"
+                  className={`vocab-view-btn ${vocabViewMode === 'cards' ? 'is-active' : ''}`}
+                  onClick={() => setVocabViewMode('cards')}
+                  title="Dạng thẻ lưới"
+                  aria-label="Dạng thẻ lưới"
+                >
+                  <LayoutGrid size={16} />
+                  <span>Thẻ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Search & Filter Toolbar */}
+            <div className="vintage-vocab-search-row vocab-inventory-toolbar">
+              <div className="vintage-vocab-search-box vocab-search-box">
+                <Search size={16} color="#7A6245" className="vocab-search-icon" />
+                <input
+                  type="text"
+                  className="vintage-vocab-search-input vocab-search-input"
+                  placeholder="Tìm từ vựng, nghĩa, ví dụ..."
+                  value={vocabSearchQuery}
+                  onChange={(e) => setVocabSearchQuery(e.target.value)}
+                />
+                {vocabSearchQuery && (
+                  <button
+                    type="button"
+                    className="vocab-search-clear-btn"
+                    onClick={() => setVocabSearchQuery('')}
+                    title="Xóa tìm kiếm"
+                    aria-label="Xóa tìm kiếm"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <div className="vocab-filter-chips" style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  className={`vocab-filter-chip ${vocabFilter === 'all' ? 'is-active' : ''}`}
+                  onClick={() => setVocabFilter('all')}
+                >
+                  Tất cả ({cards.length})
+                </button>
+                <button
+                  type="button"
+                  className={`vocab-filter-chip ${vocabFilter === 'has_example' ? 'is-active' : ''}`}
+                  onClick={() => setVocabFilter('has_example')}
+                >
+                  Có ví dụ ({cards.filter((c) => Boolean(c.example?.trim())).length})
+                </button>
+                <button
+                  type="button"
+                  className={`vocab-filter-chip ${vocabFilter === 'has_ipa' ? 'is-active' : ''}`}
+                  onClick={() => setVocabFilter('has_ipa')}
+                >
+                  Có phiên âm ({cards.filter((c) => Boolean(c.pronunciation?.trim())).length})
+                </button>
+              </div>
+            </div>
+
+            {/* Table or Card View */}
+            {filteredCards.length === 0 ? (
+              <div className="vocab-inventory-empty" style={{ textAlign: 'center', padding: '24px', color: '#6B553B' }}>
+                <p>Không tìm thấy từ vựng nào khớp với bộ lọc.</p>
+              </div>
+            ) : vocabViewMode === 'table' ? (
+              <div className="vintage-vocab-table-wrap vocab-table-container">
+                <table className="vintage-vocab-table vocab-inventory-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '48px' }}>#</th>
+                      <th style={{ width: '22%' }}>Thuật ngữ (Tiếng Anh)</th>
+                      <th style={{ width: '12%' }}>Loại từ</th>
+                      <th style={{ width: '18%' }}>Phiên âm</th>
+                      <th style={{ width: '24%' }}>Định nghĩa</th>
+                      <th>Ví dụ câu</th>
+                      <th style={{ width: '56px', textAlign: 'center' }}>Nghe</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCards.map((card, idx) => (
+                      <tr key={card.id || idx}>
+                        <td className="vocab-col-index">{idx + 1}</td>
+                        <td className="vocab-col-term">
+                          <strong style={{ color: '#26170A' }}>{card.term}</strong>
+                        </td>
+                        <td className="vocab-col-pos">
+                          {card.partOfSpeech && (
+                            <span className="vocab-pos-pill">{card.partOfSpeech}</span>
+                          )}
+                        </td>
+                        <td className="vocab-col-ipa" style={{ fontStyle: 'italic', color: '#634C31' }}>
+                          {card.pronunciation ? `/${String(card.pronunciation).replace(/^\/+|\/+$/g, '').trim()}/` : '—'}
+                        </td>
+                        <td className="vocab-col-def">{card.definition}</td>
+                        <td className="vocab-col-example" style={{ fontStyle: 'italic', color: '#5C4F3E' }}>
+                          {card.example ? `"${card.example}"` : '—'}
+                        </td>
+                        <td className="vocab-col-audio" style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="vintage-vocab-audio-btn vocab-audio-btn"
+                            onClick={() => speakEnglishTerm(card.term, (msg) => showToast(msg, 'warning'))}
+                            title={`Nghe phát âm "${card.term}"`}
+                            aria-label={`Nghe phát âm ${card.term}`}
+                          >
+                            <Volume2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="vocab-cards-grid">
+                {filteredCards.map((card, idx) => (
+                  <div key={card.id || idx} className="vocab-item-card" style={{ background: '#FAF2E3', border: '1px solid #A48D6C', borderRadius: '8px', padding: '14px' }}>
+                    <div className="vocab-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <div className="vocab-card-term-wrap">
+                        <strong style={{ fontSize: '16px', color: '#26170A' }}>{card.term}</strong>
+                        {card.partOfSpeech && (
+                          <span className="vocab-pos-pill" style={{ marginLeft: '8px' }}>{card.partOfSpeech}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="vintage-vocab-audio-btn vocab-audio-btn"
+                        onClick={() => speakEnglishTerm(card.term, (msg) => showToast(msg, 'warning'))}
+                        title="Nghe phát âm"
+                        aria-label="Nghe phát âm"
+                      >
+                        <Volume2 size={16} />
+                      </button>
+                    </div>
+                    {card.pronunciation && (
+                      <div className="vocab-card-ipa" style={{ fontStyle: 'italic', color: '#634C31', marginBottom: '6px', fontSize: '13px' }}>
+                        /{String(card.pronunciation).replace(/^\/+|\/+$/g, '').trim()}/
+                      </div>
+                    )}
+                    <div className="vocab-card-def" style={{ color: '#2E2215', marginBottom: '6px', fontSize: '14px' }}>
+                      {card.definition}
+                    </div>
+                    {card.example && (
+                      <div className="vocab-card-example" style={{ fontStyle: 'italic', color: '#5C4F3E', fontSize: '12.5px' }}>
+                        "{card.example}"
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+      </div>
+
+      {/* Modals & Dialogs (Rendered at root of shell so fixed overlays are never trapped inside main column) */}
       <SpacedRepetitionForecastModal
         isOpen={isSrsModalOpen}
         onClose={() => setIsSrsModalOpen(false)}
@@ -628,7 +651,6 @@ export default function DeckDetailPage() {
         confirmVariant="danger"
       />
 
-      {/* Toast */}
       {toast && (
         <Toast
           message={toast.message}

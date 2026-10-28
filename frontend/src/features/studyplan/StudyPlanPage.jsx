@@ -14,6 +14,7 @@ import {
 import { useStudyPlan } from './StudyPlanContext';
 import { studyPlanService } from '../../services/studyPlanService';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import Ripple from '../../components/common/Ripple';
 import './StudyPlan.css';
 
 export default function StudyPlanPage() {
@@ -40,8 +41,9 @@ export default function StudyPlanPage() {
   if (loading && !activePlan) {
     return (
       <div className="study-plan-page">
-        <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#6b7280' }}>
-          Đang tải thông tin lộ trình...
+        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-secondary, #6b7280)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+          <Ripple size={48} color="#3b82f6" />
+          <span>Đang tải thông tin lộ trình...</span>
         </div>
       </div>
     );

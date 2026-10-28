@@ -11,6 +11,7 @@ public class SentenceEvaluationResponse {
     private String correctedSentence;
     private String nativeAlternative;
     private List<String> grammarNotes;
+    private String contextTip; // Practical, usual real-world context tip
 
     public SentenceEvaluationResponse() {}
 
@@ -24,6 +25,20 @@ public class SentenceEvaluationResponse {
             String nativeAlternative,
             List<String> grammarNotes
     ) {
+        this(score, passed, targetWordUsed, rating, feedback, correctedSentence, nativeAlternative, grammarNotes, null);
+    }
+
+    public SentenceEvaluationResponse(
+            int score,
+            boolean passed,
+            boolean targetWordUsed,
+            String rating,
+            String feedback,
+            String correctedSentence,
+            String nativeAlternative,
+            List<String> grammarNotes,
+            String contextTip
+    ) {
         this.score = score;
         this.passed = passed;
         this.targetWordUsed = targetWordUsed;
@@ -32,6 +47,7 @@ public class SentenceEvaluationResponse {
         this.correctedSentence = correctedSentence;
         this.nativeAlternative = nativeAlternative;
         this.grammarNotes = grammarNotes;
+        this.contextTip = contextTip;
     }
 
     public int getScore() {
@@ -96,5 +112,13 @@ public class SentenceEvaluationResponse {
 
     public void setGrammarNotes(List<String> grammarNotes) {
         this.grammarNotes = grammarNotes;
+    }
+
+    public String getContextTip() {
+        return contextTip;
+    }
+
+    public void setContextTip(String contextTip) {
+        this.contextTip = contextTip;
     }
 }

@@ -64,7 +64,7 @@ export default function CreateFolderModal({
           <Button variant="secondary" onClick={onClose} disabled={loading}>
             Hủy bỏ
           </Button>
-          <Button variant="primary" type="submit" disabled={loading}>
+          <Button variant="primary" type="submit" loading={loading} disabled={loading}>
             {loading ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Tạo thư mục'}
           </Button>
         </div>

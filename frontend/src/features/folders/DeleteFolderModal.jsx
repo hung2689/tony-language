@@ -83,6 +83,7 @@ export default function DeleteFolderModal({
           <Button
             variant={deleteMode === 'deleteDecks' ? 'danger' : 'primary'}
             onClick={handleConfirm}
+            loading={loading}
             disabled={loading}
           >
             {loading ? 'Đang xóa...' : 'Xác nhận xóa'}

@@ -1,8 +1,26 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Calendar, X } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Calendar, BookOpen, RotateCcw, Target, Sparkles } from 'lucide-react';
+import Ripple from '../../components/common/Ripple';
 import { studyPlanService } from '../../services/studyPlanService';
 import { lockScroll, unlockScroll } from '../../utils/scrollLock';
 import './SpacedRepetitionForecastModal.css';
+
+/**
+ * Maps backend day labels (Th2, Th3, etc.) to full Vietnamese labels
+ */
+function formatDayLabel(raw) {
+  if (!raw) return '';
+  const map = {
+    Th2: 'Thứ 2',
+    Th3: 'Thứ 3',
+    Th4: 'Thứ 4',
+    Th5: 'Thứ 5',
+    Th6: 'Thứ 6',
+    Th7: 'Thứ 7',
+    CN: 'CN',
+  };
+  return map[raw] || raw;
+}
 
 export default function SpacedRepetitionForecastModal({
   isOpen,
@@ -10,6 +28,7 @@ export default function SpacedRepetitionForecastModal({
   deckId = null,
   deckName = null,
   onStart,
+  onStartReview,
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +45,18 @@ export default function SpacedRepetitionForecastModal({
       }
     };
   }, [isOpen]);
+
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,119 +99,198 @@ export default function SpacedRepetitionForecastModal({
     return maxVal > 0 ? maxVal : 1;
   }, [data]);
 
+  const handleStartAction = useCallback(() => {
+    onClose();
+    if (typeof onStart === 'function') {
+      onStart(deckId);
+    } else if (typeof onStartReview === 'function') {
+      onStartReview(deckId);
+    }
+  }, [deckId, onClose, onStart, onStartReview]);
+
   if (!isOpen) return null;
 
-  const titleName = deckName || data?.deckName || 'Lộ trình ôn tập';
+  const titleName = deckName || data?.deckName || null;
   const dueCount = data?.dueCount ?? 0;
   const masteredCount = data?.masteredCount ?? 0;
   const totalCount = data?.totalCount ?? 0;
   const forecastDays = Array.isArray(data?.forecast7Days) ? data.forecast7Days : [];
+  const allCaughtUp = dueCount === 0 && totalCount > 0;
 
   return (
     <div
-      className="srs-forecast-modal-overlay"
+      className="srs-popup-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="srs-forecast-title"
+      aria-labelledby="srs-popup-title"
     >
-      <div className="srs-forecast-modal-card">
-        {/* Header */}
-        <div className="srs-forecast-header">
-          <div className="srs-forecast-title-group">
-            <div className="srs-forecast-title-row">
-              <Calendar size={22} className="srs-forecast-title-icon" />
-              <h2 id="srs-forecast-title" className="srs-forecast-main-title">
-                Lặp lại ngắt quãng
-              </h2>
-            </div>
-            <p className="srs-forecast-deck-name">{titleName}</p>
-          </div>
+      <div className="srs-popup-card">
+        {/* Cutout Asset: Top-left Compass Rose with Foliage */}
+        <img
+          src="/assets/popup/popup_compass_rose.png"
+          alt=""
+          className="srs-popup-compass-rose"
+          aria-hidden="true"
+        />
 
-          <button
-            type="button"
-            className="srs-forecast-close-btn"
-            onClick={onClose}
-            aria-label="Đóng"
-          >
-            <X size={20} />
-          </button>
+        {/* Cutout Asset: Top-right Antique Close Button */}
+        <button
+          type="button"
+          className="srs-popup-close-btn"
+          onClick={onClose}
+          aria-label="Đóng cửa sổ"
+        >
+          <img
+            src="/assets/popup/popup_close_button.png"
+            alt="Đóng"
+            className="srs-popup-close-img"
+          />
+        </button>
+
+        {/* Cutout Asset: Subtle Maritime Waves at bottom-left */}
+        <img
+          src="/assets/popup/popup_wave_decor.png"
+          alt=""
+          className="srs-popup-wave-decor"
+          aria-hidden="true"
+        />
+
+        {/* Cutout Asset: Subtle Pirate Ship at bottom-right */}
+        <img
+          src="/assets/popup/popup_ship_decor.png"
+          alt=""
+          className="srs-popup-ship-decor"
+          aria-hidden="true"
+        />
+
+        {/* Header Section */}
+        <div className="srs-popup-header">
+          <h2 id="srs-popup-title" className="srs-popup-main-title">
+            Lặp lại ngắt quãng
+          </h2>
+          <p className="srs-popup-subtitle">
+            Ôn tập theo lịch trình để ghi nhớ lâu hơn và hiệu quả hơn.
+          </p>
+
+          {titleName && (
+            <div className="srs-popup-deck-badge">
+              <span className="srs-popup-deck-badge-icon">⚓</span>
+              <span className="srs-popup-deck-badge-text">{titleName}</span>
+            </div>
+          )}
         </div>
 
         {loading ? (
-          <div className="srs-forecast-loading-box">
-            <div className="srs-forecast-spinner" />
-            <span>Đang tính toán phân bổ 7 ngày...</span>
+          <div className="srs-popup-loading-box">
+            <Ripple size={44} color="#795431" />
+            <span className="srs-popup-loading-text">
+              Đang tính toán phân bổ hải trình ôn tập...
+            </span>
           </div>
         ) : error ? (
-          <div className="srs-forecast-loading-box">
-            <span style={{ color: '#ef4444' }}>{error}</span>
+          <div className="srs-popup-error-box">
+            <span className="srs-popup-error-text">{error}</span>
           </div>
         ) : (
-          <>
-            {/* Stats Row */}
-            <div className="srs-forecast-stats-row">
-              <div className="srs-forecast-stat-item">
-                <span className="srs-forecast-stat-label">Từ đến hạn:</span>
-                <span className="srs-forecast-stat-val">{dueCount}</span>
+          <div className="srs-popup-body">
+            {/* Vintage Parchment Stats Panel with Woodcut/Ink Icons */}
+            <div className="srs-popup-stats-panel">
+              <div className="srs-popup-stat-col">
+                <BookOpen size={24} className="srs-popup-stat-icon srs-stat-icon-due" strokeWidth={2.2} />
+                <div className="srs-popup-stat-info">
+                  <span className="srs-popup-stat-val">{dueCount}</span>
+                  <span className="srs-popup-stat-label">Từ cần ôn</span>
+                </div>
               </div>
-              <div className="srs-forecast-stat-item">
-                <span className="srs-forecast-stat-label">Thuần thục:</span>
-                <span className="srs-forecast-stat-val">{masteredCount}</span>
+
+              <div className="srs-popup-stat-divider" aria-hidden="true" />
+
+              <div className="srs-popup-stat-col">
+                <RotateCcw size={24} className="srs-popup-stat-icon srs-stat-icon-reviewed" strokeWidth={2.2} />
+                <div className="srs-popup-stat-info">
+                  <span className="srs-popup-stat-val">{masteredCount}</span>
+                  <span className="srs-popup-stat-label">Đã ôn hôm nay</span>
+                </div>
               </div>
-              <div className="srs-forecast-stat-item">
-                <span className="srs-forecast-stat-label">Tổng:</span>
-                <span className="srs-forecast-stat-val">{totalCount}</span>
+
+              <div className="srs-popup-stat-divider" aria-hidden="true" />
+
+              <div className="srs-popup-stat-col">
+                <Target size={24} className="srs-popup-stat-icon srs-stat-icon-total" strokeWidth={2.2} />
+                <div className="srs-popup-stat-info">
+                  <span className="srs-popup-stat-val">{totalCount}</span>
+                  <span className="srs-popup-stat-label">Tổng số từ</span>
+                </div>
               </div>
             </div>
 
-            {/* 7-Day Forecast Bars */}
-            <div className="srs-forecast-chart-section">
-              <h3 className="srs-forecast-chart-heading">Dự báo ôn tập 7 ngày tới</h3>
+            {/* Antique Ribbon Banner when all words are reviewed today */}
+            {allCaughtUp && (
+              <div className="srs-popup-complete-banner">
+                <Sparkles size={16} className="srs-popup-complete-icon" />
+                <span className="srs-popup-complete-text">
+                  Thuyền trưởng đã hoàn thành toàn bộ mục tiêu hôm nay!
+                </span>
+              </div>
+            )}
 
-              <div className="srs-forecast-bars-container">
+            {/* Vintage Parchment 7-Day Forecast Section */}
+            <div className="srs-popup-chart-card">
+              <div className="srs-popup-chart-header">
+                <h3 className="srs-popup-chart-title">Dự báo ôn tập 7 ngày tới</h3>
+              </div>
+
+              <div className="srs-popup-bars-row">
                 {forecastDays.map((day, idx) => {
                   const count = day.count || 0;
                   const ratio = count / maxCount;
-                  // Height between min 6px and max 76px
-                  const barHeightPx = count === 0 ? 5 : Math.max(14, Math.round(ratio * 76));
+                  // Min 5px notch so empty days still show a clean brass baseline rivet, max 78px
+                  const barHeightPx =
+                    count === 0 ? 4 : Math.max(12, Math.round(ratio * 78));
 
                   return (
                     <div
                       key={day.date || idx}
-                      className={`srs-forecast-col ${day.isToday ? 'is-today' : ''}`}
+                      className={`srs-popup-col ${day.isToday ? 'is-today' : ''}`}
                     >
-                      <span className="srs-forecast-count-label">
-                        {count > 0 ? count : ''}
+                      <span className="srs-popup-count-badge">
+                        {count > 0 ? count : 0}
                       </span>
 
-                      <div className="srs-forecast-bar-track">
+                      <div className="srs-popup-bar-track">
                         <div
-                          className="srs-forecast-bar"
+                          className="srs-popup-bar-fill"
                           style={{ height: `${barHeightPx}px` }}
                         />
                       </div>
 
-                      <span className="srs-forecast-day-name">{day.dayLabel}</span>
+                      <div className="srs-popup-day-info">
+                        <span className="srs-popup-day-name">
+                          {formatDayLabel(day.dayLabel)}
+                        </span>
+                        {day.isToday && (
+                          <span className="srs-popup-today-stamp">Nay</span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Action CTA Button */}
-            <button
-              type="button"
-              className="srs-forecast-cta-btn"
-              onClick={() => {
-                onClose();
-                onStart?.(deckId);
-              }}
-            >
-              <Calendar size={18} />
-              <span>Lặp lại ngắt quãng</span>
-            </button>
-          </>
+            {/* Vintage Explorer Action Button */}
+            <div className="srs-popup-actions">
+              <button
+                type="button"
+                className="srs-popup-cta-btn"
+                onClick={handleStartAction}
+              >
+                <Calendar size={19} strokeWidth={2.4} />
+                <span>Lặp lại ngắt quãng</span>
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

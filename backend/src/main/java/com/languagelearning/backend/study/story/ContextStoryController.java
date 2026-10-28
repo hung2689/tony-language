@@ -15,14 +15,20 @@ public class ContextStoryController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ContextStoryDto>> generateStory(@PathVariable Long deckId) {
-        ContextStoryDto story = contextStoryService.generateStory(deckId);
+    public ResponseEntity<ApiResponse<ContextStoryDto>> generateStory(
+            @PathVariable Long deckId,
+            @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
+    ) {
+        ContextStoryDto story = contextStoryService.generateStory(deckId, customApiKey);
         return ResponseEntity.ok(ApiResponse.success("Tạo đoạn văn ngữ cảnh thành công", story));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<ContextStoryDto>> getStory(@PathVariable Long deckId) {
-        ContextStoryDto story = contextStoryService.generateStory(deckId);
+    public ResponseEntity<ApiResponse<ContextStoryDto>> getStory(
+            @PathVariable Long deckId,
+            @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
+    ) {
+        ContextStoryDto story = contextStoryService.generateStory(deckId, customApiKey);
         return ResponseEntity.ok(ApiResponse.success(story));
     }
 }

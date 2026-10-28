@@ -1,5 +1,6 @@
 import { Plus, BookOpen, Edit2, FolderInput, Trash2, Folder, Layers } from 'lucide-react';
 import DeckCard from './DeckCard';
+import Ripple from '../../components/common/Ripple';
 
 export default function DeckList({
   decks = [],
@@ -15,7 +16,8 @@ export default function DeckList({
   return (
     <div className="deck-panel-card">
       {loading ? (
-        <div className="deck-empty-container">
+        <div className="deck-empty-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', padding: '48px 16px' }}>
+          <Ripple size={48} color="#3b82f6" />
           <p className="text-muted">Đang tải danh sách bộ từ vựng...</p>
         </div>
       ) : decks.length === 0 ? (

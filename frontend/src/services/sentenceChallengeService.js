@@ -15,18 +15,25 @@ function buildFallbackChallenges(cards = [], deckTitle = '') {
     const pos = (card.partOfSpeech || card.wordType || '').toLowerCase();
     const example = card.example || card.exampleSentence || '';
 
-    let promptVi = `Dịch câu sau sang tiếng Anh: "Việc hiểu rõ ${meaning || term} là điều rất quan trọng trong cuộc sống."`;
-    let referenceEn = example || `Understanding ${term} is very important in life.`;
+    let promptVi = `Dịch câu sau sang tiếng Anh: "Tôi luôn mang theo ${meaning || term} khi ra ngoài."`;
+    let referenceEn = example || `I always bring my ${term} whenever I go outside.`;
 
-    if (pos.includes('adj') || pos.includes('tính')) {
-      promptVi = `Dịch câu sau sang tiếng Anh: "Hôm nay tôi cảm thấy rất ${meaning || term} sau một ngày dài làm việc."`;
-      referenceEn = `Today I feel very ${term} after a long day of work.`;
+    const lowerTerm = term.toLowerCase();
+    if (lowerTerm === 'run') {
+      promptVi = `Dịch câu sau sang tiếng Anh: "Tôi thường chạy bộ quanh công viên vào mỗi sáng sớm."`;
+      referenceEn = `I usually run around the park early in the morning.`;
+    } else if (lowerTerm === 'book') {
+      promptVi = `Dịch câu sau sang tiếng Anh: "Tôi cần đặt một bàn cho hai người vào tối nay."`;
+      referenceEn = `I need to book a table for two tonight.`;
+    } else if (pos.includes('adj') || pos.includes('tính')) {
+      promptVi = `Dịch câu sau sang tiếng Anh: "Thời tiết hôm nay thật ${meaning || term}, rất thích hợp để đi dạo."`;
+      referenceEn = `The weather today is very ${term}, perfect for a walk.`;
     } else if (pos.includes('verb') || pos.includes('động')) {
-      promptVi = `Dịch câu sau sang tiếng Anh: "Chúng ta cần ${meaning || term} kế hoạch này để đạt kết quả tốt nhất."`;
-      referenceEn = `We need to ${term} this plan to achieve the best results.`;
+      promptVi = `Dịch câu sau sang tiếng Anh: "Tôi cố gắng ${meaning || term} mỗi ngày để hình thành thói quen tốt."`;
+      referenceEn = `I try to ${term} every day to build a good habit.`;
     } else if (pos.includes('adv') || pos.includes('trạng')) {
-      promptVi = `Dịch câu sau sang tiếng Anh: "Cô ấy đã hoàn thành xuất sắc công việc một cách ${meaning || term}."`;
-      referenceEn = `She completed the work ${term}.`;
+      promptVi = `Dịch câu sau sang tiếng Anh: "Cô ấy nói chuyện một cách ${meaning || term} và thân thiện."`;
+      referenceEn = `She speaks ${term} and friendly.`;
     }
 
     return {
@@ -36,62 +43,22 @@ function buildFallbackChallenges(cards = [], deckTitle = '') {
       partOfSpeech: card.partOfSpeech || card.wordType || '',
       promptVi: promptVi,
       referenceEn: referenceEn,
-      hint: `Gợi ý: Từ loại là ${card.partOfSpeech || card.wordType || 'từ vựng'}. Bắt đầu viết câu hoàn chỉnh.`
+      hint: `Gợi ý đời thường: Hãy đặt câu ngắn gọn, gần gũi với cuộc sống hàng ngày có từ "${term}".`
     };
   });
 }
 
-/**
- * Fallback client evaluation in case backend is unreachable
- */
-function evaluateSentenceLocally({ targetWord, userSentence, referenceSentence }) {
-  const user = (userSentence || '').trim();
-  const target = (targetWord || '').trim().toLowerCase();
-  const userLower = user.toLowerCase();
-
-  const regex = new RegExp(`\\b${target.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-  const targetUsed = regex.test(userLower);
-
-  const wordsUser = userLower.split(/\s+/).filter(Boolean);
-  const wordsRef = (referenceSentence || '').toLowerCase().split(/\s+/).filter(Boolean);
-
-  let matchCount = 0;
-  wordsUser.forEach(w => {
-    if (wordsRef.includes(w)) matchCount++;
-  });
-
-  const overlap = wordsRef.length > 0 ? matchCount / wordsRef.length : 0.5;
-  let score = Math.round(overlap * 60 + (targetUsed ? 40 : 10));
-  score = Math.max(20, Math.min(100, score));
-
-  const isCapitalized = /^[A-Z]/.test(user);
-  const hasPunctuation = /[.?!]$/.test(user);
-  const feedback = [];
-
-  if (targetUsed) {
-    feedback.push(`Rất tốt! Bạn đã sử dụng chính xác từ khóa "${targetWord}".`);
-  } else {
-    feedback.push(`Chú ý: Câu của bạn chưa xuất hiện từ khóa mục tiêu "${targetWord}".`);
-  }
-
-  if (score >= 80) {
-    feedback.push('Cấu trúc ngữ pháp rõ ràng và câu dịch tự nhiên.');
-  } else if (score >= 50) {
-    feedback.push('Câu dịch diễn đạt được ý chính nhưng có thể hoàn thiện cách dùng từ hơn.');
-  } else {
-    feedback.push('Hãy tham khảo câu mẫu gợi ý để viết câu tự nhiên và chuẩn xác hơn.');
-  }
-
-  const grammarNotes = [];
-  if (!isCapitalized) grammarNotes.push('Nên viết hoa chữ cái đầu câu.');
-  if (!hasPunctuation) grammarNotes.push('Nên có dấu câu kết thúc (. ? !).');
+function normalizeChallenge(item, index) {
+  if (!item || typeof item !== 'object') return item;
+  const promptVi = item.promptVi || item.vietnamesePrompt;
+  const referenceEn = item.referenceEn || item.referenceEnglish;
+  const cardId = item.cardId || item.termId || index + 1;
 
   return {
-    score,
-    targetWordUsed: targetUsed,
-    feedback: feedback.join(' '),
-    nativeAlternative: referenceSentence || `Here is a natural way to express it with "${targetWord}".`,
-    grammarNotes
+    ...item,
+    cardId,
+    promptVi: promptVi || (item.targetWord ? `Dịch câu hoặc viết một câu tiếng Anh hoàn chỉnh có chứa từ "${item.targetWord}".` : ''),
+    referenceEn: referenceEn || '',
   };
 }
 
@@ -104,13 +71,13 @@ export const sentenceChallengeService = {
       try {
         const res = await request(`/decks/${deckId}/sentence-challenges`);
         if (Array.isArray(res) && res.length > 0) {
-          return res;
+          return res.map(normalizeChallenge);
         }
       } catch (err) {
-        console.warn('Backend get sentence challenges error, falling back:', err);
+        console.warn('Backend get sentence challenges error, using cards:', err);
       }
     }
-    return buildFallbackChallenges(cards, deckTitle);
+    return buildFallbackChallenges(cards, deckTitle).map(normalizeChallenge);
   },
 
   /**
@@ -123,32 +90,39 @@ export const sentenceChallengeService = {
           method: 'POST',
         });
         if (Array.isArray(res) && res.length > 0) {
-          return res;
+          return res.map(normalizeChallenge);
         }
       } catch (err) {
-        console.warn('Backend generate challenges error, falling back:', err);
+        console.warn('Backend generate challenges error, using cards:', err);
       }
     }
-    return buildFallbackChallenges(cards, deckTitle);
+    return buildFallbackChallenges(cards, deckTitle).map(normalizeChallenge);
   },
 
   /**
-   * Evaluate a user's sentence
+   * Evaluate a user's sentence strictly via Gemini AI
    */
   async evaluateSentence(deckId, payload) {
+    const enrichedPayload = {
+      ...payload,
+      vietnamesePrompt: payload.promptVi || payload.vietnamesePrompt,
+      promptVi: payload.promptVi || payload.vietnamesePrompt,
+      referenceEnglish: payload.referenceSentence || payload.referenceEn || payload.referenceEnglish,
+      referenceSentence: payload.referenceSentence || payload.referenceEn || payload.referenceEnglish,
+      referenceEn: payload.referenceSentence || payload.referenceEn || payload.referenceEnglish,
+      termId: payload.cardId || payload.termId,
+      cardId: payload.cardId || payload.termId,
+    };
+
     if (deckId) {
-      try {
-        const res = await request(`/decks/${deckId}/sentence-challenges/evaluate`, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-        if (res && typeof res.score === 'number') {
-          return res;
-        }
-      } catch (err) {
-        console.warn('Backend evaluate error, falling back to local evaluation:', err);
+      const res = await request(`/decks/${deckId}/sentence-challenges/evaluate`, {
+        method: 'POST',
+        body: JSON.stringify(enrichedPayload),
+      });
+      if (res && typeof res.score === 'number') {
+        return res;
       }
     }
-    return evaluateSentenceLocally(payload);
+    throw new Error('Dịch vụ chấm điểm câu AI Gemini hiện không khả dụng. Vui lòng thử lại sau.');
   },
 };

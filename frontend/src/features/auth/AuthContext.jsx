@@ -64,6 +64,26 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const updateUser = useCallback((updater) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const patch = typeof updater === 'function' ? updater(prev) : updater;
+      return { ...prev, ...patch };
+    });
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const me = await authService.getMe();
+      if (me) {
+        setUser(me);
+      }
+      return me;
+    } catch {
+      return null;
+    }
+  }, []);
+
   const value = {
     user,
     isAuthenticated: !!user,
@@ -71,6 +91,8 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

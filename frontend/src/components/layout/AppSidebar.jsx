@@ -10,9 +10,11 @@ import {
   ChevronRight,
   ChevronLeft,
   LogOut,
+  User,
   X,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import AvatarFrame from '../common/AvatarFrame';
 import { useWallpaper } from '../../features/wallpapers/WallpaperContext';
 import { useStudyPlan } from '../../features/studyplan/StudyPlanContext';
 
@@ -249,13 +251,20 @@ export default function AppSidebar({
               aria-haspopup="true"
               title={displayName}
             >
-              <div className="sidebar-user-avatar">
-                <span>{initial}</span>
+              <div className="sidebar-user-avatar-wrap">
+                <AvatarFrame
+                  size="md"
+                  tierId={user?.tierId || 1}
+                  src={user?.avatarUrl}
+                  name={displayName}
+                />
               </div>
               {!isCollapsed && (
                 <div className="sidebar-user-info">
                   <span className="sidebar-user-name">{displayName}</span>
-                  <span className="sidebar-user-role">Học viên</span>
+                  <span className="sidebar-user-role">
+                    {user?.tierName ? `${user.tierName} • Cấp ${user.level || 1}` : 'Học viên'}
+                  </span>
                 </div>
               )}
               {!isCollapsed && (
@@ -270,6 +279,18 @@ export default function AppSidebar({
                   <p className="sidebar-dropdown-email">{user?.email || 'tony@example.com'}</p>
                 </div>
                 <div className="sidebar-dropdown-divider" />
+                <button
+                  type="button"
+                  className="sidebar-dropdown-item"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    navigate('/profile');
+                  }}
+                  role="menuitem"
+                >
+                  <User size={16} />
+                  <span>Hồ sơ</span>
+                </button>
                 <button
                   type="button"
                   className="sidebar-dropdown-item sidebar-logout-btn"

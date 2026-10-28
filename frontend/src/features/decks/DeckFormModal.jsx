@@ -455,7 +455,7 @@ export default function DeckFormModal({
           <Button variant="secondary" onClick={onClose} disabled={loading}>
             Hủy bỏ
           </Button>
-          <Button variant="primary" type="submit" disabled={loading}>
+          <Button variant="primary" type="submit" loading={loading} disabled={loading}>
             {loading ? 'Đang lưu bộ từ...' : isEditing ? 'Cập nhật bộ từ' : 'Hoàn thành tạo bộ từ'}
           </Button>
         </div>

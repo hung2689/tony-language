@@ -11,12 +11,16 @@ import com.languagelearning.backend.study.entity.StudySession;
 import com.languagelearning.backend.study.repository.StudyAnswerRepository;
 import com.languagelearning.backend.study.repository.StudyProgressRepository;
 import com.languagelearning.backend.study.repository.StudySessionRepository;
+import com.languagelearning.backend.level.dto.LevelInfoDto;
+import com.languagelearning.backend.level.service.XpService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 @Service
@@ -30,19 +34,22 @@ public class StudyService {
     private final VocabularySetRepository vocabularySetRepository;
     private final VocabularySetItemRepository vocabularySetItemRepository;
     private final StudyPlanService studyPlanService;
+    private final XpService xpService;
 
     public StudyService(StudySessionRepository studySessionRepository,
                         StudyAnswerRepository studyAnswerRepository,
                         StudyProgressRepository studyProgressRepository,
                         VocabularySetRepository vocabularySetRepository,
                         VocabularySetItemRepository vocabularySetItemRepository,
-                        StudyPlanService studyPlanService) {
+                        StudyPlanService studyPlanService,
+                        XpService xpService) {
         this.studySessionRepository = studySessionRepository;
         this.studyAnswerRepository = studyAnswerRepository;
         this.studyProgressRepository = studyProgressRepository;
         this.vocabularySetRepository = vocabularySetRepository;
         this.vocabularySetItemRepository = vocabularySetItemRepository;
         this.studyPlanService = studyPlanService;
+        this.xpService = xpService;
     }
 
     @Transactional
@@ -140,6 +147,11 @@ public class StudyService {
             }
 
             studyProgressRepository.upsertProgress(userId, item.getVocabularyId(), correctInc, wrongInc, isCorrect, now);
+
+            // Award answer XP idempotently
+            String xpKey = clientAnswerId != null ? clientAnswerId : ("sa_" + answer.getId());
+            xpService.awardAnswerXp(userId, xpKey, isCorrect, item.getAttemptNo(), item.isOverride());
+
             try {
                 studyPlanService.recordSm2Answer(userId, item.getVocabularyId(), isCorrect, item.getRating());
             } catch (Exception ex) {
@@ -161,6 +173,9 @@ public class StudyService {
         StudySession session = studySessionRepository.findByIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("SESSION_NOT_FOUND", "Không tìm thấy phiên học"));
 
+        LevelInfoDto beforeLevel = xpService.getLevelInfo(userId);
+        long beforeXp = beforeLevel.totalXp();
+
         if (session.getCompletedAt() == null) {
             session.setCompletedAt(Instant.now());
         }
@@ -178,7 +193,25 @@ public class StudyService {
         }
 
         StudySession saved = studySessionRepository.save(session);
-        return toResponse(saved);
+
+        // 1. Award session completion bonus if threshold reached
+        xpService.awardSessionCompletionBonus(userId, sessionId, saved.getTotalQuestions());
+
+        // 2. Award daily streak bonus if active (once per day)
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        xpService.awardDailyStreakBonus(userId, today);
+
+        LevelInfoDto afterLevel = xpService.getLevelInfo(userId);
+
+        StudySessionResponse response = toResponse(saved);
+        int gained = (int) (afterLevel.totalXp() - beforeXp);
+        response.setXpGained(gained);
+        response.setTotalXp(afterLevel.totalXp());
+        response.setLevel(afterLevel.level());
+        response.setTier(afterLevel.tierName());
+        response.setLeveledUp(afterLevel.level() > beforeLevel.level());
+
+        return response;
     }
 
     private StudySessionResponse toResponse(StudySession s) {

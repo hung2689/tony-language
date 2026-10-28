@@ -10,6 +10,7 @@ import LearnResults from '../learn/LearnResults';
 import LearnSettingsPopover from '../learn/LearnSettingsPopover';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Button from '../../components/common/Button';
+import Ripple from '../../components/common/Ripple';
 import { AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
 import '../learn/Learn.css';
 import './StudyPlan.css';
@@ -97,7 +98,7 @@ export default function TodayLearnPage() {
     return (
       <div className="learn-distraction-free-container">
         <div className="learn-center-state">
-          <div className="learn-spinner" />
+          <Ripple size={56} color="#3b82f6" style={{ margin: '0 auto 16px auto' }} />
           <h2 className="learn-state-title">Đang chuẩn bị phiên học hôm nay...</h2>
           <p className="learn-state-msg">Thuật toán SM-2 đang tối ưu danh sách từ cần ôn tập.</p>
         </div>

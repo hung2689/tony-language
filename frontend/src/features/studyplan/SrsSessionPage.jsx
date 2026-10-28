@@ -14,6 +14,7 @@ import {
 import { studyPlanService } from '../../services/studyPlanService';
 import { studyService } from '../../services/studyService';
 import SrsFlashcardReview from './SrsFlashcardReview';
+import Ripple from '../../components/common/Ripple';
 import './SrsSessionPage.css';
 
 export default function SrsSessionPage() {
@@ -197,7 +198,7 @@ export default function SrsSessionPage() {
       <main className="srs-session-body">
         {loading ? (
           <div className="srs-complete-card">
-            <div className="srs-forecast-spinner" />
+            <Ripple size={56} color="#3b82f6" style={{ margin: '0 auto 16px auto' }} />
             <p>Đang chuẩn bị phiên ôn tập lặp lại ngắt quãng...</p>
           </div>
         ) : error ? (

@@ -1,152 +1,361 @@
-.srs-forecast-modal-overlay {
+/* ==========================================================================
+   Spaced Repetition Forecast Modal (Vintage Pirate Cartography Components)
+   ========================================================================== */
+
+.srs-popup-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.45);
+  background-color: rgba(24, 16, 10, 0.72);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-  animation: srsFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1050;
+  padding: 20px;
+  animation: srsPopupFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.srs-forecast-modal-card {
-  background: #ffffff;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 460px;
-  padding: 24px 26px 22px;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  animation: srsScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes srsFadeIn {
+@keyframes srsPopupFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes srsScaleUp {
-  from { opacity: 0; transform: scale(0.96) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* Header */
-.srs-forecast-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.srs-forecast-title-group {
+/* --------------------------------------------------------------------------
+   Main Antique Parchment Sheet Container (Sole Floating Paper Surface)
+   -------------------------------------------------------------------------- */
+.srs-popup-card {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  background-color: transparent;
+  background-image: url("/assets/popup/spaced-repetition-paper.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 20px 32px rgba(18, 11, 5, 0.65));
+  padding: 34px 34px 28px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  animation: srsPopupScaleUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
 }
 
-.srs-forecast-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+@keyframes srsPopupScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-.srs-forecast-title-icon {
-  color: #0f172a;
+/* --------------------------------------------------------------------------
+   Cutout Decor Assets (Compass Rose, Close Button, Maritime Sketches)
+   -------------------------------------------------------------------------- */
+.srs-popup-compass-rose {
+  position: absolute;
+  top: -26px;
+  left: -22px;
+  width: 82px;
+  height: auto;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 8px rgba(30, 18, 8, 0.38));
+  z-index: 12;
 }
 
-.srs-forecast-main-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.015em;
-  margin: 0;
-}
-
-.srs-forecast-deck-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748b;
-  margin: 0;
-  padding-left: 2px;
-}
-
-.srs-forecast-close-btn {
+.srs-popup-close-btn {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 44px;
+  height: 44px;
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #64748b;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
-  padding: 0;
+  z-index: 15;
 }
 
-.srs-forecast-close-btn:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
+.srs-popup-close-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(25, 15, 8, 0.35));
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
 }
 
-/* Stats Row */
-.srs-forecast-stats-row {
-  display: flex;
+.srs-popup-close-btn:hover .srs-popup-close-img {
+  transform: scale(1.1) rotate(12deg);
+  filter: drop-shadow(0 6px 12px rgba(25, 15, 8, 0.5));
+}
+
+.srs-popup-close-btn:active .srs-popup-close-img {
+  transform: scale(0.94);
+}
+
+.srs-popup-wave-decor {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  width: 95px;
+  opacity: 0.28;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: multiply;
+}
+
+.srs-popup-ship-decor {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  width: 78px;
+  opacity: 0.28;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: multiply;
+}
+
+/* --------------------------------------------------------------------------
+   Header Section (Inked Title & Captain's Subtitle)
+   -------------------------------------------------------------------------- */
+.srs-popup-header {
+  text-align: center;
+  margin-bottom: 18px;
+  padding: 0 28px;
+  position: relative;
+  z-index: 2;
+}
+
+.srs-popup-main-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: #2E1B0D;
+  margin: 0 0 5px;
+  letter-spacing: 0.015em;
+  line-height: 1.25;
+}
+
+.srs-popup-subtitle {
+  font-size: 13.5px;
+  color: #72583D;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.srs-popup-deck-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 20px;
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 22px;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 14px;
+  background: rgba(125, 86, 46, 0.08);
+  border: 1px solid #D6BC91;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #4B331E;
+  font-weight: 600;
 }
 
-.srs-forecast-stat-item {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
+.srs-popup-deck-badge-icon {
+  font-size: 13px;
 }
 
-.srs-forecast-stat-label {
-  color: #64748b;
-  font-weight: 400;
-}
-
-.srs-forecast-stat-val {
-  color: #0f172a;
-  font-weight: 700;
-  font-size: 15px;
-}
-
-/* Chart Section */
-.srs-forecast-chart-section {
+/* --------------------------------------------------------------------------
+   Loading / Error Box
+   -------------------------------------------------------------------------- */
+.srs-popup-loading-box,
+.srs-popup-error-box {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
-  margin-bottom: 24px;
+  min-height: 200px;
+  color: #72583D;
+  font-size: 14px;
+  position: relative;
+  z-index: 2;
 }
 
-.srs-forecast-chart-heading {
-  font-size: 13.5px;
-  color: #64748b;
-  font-weight: 500;
+.srs-popup-error-text {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Body Layout
+   -------------------------------------------------------------------------- */
+.srs-popup-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --------------------------------------------------------------------------
+   COMPONENT A: Vintage Parchment Stats Frame (Ink & Woodcut Aesthetic)
+   Replaces modern SaaS white card with authentic hand-drawn parchment frame.
+   -------------------------------------------------------------------------- */
+.srs-popup-stats-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: transparent;
+  background-image: url("/assets/spaced-repetition/stat-parchment-frame.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+
+.srs-popup-stat-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.srs-popup-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: linear-gradient(180deg, transparent 0%, #A88556 30%, #7A582F 50%, #A88556 70%, transparent 100%);
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+/* Direct woodcut ink icons without modern rounded chip backgrounds */
+.srs-popup-stat-icon {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+}
+
+.srs-stat-icon-due {
+  color: #8E481B;
+}
+
+.srs-stat-icon-reviewed {
+  color: #365B25;
+}
+
+.srs-stat-icon-total {
+  color: #6B4926;
+}
+
+.srs-popup-stat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.srs-popup-stat-val {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 23px;
+  font-weight: 800;
+  color: #2B1707;
+  font-feature-settings: 'tnum';
+  letter-spacing: 0.01em;
+}
+
+.srs-popup-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B5238;
+  margin-top: 2px;
+  letter-spacing: 0.015em;
+}
+
+/* --------------------------------------------------------------------------
+   COMPONENT B: Antique Ribbon Banner (Achievement / Complete Goal)
+   Replaces modern green box with an authentic explorer ribbon scroll.
+   -------------------------------------------------------------------------- */
+.srs-popup-complete-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: transparent;
+  background-image: url("/assets/spaced-repetition/ornament-ribbon-banner.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 11px 24px;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 2px 4px rgba(40, 25, 10, 0.18));
+}
+
+.srs-popup-complete-icon {
+  color: #4A6335;
+  flex-shrink: 0;
+}
+
+.srs-popup-complete-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2F1E0F;
+  letter-spacing: 0.015em;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   COMPONENT C: Vintage 7-Day Forecast Section (Cartographic Log)
+   Replaces modern dashboard analytics box with hand-drawn log itinerary.
+   -------------------------------------------------------------------------- */
+.srs-popup-chart-card {
+  background-color: transparent;
+  background-image: url("/assets/spaced-repetition/forecast-parchment-frame.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 16px 20px 14px;
+  margin-bottom: 18px;
+}
+
+.srs-popup-chart-header {
+  margin-bottom: 12px;
+}
+
+.srs-popup-chart-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #362211;
   margin: 0;
+  text-align: left;
+  letter-spacing: 0.02em;
 }
 
-.srs-forecast-bars-container {
+.srs-popup-bars-row {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 8px;
-  height: 120px;
-  padding-top: 24px;
-  padding-bottom: 4px;
+  height: 126px;
 }
 
-.srs-forecast-col {
+.srs-popup-col {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -155,166 +364,285 @@
   justify-content: flex-end;
 }
 
-.srs-forecast-count-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
+.srs-popup-count-badge {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4F3821;
+  margin-bottom: 5px;
   min-height: 16px;
   line-height: 16px;
 }
 
-.srs-forecast-col.is-today .srs-forecast-count-label {
-  color: #f97316;
+.srs-popup-col.is-today .srs-popup-count-badge {
+  color: #304520;
+  font-weight: 800;
 }
 
-.srs-forecast-bar-track {
+/* Hand-drawn ink waypoint baseline without modern gray rounded slots */
+.srs-popup-bar-track {
   width: 100%;
+  max-width: 28px;
+  height: 78px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  height: 80px;
+  background: rgba(140, 105, 60, 0.07);
+  border-bottom: 2px solid #8C663D;
+  border-radius: 2px 2px 0 0;
+  padding: 0 2px;
 }
 
-.srs-forecast-bar {
+/* Milestone fill in deep nautical moss-green or antique brass */
+.srs-popup-bar-fill {
   width: 100%;
-  border-radius: 4px 4px 0 0;
-  background-color: #52525b;
-  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
-  min-height: 5px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #CCA76E 0%, #A98246 100%);
+  border-top: 1.5px solid #805E28;
+  border-left: 1px solid #9A763D;
+  border-right: 1px solid #9A763D;
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(80, 50, 15, 0.25);
 }
 
-.srs-forecast-col.is-today .srs-forecast-bar {
-  background-color: #f97316;
+.srs-popup-col.is-today .srs-popup-bar-fill {
+  background: linear-gradient(180deg, #4F6A38 0%, #304321 100%);
+  border-top: 1.5px solid #638547;
+  border-left: 1px solid #28391A;
+  border-right: 1px solid #28391A;
+  box-shadow: 0 2px 5px rgba(45, 65, 30, 0.4);
 }
 
-.srs-forecast-day-name {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #64748b;
-  margin-top: 8px;
-}
-
-.srs-forecast-col.is-today .srs-forecast-day-name {
-  color: #f97316;
-}
-
-/* Action CTA */
-.srs-forecast-cta-btn {
-  width: 100%;
-  background-color: #0f172a;
-  color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  padding: 13px 20px;
-  font-size: 15px;
-  font-weight: 600;
+.srs-popup-day-info {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.srs-popup-day-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #634B34;
+  white-space: nowrap;
+}
+
+.srs-popup-col.is-today .srs-popup-day-name {
+  color: #2F441E;
+  font-weight: 700;
+}
+
+/* Vintage explorer wax stamp for today's milestone */
+.srs-popup-today-stamp {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #FFFBF2;
+  background: #3B5226;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #263817;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* --------------------------------------------------------------------------
+   COMPONENT D: Explorer Action Button (Antique Brass & Moss Green Pill)
+   Replaces modern flat CSS button with authentic engraved button texture.
+   -------------------------------------------------------------------------- */
+.srs-popup-actions {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  margin-top: 2px;
+}
+
+.srs-popup-cta-btn {
+  width: 100%;
+  max-width: 360px;
+  height: 52px;
+  background-color: transparent;
+  background-image: url("/assets/spaced-repetition/action-button-pill.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: #FFFDF5;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  filter: drop-shadow(0 4px 10px rgba(25, 18, 10, 0.45));
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), filter 0.18s ease;
 }
 
-.srs-forecast-cta-btn:hover {
-  background-color: #1e293b;
+.srs-popup-cta-btn:hover {
+  filter: drop-shadow(0 6px 14px rgba(25, 18, 10, 0.6)) brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
 }
 
-.srs-forecast-cta-btn:active {
-  transform: translateY(0);
+.srs-popup-cta-btn:active {
+  transform: translateY(1px);
+  filter: drop-shadow(0 2px 5px rgba(25, 18, 10, 0.4)) brightness(0.96);
 }
 
-.srs-forecast-loading-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  min-height: 180px;
-  color: #64748b;
-  font-size: 14px;
+/* --------------------------------------------------------------------------
+   Dark Mode Support (Antique Night Explorer)
+   -------------------------------------------------------------------------- */
+[data-theme='dark'] .srs-popup-overlay {
+  background-color: rgba(10, 8, 6, 0.82);
 }
 
-.srs-forecast-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e2e8f0;
-  border-top-color: #f97316;
-  border-radius: 50%;
-  animation: srsSpin 0.7s linear infinite;
+[data-theme='dark'] .srs-popup-card {
+  filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.85)) brightness(0.85);
 }
 
-@keyframes srsSpin {
-  to { transform: rotate(360deg); }
+[data-theme='dark'] .srs-popup-main-title {
+  color: #F5E8D0;
 }
 
-/* ==========================================================================
-   Dark Mode Support for Forecast Modal (#0F172A / #1E293B / #334155)
-   ========================================================================== */
-[data-theme='dark'] .srs-forecast-modal-card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6);
+[data-theme='dark'] .srs-popup-subtitle {
+  color: #B59B7E;
 }
 
-[data-theme='dark'] .srs-forecast-main-title {
-  color: #f1f5f9;
+[data-theme='dark'] .srs-popup-deck-badge {
+  background: rgba(140, 102, 61, 0.2);
+  border-color: #8C663D;
+  color: #F0E4CE;
 }
 
-[data-theme='dark'] .srs-forecast-title-icon {
-  color: #60a5fa;
+[data-theme='dark'] .srs-popup-stat-val {
+  color: #F7EBD7;
 }
 
-[data-theme='dark'] .srs-forecast-deck-name {
-  color: #94a3b8;
+[data-theme='dark'] .srs-popup-stat-label {
+  color: #B59B7E;
 }
 
-[data-theme='dark'] .srs-forecast-close-btn {
-  color: #94a3b8;
+[data-theme='dark'] .srs-popup-chart-title {
+  color: #F5E8D0;
 }
 
-[data-theme='dark'] .srs-forecast-close-btn:hover {
-  background-color: #334155;
-  color: #f1f5f9;
+[data-theme='dark'] .srs-popup-count-badge {
+  color: #D6C2A9;
 }
 
-[data-theme='dark'] .srs-forecast-stats-row {
-  background-color: #0f172a;
-  border: 1px solid #334155;
+[data-theme='dark'] .srs-popup-col.is-today .srs-popup-count-badge {
+  color: #7DB656;
 }
 
-[data-theme='dark'] .srs-stat-box-val {
-  color: #f1f5f9;
+[data-theme='dark'] .srs-popup-day-name {
+  color: #B59B7E;
 }
 
-[data-theme='dark'] .srs-stat-box-lbl {
-  color: #94a3b8;
+[data-theme='dark'] .srs-popup-col.is-today .srs-popup-day-name {
+  color: #7DB656;
 }
 
-[data-theme='dark'] .srs-chart-card {
-  background-color: #0f172a;
-  border: 1px solid #334155;
-}
+/* --------------------------------------------------------------------------
+   Responsive Rules
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .srs-popup-overlay {
+    padding: 10px;
+  }
 
-[data-theme='dark'] .srs-chart-title {
-  color: #f1f5f9;
-}
+  .srs-popup-card {
+    padding: 26px 18px 20px;
+  }
 
-[data-theme='dark'] .srs-chart-subtitle {
-  color: #94a3b8;
-}
+  .srs-popup-compass-rose {
+    top: -18px;
+    left: -14px;
+    width: 60px;
+  }
 
-[data-theme='dark'] .srs-forecast-cta-btn {
-  background-color: #60a5fa;
-  color: #0f172a;
-  font-weight: 700;
-}
+  .srs-popup-close-btn {
+    top: -10px;
+    right: -10px;
+    width: 36px;
+    height: 36px;
+  }
 
-[data-theme='dark'] .srs-forecast-cta-btn:hover {
-  background-color: #93c5fd;
+  .srs-popup-wave-decor {
+    width: 65px;
+    bottom: 4px;
+    left: 6px;
+  }
+
+  .srs-popup-ship-decor {
+    width: 55px;
+    bottom: 4px;
+    right: 6px;
+  }
+
+  .srs-popup-header {
+    padding: 0 10px;
+    margin-bottom: 14px;
+  }
+
+  .srs-popup-main-title {
+    font-size: 20px;
+  }
+
+  .srs-popup-subtitle {
+    font-size: 12px;
+  }
+
+  .srs-popup-stats-panel {
+    padding: 10px 10px;
+    gap: 4px;
+  }
+
+  .srs-popup-stat-col {
+    gap: 6px;
+  }
+
+  .srs-popup-stat-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .srs-popup-stat-val {
+    font-size: 18px;
+  }
+
+  .srs-popup-stat-label {
+    font-size: 10.5px;
+  }
+
+  .srs-popup-chart-card {
+    padding: 12px 10px 10px;
+  }
+
+  .srs-popup-bars-row {
+    gap: 4px;
+    height: 110px;
+  }
+
+  .srs-popup-bar-track {
+    max-width: 22px;
+    height: 68px;
+  }
+
+  .srs-popup-day-name {
+    font-size: 10px;
+  }
+
+  .srs-popup-cta-btn {
+    max-width: 300px;
+    height: 46px;
+    font-size: 14px;
+  }
 }

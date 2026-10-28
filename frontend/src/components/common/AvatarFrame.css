@@ -1,0 +1,275 @@
+/* ==========================================================================
+   AVATAR FRAME - 8 TIERS FOR STUDENT LEVEL SYSTEM
+   ========================================================================== */
+
+.avatar-frame-root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* SIZES */
+.avatar-frame-root.size-sm {
+  width: 34px;
+  height: 34px;
+}
+
+.avatar-frame-root.size-md {
+  width: 44px;
+  height: 44px;
+}
+
+.avatar-frame-root.size-lg {
+  width: 72px;
+  height: 72px;
+}
+
+.avatar-frame-root.size-xl {
+  width: 128px;
+  height: 128px;
+}
+
+/* INNER AVATAR CONTENT */
+.avatar-frame-inner {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-subtle, #f1f5f9);
+  z-index: 2;
+}
+
+.avatar-frame-root.size-xl .avatar-frame-inner {
+  inset: 4px;
+}
+
+.avatar-frame-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-frame-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--color-text-main, #334155);
+  background-color: var(--color-bg-hover, #e2e8f0);
+}
+
+.avatar-frame-root.size-sm .avatar-frame-initials {
+  font-size: 11px;
+}
+
+.avatar-frame-root.size-md .avatar-frame-initials {
+  font-size: 14px;
+}
+
+.avatar-frame-root.size-lg .avatar-frame-initials {
+  font-size: 20px;
+}
+
+.avatar-frame-root.size-xl .avatar-frame-initials {
+  font-size: 34px;
+}
+
+/* DECORATIVE OUTER FRAME BORDER */
+.avatar-frame-border {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  z-index: 1;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   TIER 1: Tập sự (L1 - 4) - Thin neutral grey ring
+   ========================================================================== */
+.avatar-frame-root.tier-1 .avatar-frame-border {
+  border: 1.5px solid #94a3b8;
+}
+
+/* ==========================================================================
+   TIER 2: Đồng (L5 - 9) - Bronze gradient ring
+   ========================================================================== */
+.avatar-frame-root.tier-2 .avatar-frame-border {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #78350f 100%);
+  padding: 2px;
+}
+
+.avatar-frame-root.tier-2.size-xl .avatar-frame-border {
+  padding: 3.5px;
+}
+
+/* ==========================================================================
+   TIER 3: Bạc (L10 - 19) - Silver double ring with soft highlight
+   ========================================================================== */
+.avatar-frame-root.tier-3 .avatar-frame-border {
+  background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 50%, #cbd5e1 100%);
+  padding: 2.5px;
+  box-shadow: 0 0 0 1px #e2e8f0;
+}
+
+.avatar-frame-root.tier-3.size-xl .avatar-frame-border {
+  padding: 4px;
+}
+
+/* ==========================================================================
+   TIER 4: Vàng (L20 - 29) - Gold ring with subtle outer glow
+   ========================================================================== */
+.avatar-frame-root.tier-4 .avatar-frame-border {
+  background: linear-gradient(135deg, #facc15 0%, #ca8a04 60%, #fef08a 100%);
+  padding: 2.5px;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+}
+
+.avatar-frame-root.tier-4.size-xl .avatar-frame-border {
+  padding: 4.5px;
+  box-shadow: 0 0 16px rgba(234, 179, 8, 0.45);
+}
+
+/* ==========================================================================
+   TIER 5: Bạch kim (L30 - 44) - Platinum/teal-white ring with sparkles
+   ========================================================================== */
+.avatar-frame-root.tier-5 .avatar-frame-border {
+  background: linear-gradient(135deg, #06b6d4 0%, #e0f2fe 50%, #22d3ee 100%);
+  padding: 2.5px;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+}
+
+.avatar-frame-root.tier-5.size-xl .avatar-frame-border {
+  padding: 4.5px;
+  box-shadow: 0 0 18px rgba(6, 182, 212, 0.45);
+}
+
+/* ==========================================================================
+   TIER 6: Kim cương (L45 - 59) - Faceted conic-gradient (cyan/violet)
+   ========================================================================== */
+.avatar-frame-root.tier-6 .avatar-frame-border {
+  background: conic-gradient(from 180deg, #06b6d4, #8b5cf6, #3b82f6, #a855f7, #06b6d4);
+  padding: 3px;
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.45);
+}
+
+.avatar-frame-root.tier-6.size-xl .avatar-frame-border {
+  padding: 5px;
+  box-shadow: 0 0 22px rgba(139, 92, 246, 0.5);
+}
+
+/* ==========================================================================
+   TIER 7: Huyền thoại (L60 - 79) - Slowly rotating conic ring with pulse
+   ========================================================================== */
+.avatar-frame-root.tier-7 .avatar-frame-border {
+  background: conic-gradient(from 0deg, #ec4899, #f97316, #a855f7, #ec4899);
+  padding: 3px;
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.5);
+}
+
+.avatar-frame-root.tier-7.size-xl .avatar-frame-border {
+  padding: 5.5px;
+  box-shadow: 0 0 24px rgba(236, 72, 153, 0.55);
+}
+
+.avatar-frame-root.tier-7.is-animated .avatar-frame-border {
+  animation: rotateFrame 10s linear infinite, pulseGlowTier7 3s ease-in-out infinite;
+}
+
+@keyframes rotateFrame {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseGlowTier7 {
+  0%, 100% { box-shadow: 0 0 12px rgba(236, 72, 153, 0.45); }
+  50% { box-shadow: 0 0 22px rgba(249, 115, 22, 0.65); }
+}
+
+/* ==========================================================================
+   TIER 8: Tối thượng (L80 - 100) - Animated Aurora Ring with Crown
+   ========================================================================== */
+.avatar-frame-root.tier-8 .avatar-frame-border {
+  background: conic-gradient(from 0deg, #f59e0b, #ef4444, #8b5cf6, #10b981, #f59e0b);
+  padding: 3.5px;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.6);
+}
+
+.avatar-frame-root.tier-8.size-xl .avatar-frame-border {
+  padding: 6px;
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.65);
+}
+
+.avatar-frame-root.tier-8.is-animated .avatar-frame-border {
+  animation: rotateFrame 8s linear infinite, pulseAurora 4s ease-in-out infinite;
+}
+
+@keyframes pulseAurora {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.5), 0 0 24px rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(139, 92, 246, 0.7), 0 0 36px rgba(239, 68, 68, 0.45);
+  }
+}
+
+/* Tier 8 Crown SVG */
+.tier-8-crown-badge {
+  position: absolute;
+  top: -10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.avatar-frame-root.size-sm .tier-8-crown-badge {
+  top: -7px;
+  width: 14px;
+  height: 14px;
+}
+
+.avatar-frame-root.size-md .tier-8-crown-badge {
+  top: -8px;
+  width: 16px;
+  height: 16px;
+}
+
+.avatar-frame-root.size-lg .tier-8-crown-badge {
+  top: -12px;
+  width: 22px;
+  height: 22px;
+}
+
+.avatar-frame-root.size-xl .tier-8-crown-badge {
+  top: -18px;
+  width: 32px;
+  height: 32px;
+}
+
+.crown-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* REDUCED MOTION ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-frame-root .avatar-frame-border {
+    animation: none !important;
+  }
+}
+
+.avatar-frame-root.is-static .avatar-frame-border {
+  animation: none !important;
+}

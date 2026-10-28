@@ -1,18 +1,22 @@
 package com.languagelearning.backend.study.sentence.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 
 public class SentenceEvaluationRequest {
+    @JsonAlias({"cardId", "id"})
     private Long termId;
 
     @NotBlank(message = "Từ mục tiêu không được để trống")
     private String targetWord;
 
+    @JsonAlias({"promptVi", "vietnameseSentence", "prompt"})
     private String vietnamesePrompt;
 
     @NotBlank(message = "Câu dịch của người học không được để trống")
     private String userSentence;
 
+    @JsonAlias({"referenceSentence", "referenceEn", "reference"})
     private String referenceEnglish;
 
     public SentenceEvaluationRequest() {}
@@ -39,6 +43,16 @@ public class SentenceEvaluationRequest {
         this.termId = termId;
     }
 
+    public Long getCardId() {
+        return termId;
+    }
+
+    public void setCardId(Long cardId) {
+        if (this.termId == null) {
+            this.termId = cardId;
+        }
+    }
+
     public String getTargetWord() {
         return targetWord;
     }
@@ -55,6 +69,16 @@ public class SentenceEvaluationRequest {
         this.vietnamesePrompt = vietnamesePrompt;
     }
 
+    public String getPromptVi() {
+        return vietnamesePrompt;
+    }
+
+    public void setPromptVi(String promptVi) {
+        if (this.vietnamesePrompt == null || this.vietnamesePrompt.isBlank()) {
+            this.vietnamesePrompt = promptVi;
+        }
+    }
+
     public String getUserSentence() {
         return userSentence;
     }
@@ -69,5 +93,25 @@ public class SentenceEvaluationRequest {
 
     public void setReferenceEnglish(String referenceEnglish) {
         this.referenceEnglish = referenceEnglish;
+    }
+
+    public String getReferenceSentence() {
+        return referenceEnglish;
+    }
+
+    public void setReferenceSentence(String referenceSentence) {
+        if (this.referenceEnglish == null || this.referenceEnglish.isBlank()) {
+            this.referenceEnglish = referenceSentence;
+        }
+    }
+
+    public String getReferenceEn() {
+        return referenceEnglish;
+    }
+
+    public void setReferenceEn(String referenceEn) {
+        if (this.referenceEnglish == null || this.referenceEnglish.isBlank()) {
+            this.referenceEnglish = referenceEn;
+        }
     }
 }

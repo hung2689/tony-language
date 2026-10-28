@@ -79,7 +79,7 @@ describe('sentenceChallengeService Unit Tests', () => {
     expect(res.targetWordUsed).toBe(true);
   });
 
-  it('performs accurate fallback evaluation when backend is unavailable', async () => {
+  it('throws error when backend evaluation is unavailable (never falls back to heuristic NLP)', async () => {
     vi.spyOn(api, 'request').mockRejectedValueOnce(new Error('Server offline'));
 
     const payload = {
@@ -90,28 +90,8 @@ describe('sentenceChallengeService Unit Tests', () => {
       referenceSentence: 'Today I am exhausted from working hard.',
     };
 
-    const res = await sentenceChallengeService.evaluateSentence(10, payload);
-
-    expect(res).toBeDefined();
-    expect(res.targetWordUsed).toBe(true);
-    expect(res.score).toBeGreaterThanOrEqual(70);
-    expect(res.feedback).toContain('exhausted');
-  });
-
-  it('detects missing target word in local fallback evaluation', async () => {
-    vi.spyOn(api, 'request').mockRejectedValueOnce(new Error('Server offline'));
-
-    const payload = {
-      cardId: 1,
-      targetWord: 'exhausted',
-      promptVi: 'Hôm nay tôi mệt.',
-      userSentence: 'Today I feel very tired.',
-      referenceSentence: 'Today I am exhausted.',
-    };
-
-    const res = await sentenceChallengeService.evaluateSentence(10, payload);
-
-    expect(res.targetWordUsed).toBe(false);
-    expect(res.feedback).toContain('chưa xuất hiện từ khóa mục tiêu');
+    await expect(
+      sentenceChallengeService.evaluateSentence(10, payload)
+    ).rejects.toThrow('Server offline');
   });
 });

@@ -139,170 +139,55 @@ public class SentenceChallengeService {
             }
         }
 
-        List<String> grammarNotes = new ArrayList<>();
-        boolean targetWordUsed = checkTargetWordUsed(userSentence, targetWord);
-
-        if (!targetWordUsed) {
-            grammarNotes.add("Bạn chưa sử dụng từ vựng mục tiêu: '" + targetWord + "' trong câu.");
-        }
-
-        // Check capitalization
-        boolean startsWithUpper = Character.isUpperCase(userSentence.charAt(0));
-        if (!startsWithUpper) {
-            grammarNotes.add("Chữ cái đầu câu nên được viết hoa.");
-        }
-
-        // Check ending punctuation
-        char lastChar = userSentence.charAt(userSentence.length() - 1);
-        boolean hasEndingPunctuation = (lastChar == '.' || lastChar == '!' || lastChar == '?');
-        if (!hasEndingPunctuation) {
-            grammarNotes.add("Nên kết thúc câu bằng dấu chấm câu (.).");
-        }
-
-        // Word overlap & semantic similarity with reference
-        double similarityScore = calculateSimilarity(userSentence, reference);
-
-        // Score computation (0 - 100)
-        int score = 0;
-        if (targetWordUsed) {
-            score += 40; // 40 points for correctly applying target word
-        }
-        score += (int) (similarityScore * 50); // up to 50 points for matching reference intent
-
-        if (startsWithUpper && hasEndingPunctuation) {
-            score += 10; // 10 points for good sentence mechanics
-        } else if (startsWithUpper || hasEndingPunctuation) {
-            score += 5;
-        }
-
-        score = Math.min(100, Math.max(10, score));
-        boolean passed = score >= 70;
-
-        String rating;
-        String feedback;
-        if (score >= 90) {
-            rating = "EXCELLENT";
-            feedback = "Xuất sắc! Câu dịch của bạn rất tự nhiên, chuẩn xác cả ngữ pháp và từ vựng.";
-        } else if (score >= 75) {
-            rating = "GOOD";
-            feedback = "Tốt lắm! Câu dịch diễn đạt đúng ý và sử dụng từ mục tiêu chuẩn xác.";
-        } else if (score >= 55) {
-            rating = "NEEDS_IMPROVEMENT";
-            feedback = "Khá tốt! Bạn đã nắm được ý chính nhưng câu văn có thể hoàn thiện tự nhiên hơn.";
-        } else {
-            rating = "INCORRECT";
-            feedback = "Cần cải thiện. Hãy chú ý cấu trúc câu và từ vựng mục tiêu được gợi ý.";
-        }
-
-        // Build corrected sentence
-        String corrected = cleanPunctuationAndCapitalize(userSentence);
-
-        return new SentenceEvaluationResponse(
-                score,
-                passed,
-                targetWordUsed,
-                rating,
-                feedback,
-                corrected,
-                reference,
-                grammarNotes
-        );
-    }
-
-    private boolean checkTargetWordUsed(String sentence, String targetWord) {
-        if (sentence == null || targetWord == null || targetWord.isEmpty()) {
-            return false;
-        }
-        String lowerSentence = sentence.toLowerCase();
-        String lowerTarget = targetWord.toLowerCase();
-
-        // Exact word boundary regex
-        Pattern pattern = Pattern.compile("\\b" + Pattern.quote(lowerTarget) + "\\b");
-        if (pattern.matcher(lowerSentence).find()) {
-            return true;
-        }
-
-        // Check common base/stem without suffix (e.g., -ed, -ing, -s, -es)
-        if (lowerTarget.length() >= 4) {
-            String stem = lowerTarget.replaceAll("(ing|ed|es|s|ly)$", "");
-            if (stem.length() >= 3) {
-                Pattern stemPattern = Pattern.compile("\\b" + Pattern.quote(stem) + "[a-z]*\\b");
-                if (stemPattern.matcher(lowerSentence).find()) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private double calculateSimilarity(String s1, String s2) {
-        if (s1 == null || s2 == null) return 0.0;
-        Set<String> words1 = extractWords(s1);
-        Set<String> words2 = extractWords(s2);
-
-        if (words2.isEmpty()) return 0.5;
-
-        int commonCount = 0;
-        for (String w : words1) {
-            if (words2.contains(w)) {
-                commonCount++;
-            }
-        }
-
-        // Jaccard similarity index
-        double intersection = commonCount;
-        double union = words1.size() + words2.size() - commonCount;
-        return union > 0 ? (intersection / union) : 0.0;
-    }
-
-    private Set<String> extractWords(String text) {
-        Set<String> words = new HashSet<>();
-        String[] tokens = text.toLowerCase().replaceAll("[^a-z0-9\\s]", " ").split("\\s+");
-        for (String token : tokens) {
-            if (!token.isEmpty()) {
-                words.add(token);
-            }
-        }
-        return words;
-    }
-
-    private String cleanPunctuationAndCapitalize(String sentence) {
-        if (sentence == null || sentence.isEmpty()) return "";
-        String result = sentence.trim();
-        result = Character.toUpperCase(result.charAt(0)) + result.substring(1);
-        char last = result.charAt(result.length() - 1);
-        if (last != '.' && last != '!' && last != '?') {
-            result += ".";
-        }
-        return result;
+        throw new ValidationException("Dịch vụ chấm câu bằng AI Gemini hiện không khả dụng (Timeout hoặc chưa cấu hình API Key). Vui lòng thử lại sau vài giây hoặc kiểm tra khóa API Gemini.");
     }
 
     private SentenceTemplate buildSentenceTemplate(String term, String pos, String def, String example) {
-        // Natural contextual templates based on Part of Speech
+        // If an authentic example is already provided in vocabulary card, use it!
+        if (example != null && !example.isBlank() && example.toLowerCase().contains(term.toLowerCase())) {
+            String cleanEx = example.trim();
+            String prompt = "Dịch câu sau sang tiếng Anh: \"" + (def != null && !def.isBlank() ? "Hãy dịch câu nói có từ '" + term + "' (" + def.trim() + ")" : "Hãy đặt câu tự nhiên với từ '" + term + "'") + ".\"";
+            return new SentenceTemplate(prompt, cleanEx);
+        }
+
+        // Natural, practical, everyday life templates (usual & conversational)
         String p = pos != null ? pos.toLowerCase() : "";
         String meaning = (def != null && !def.isBlank()) ? def.trim() : term;
+        String lowerTerm = term.toLowerCase();
+
+        // Special common word natural presets
+        if (lowerTerm.equals("run")) {
+            return new SentenceTemplate(
+                    "Dịch câu sau sang tiếng Anh: \"Tôi thường chạy bộ quanh công viên vào mỗi sáng sớm.\"",
+                    "I usually run around the park early in the morning."
+            );
+        } else if (lowerTerm.equals("book")) {
+            return new SentenceTemplate(
+                    "Dịch câu sau sang tiếng Anh: \"Tôi cần đặt một bàn cho hai người vào tối nay.\"",
+                    "I need to book a table for two tonight."
+            );
+        }
 
         if (p.contains("adj") || p.contains("tính")) {
             return new SentenceTemplate(
-                    "Dịch câu sau sang tiếng Anh: \"Hôm nay tôi cảm thấy rất " + meaning + " sau một ngày dài làm việc.\"",
-                    "Today I feel very " + term + " after a long day of work."
+                    "Dịch câu sau sang tiếng Anh: \"Thời tiết hôm nay rất " + meaning + ", thật tuyệt để đi dạo ngoài trời.\"",
+                    "The weather today is very " + term + ", perfect for going outside."
             );
         } else if (p.contains("verb") || p.contains("động")) {
             return new SentenceTemplate(
-                    "Dịch câu sau sang tiếng Anh: \"Chúng ta cần " + meaning + " kỹ năng này để đạt được thành công.\"",
-                    "We need to " + term + " this skill to achieve success."
+                    "Dịch câu sau sang tiếng Anh: \"Tôi cố gắng " + meaning + " mỗi ngày để tạo thói quen tốt.\"",
+                    "I try to " + term + " every day to build a good habit."
             );
         } else if (p.contains("adv") || p.contains("trạng")) {
             return new SentenceTemplate(
-                    "Dịch câu sau sang tiếng Anh: \"Cô ấy đã hoàn thành xuất sắc công việc một cách " + meaning + ".\"",
-                    "She completed the work " + term + "."
+                    "Dịch câu sau sang tiếng Anh: \"Cô ấy hoàn thành công việc một cách " + meaning + " và nhanh chóng.\"",
+                    "She completed the task " + term + " and quickly."
             );
         } else {
             // Default noun or general vocabulary
             return new SentenceTemplate(
-                    "Dịch câu sau sang tiếng Anh: \"Việc hiểu rõ " + meaning + " là chìa khóa để giải quyết vấn đề này.\"",
-                    "Understanding " + term + " clearly is the key to solving this problem."
+                    "Dịch câu sau sang tiếng Anh: \"Tôi luôn mang theo " + meaning + " khi đi ra ngoài.\"",
+                    "I always bring my " + term + " whenever I go outside."
             );
         }
     }

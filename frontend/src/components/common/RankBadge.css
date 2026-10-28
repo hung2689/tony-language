@@ -1,0 +1,125 @@
+/* ==========================================================================
+   LEXICON RANK BADGE COMPONENT STYLES
+   Supports sizes xs, sm, md, lg, xl and custom responsive scaling
+   ========================================================================== */
+
+.rank-badge-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.rank-badge-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--rank-badge-custom-size, 48px);
+  height: var(--rank-badge-custom-size, 48px);
+  flex-shrink: 0;
+}
+
+.rank-badge-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(28, 20, 12, 0.22));
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+/* Predefined Sizes */
+.rank-badge-wrapper.rank-badge-size-xs .rank-badge-container {
+  width: 20px;
+  height: 20px;
+}
+
+.rank-badge-wrapper.rank-badge-size-sm .rank-badge-container {
+  width: 32px;
+  height: 32px;
+}
+
+.rank-badge-wrapper.rank-badge-size-md .rank-badge-container {
+  width: 48px;
+  height: 48px;
+}
+
+.rank-badge-wrapper.rank-badge-size-lg .rank-badge-container {
+  width: 72px;
+  height: 72px;
+}
+
+.rank-badge-wrapper.rank-badge-size-xl .rank-badge-container {
+  width: 110px;
+  height: 110px;
+}
+
+/* Animations */
+.rank-badge-wrapper.is-animated:hover .rank-badge-image {
+  transform: translateY(-2px) scale(1.04);
+  filter: drop-shadow(0 6px 12px rgba(28, 20, 12, 0.32));
+}
+
+/* Locked State */
+.rank-badge-wrapper.is-locked {
+  opacity: 0.58;
+}
+
+.rank-badge-wrapper.is-locked .rank-badge-image {
+  filter: grayscale(0.55) contrast(0.9) brightness(0.85);
+}
+
+.rank-badge-lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(28, 20, 12, 0.42);
+  border-radius: 50%;
+  color: #F4E4BF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+/* Fallback when image fails */
+.rank-badge-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1.5px dashed #795431;
+  background: rgba(232, 208, 160, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Optional Meta Text */
+.rank-badge-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.rank-badge-name {
+  font-family: 'Times New Roman', Georgia, serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #2D1C10;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.rank-badge-level {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5A402A;
+  line-height: 1;
+}

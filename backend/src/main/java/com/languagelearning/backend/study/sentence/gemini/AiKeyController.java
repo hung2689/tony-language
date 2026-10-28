@@ -30,17 +30,15 @@ public class AiKeyController {
             return ResponseEntity.badRequest().body(ApiResponse.error("Vui lòng cung cấp Gemini API Key để kiểm tra"));
         }
 
-        boolean isValid = geminiSentenceService.testApiKey(keyToTest.trim());
+        GeminiSentenceService.TestKeyResult result = geminiSentenceService.testApiKeyDetails(keyToTest.trim());
 
-        if (isValid) {
+        if (result.valid()) {
             return ResponseEntity.ok(ApiResponse.success(
-                    "API Key hợp lệ! Đã kết nối thành công với Google Gemini (" + geminiSentenceService.getModel() + ").",
+                    result.message(),
                     Map.of("valid", true, "model", geminiSentenceService.getModel())
             ));
         } else {
-            return ResponseEntity.badRequest().body(ApiResponse.error(
-                    "API Key không hợp lệ hoặc không có quyền truy cập Google Gemini API. Vui lòng kiểm tra lại tại Google AI Studio."
-            ));
+            return ResponseEntity.badRequest().body(ApiResponse.error(result.message()));
         }
     }
 }

@@ -1,0 +1,726 @@
+{
+  "project": "Lexicon Intelligent Learning",
+  "asset_count": 90,
+  "assets": [
+    {
+      "source": "asset_001.png",
+      "file": "characters/character-explorer-backpack.png",
+      "name": "character-explorer-backpack",
+      "category": "characters",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_002.png",
+      "file": "badges/badge-rank-purple-star.png",
+      "name": "badge-rank-purple-star",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_003.png",
+      "file": "characters/character-fox-mascot.png",
+      "name": "character-fox-mascot",
+      "category": "characters",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_004.png",
+      "file": "badges/badge-rank-bronze-star.png",
+      "name": "badge-rank-bronze-star",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_005.png",
+      "file": "badges/badge-rank-green-star.png",
+      "name": "badge-rank-green-star",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_006.png",
+      "file": "badges/badge-rank-blue-star.png",
+      "name": "badge-rank-blue-star",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_007.png",
+      "file": "decorations/decorative-stacked-rocks.png",
+      "name": "decorative-stacked-rocks",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_008.png",
+      "file": "avatars/avatar-fox-frame.png",
+      "name": "avatar-fox-frame",
+      "category": "avatars",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_009.png",
+      "file": "badges/badge-rank-gold-winged.png",
+      "name": "badge-rank-gold-winged",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_010.png",
+      "file": "badges/badge-rank-orange-star.png",
+      "name": "badge-rank-orange-star",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_011.png",
+      "file": "badges/badge-rank-indigo-winged.png",
+      "name": "badge-rank-indigo-winged",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_012.png",
+      "file": "badges/badge-rank-pink-star.png",
+      "name": "badge-rank-pink-star",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_013.png",
+      "file": "decorations/crown-gold.png",
+      "name": "crown-gold",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_014.png",
+      "file": "decorations/gem-blue-diamond-star.png",
+      "name": "gem-blue-diamond-star",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_015.png",
+      "file": "decorations/crown-silver-blue.png",
+      "name": "crown-silver-blue",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_016.png",
+      "file": "decorations/wing-blue-left.png",
+      "name": "wing-blue-left",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_017.png",
+      "file": "decorations/icon-flame-orange.png",
+      "name": "icon-flame-orange",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_018.png",
+      "file": "decorations/wing-blue-right.png",
+      "name": "wing-blue-right",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_019.png",
+      "file": "decorations/gem-blue-shard.png",
+      "name": "gem-blue-shard",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_020.png",
+      "file": "decorations/wing-blue-feather-left.png",
+      "name": "wing-blue-feather-left",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_021.png",
+      "file": "decorations/wing-blue-feather-right.png",
+      "name": "wing-blue-feather-right",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_022.png",
+      "file": "decorations/gem-cyan-flame.png",
+      "name": "gem-cyan-flame",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_023.png",
+      "file": "decorations/gem-blue-star.png",
+      "name": "gem-blue-star",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_024.png",
+      "file": "decorations/gem-purple-flame.png",
+      "name": "gem-purple-flame",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_025.png",
+      "file": "decorations/gem-green-leaf.png",
+      "name": "gem-green-leaf",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_026.png",
+      "file": "decorations/gem-cyan-star.png",
+      "name": "gem-cyan-star",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_027.png",
+      "file": "decorations/crown-blue.png",
+      "name": "crown-blue",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_028.png",
+      "file": "icons/icon-vocabulary-purple.png",
+      "name": "icon-vocabulary-purple",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_029.png",
+      "file": "icons/icon-book-purple.png",
+      "name": "icon-book-purple",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_030.png",
+      "file": "icons/icon-target-green.png",
+      "name": "icon-target-green",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_031.png",
+      "file": "icons/icon-stack-blue.png",
+      "name": "icon-stack-blue",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_032.png",
+      "file": "icons/icon-streak-flame.png",
+      "name": "icon-streak-flame",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_033.png",
+      "file": "icons/icon-chat-notification.png",
+      "name": "icon-chat-notification",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_034.png",
+      "file": "widgets/widget-streak-counter.png",
+      "name": "widget-streak-counter",
+      "category": "widgets",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_035.png",
+      "file": "widgets/widget-user-menu.png",
+      "name": "widget-user-menu",
+      "category": "widgets",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_036.png",
+      "file": "avatars/avatar-user-letter.png",
+      "name": "avatar-user-letter",
+      "category": "avatars",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_037.png",
+      "file": "icons/icon-add-small.png",
+      "name": "icon-add-small",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_038.png",
+      "file": "icons/icon-flame-small.png",
+      "name": "icon-flame-small",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_039.png",
+      "file": "icons/icon-notification-outline.png",
+      "name": "icon-notification-outline",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_040.png",
+      "file": "icons/icon-moon-outline.png",
+      "name": "icon-moon-outline",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_041.png",
+      "file": "icons/icon-moon-glow.png",
+      "name": "icon-moon-glow",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_042.png",
+      "file": "badges/widget-rank-badge-level-2.png",
+      "name": "widget-rank-badge-level-2",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_043.png",
+      "file": "icons/icon-folder-blue.png",
+      "name": "icon-folder-blue",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_044.png",
+      "file": "icons/icon-statistics-blue.png",
+      "name": "icon-statistics-blue",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_045.png",
+      "file": "icons/icon-grid-blue.png",
+      "name": "icon-grid-blue",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_046.png",
+      "file": "icons/icon-moon-button.png",
+      "name": "icon-moon-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_047.png",
+      "file": "widgets/widget-exp-progress.png",
+      "name": "widget-exp-progress",
+      "category": "widgets",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_048.png",
+      "file": "icons/icon-favorite-heart.png",
+      "name": "icon-favorite-heart",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_049.png",
+      "file": "icons/icon-bell-button.png",
+      "name": "icon-bell-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_050.png",
+      "file": "badges/widget-rank-title.png",
+      "name": "widget-rank-title",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_051.png",
+      "file": "widgets/button-create-flashcards.png",
+      "name": "button-create-flashcards",
+      "category": "widgets",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_052.png",
+      "file": "icons/icon-search-button.png",
+      "name": "icon-search-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_053.png",
+      "file": "icons/icon-settings-button.png",
+      "name": "icon-settings-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_054.png",
+      "file": "icons/icon-refresh-button.png",
+      "name": "icon-refresh-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_055.png",
+      "file": "icons/icon-home-button.png",
+      "name": "icon-home-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_056.png",
+      "file": "icons/icon-arrow-left.png",
+      "name": "icon-arrow-left",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_057.png",
+      "file": "icons/icon-arrow-right.png",
+      "name": "icon-arrow-right",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_058.png",
+      "file": "icons/icon-add-button.png",
+      "name": "icon-add-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_059.png",
+      "file": "icons/icon-chart-button.png",
+      "name": "icon-chart-button",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_060.png",
+      "file": "rewards/token-gold-star.png",
+      "name": "token-gold-star",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_061.png",
+      "file": "rewards/token-green-target.png",
+      "name": "token-green-target",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_062.png",
+      "file": "rewards/token-blue-star.png",
+      "name": "token-blue-star",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_063.png",
+      "file": "rewards/token-purple-star.png",
+      "name": "token-purple-star",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_064.png",
+      "file": "rewards/token-flame-reward.png",
+      "name": "token-flame-reward",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_065.png",
+      "file": "rewards/chest-golden-reward.png",
+      "name": "chest-golden-reward",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_066.png",
+      "file": "widgets/banner-rank-blue.png",
+      "name": "banner-rank-blue",
+      "category": "widgets",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_067.png",
+      "file": "widgets/banner-blue-gold.png",
+      "name": "banner-blue-gold",
+      "category": "widgets",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_068.png",
+      "file": "rewards/chest-blue-paw.png",
+      "name": "chest-blue-paw",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_069.png",
+      "file": "decorations/effect-gold-star-orb.png",
+      "name": "effect-gold-star-orb",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_070.png",
+      "file": "decorations/effect-flame-gold.png",
+      "name": "effect-flame-gold",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_071.png",
+      "file": "decorations/crown-blue-gold.png",
+      "name": "crown-blue-gold",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_072.png",
+      "file": "decorations/gem-purple-crystal.png",
+      "name": "gem-purple-crystal",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_073.png",
+      "file": "decorations/feather-purple.png",
+      "name": "feather-purple",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_074.png",
+      "file": "rewards/scroll-tied-blue.png",
+      "name": "scroll-tied-blue",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_075.png",
+      "file": "rewards/orb-blue-gold.png",
+      "name": "orb-blue-gold",
+      "category": "rewards",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_076.png",
+      "file": "decorations/ornament-gold-wing.png",
+      "name": "ornament-gold-wing",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_077.png",
+      "file": "decorations/gem-blue-crystal.png",
+      "name": "gem-blue-crystal",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_078.png",
+      "file": "decorations/effect-purple-energy.png",
+      "name": "effect-purple-energy",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_079.png",
+      "file": "decorations/effect-blue-energy-ring.png",
+      "name": "effect-blue-energy-ring",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_080.png",
+      "file": "decorations/effect-blue-gold-trail.png",
+      "name": "effect-blue-gold-trail",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_081.png",
+      "file": "decorations/ornament-gold-feather.png",
+      "name": "ornament-gold-feather",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_082.png",
+      "file": "decorations/effect-cyan-star.png",
+      "name": "effect-cyan-star",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_083.png",
+      "file": "decorations/effect-purple-blue-ring.png",
+      "name": "effect-purple-blue-ring",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_084.png",
+      "file": "badges/badge-winged-blue-gem.png",
+      "name": "badge-winged-blue-gem",
+      "category": "badges",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_085.png",
+      "file": "decorations/effect-blue-sparkle.png",
+      "name": "effect-blue-sparkle",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_086.png",
+      "file": "decorations/effect-gold-shard.png",
+      "name": "effect-gold-shard",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_087.png",
+      "file": "decorations/crown-blue-small.png",
+      "name": "crown-blue-small",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_088.png",
+      "file": "decorations/ornament-gold-wings.png",
+      "name": "ornament-gold-wings",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_089.png",
+      "file": "decorations/effect-gold-sparkle.png",
+      "name": "effect-gold-sparkle",
+      "category": "decorations",
+      "format": "PNG",
+      "alpha_channel": true
+    },
+    {
+      "source": "asset_090.png",
+      "file": "icons/divider-blue-gem-line.png",
+      "name": "divider-blue-gem-line",
+      "category": "icons",
+      "format": "PNG",
+      "alpha_channel": true
+    }
+  ]
+}

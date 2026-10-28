@@ -8,6 +8,7 @@ import PublicOnlyRoute from './features/auth/PublicOnlyRoute';
 import LoginPage from './features/auth/LoginPage';
 import RegisterPage from './features/auth/RegisterPage';
 import MainLayout from './components/layout/MainLayout';
+import MapPage from './features/library/MapPage';
 import LibraryWorkspace from './features/library/LibraryWorkspace';
 import DeckDetailPage from './features/decks/DeckDetailPage';
 import LearnPage from './features/learn/LearnPage';
@@ -16,6 +17,7 @@ import TodayLearnPage from './features/studyplan/TodayLearnPage';
 import SrsSessionPage from './features/studyplan/SrsSessionPage';
 import AnalyticsPage from './features/analytics/AnalyticsPage';
 import WeakWordsPracticePage from './features/analytics/WeakWordsPracticePage';
+import ProfilePage from './features/profile/ProfilePage';
 import CreateStudyPlanModal from './features/studyplan/CreateStudyPlanModal';
 import AddDecksPreviewModal from './features/studyplan/AddDecksPreviewModal';
 import DailyGateReminder from './features/studyplan/DailyGateReminder';
@@ -127,10 +129,17 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   >
-                    <Route index element={<LibraryWorkspace />} />
+                    <Route index element={<MapPage />} />
+                    <Route path="map" element={<MapPage />} />
+                    <Route path="library" element={<LibraryWorkspace />} />
+                    <Route path="decks" element={<LibraryWorkspace />} />
                     <Route path="decks/:deckId/*" element={<DeckDetailPage />} />
                     <Route path="study-plan" element={<StudyPlanPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
+                    <Route path="profile/settings" element={<ProfilePage />} />
+                    <Route path="profile/security" element={<ProfilePage />} />
+                    <Route path="profile/levels" element={<ProfilePage />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

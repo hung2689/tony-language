@@ -574,6 +574,34 @@
   padding-left: 18px;
 }
 
+/* AI Corrected Card */
+.sentence-corrected-card {
+  padding: 14px;
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sentence-corrected-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.sentence-corrected-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #14532d;
+  margin: 0;
+  line-height: 1.5;
+}
+
 .sentence-native-card {
   padding: 14px;
   background: var(--color-bg-surface, #ffffff);
@@ -592,11 +620,44 @@
 }
 
 .sentence-native-title {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-secondary, #64748b);
+  color: #2563eb;
+}
+
+/* Context Tip Box */
+.sentence-context-tip-box {
+  padding: 12px 14px;
+  background: rgba(99, 102, 241, 0.06);
+  border-left: 3px solid #6366f1;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sentence-context-tip-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+.sentence-context-tip-text {
+  font-size: 13px;
+  color: var(--color-text-main, #1e293b);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sentence-col-text.is-corrected {
+  color: #166534;
+  font-weight: 600;
 }
 
 .sentence-audio-btn-medium {
@@ -983,6 +1044,40 @@
 
 [data-theme='dark'] .sentence-native-text {
   color: #93c5fd;
+}
+
+[data-theme='dark'] .sentence-native-title {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .sentence-corrected-card {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+[data-theme='dark'] .sentence-corrected-title {
+  color: #4ade80;
+}
+
+[data-theme='dark'] .sentence-corrected-text {
+  color: #bbf7d0;
+}
+
+[data-theme='dark'] .sentence-context-tip-box {
+  background: rgba(99, 102, 241, 0.15);
+  border-left-color: #818cf8;
+}
+
+[data-theme='dark'] .sentence-context-tip-title {
+  color: #a5b4fc;
+}
+
+[data-theme='dark'] .sentence-context-tip-text {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .sentence-col-text.is-corrected {
+  color: #4ade80;
 }
 
 [data-theme='dark'] .sentence-submit-btn,

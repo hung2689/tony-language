@@ -31,15 +31,15 @@ public class GeminiSentenceService {
 
     public GeminiSentenceService(
             @Value("${gemini.api.key:}") String apiKey,
-            @Value("${gemini.api.model:gemini-1.5-flash}") String model,
+            @Value("${gemini.api.model:gemini-flash-latest}") String model,
             @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models}") String baseUrl
     ) {
         this.apiKey = apiKey != null ? apiKey.trim() : "";
-        this.model = (model != null && !model.isBlank()) ? model.trim() : "gemini-1.5-flash";
+        this.model = (model != null && !model.isBlank()) ? model.trim() : "gemini-flash-lite-latest";
         this.baseUrl = (baseUrl != null && !baseUrl.isBlank()) ? baseUrl.trim() : "https://generativelanguage.googleapis.com/v1beta/models";
         this.objectMapper = new ObjectMapper();
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(12))
+                .connectTimeout(Duration.ofSeconds(15))
                 .build();
     }
 
@@ -72,19 +72,90 @@ public class GeminiSentenceService {
         return model;
     }
 
+    public record TestKeyResult(boolean valid, int statusCode, String message) {}
+
+    /**
+     * Validates a provided user Gemini API key with detailed diagnostic feedback.
+     */
+    public TestKeyResult testApiKeyDetails(String testKey) {
+        if (testKey == null || testKey.isBlank()) {
+            return new TestKeyResult(false, 400, "Vui lòng nhập API Key để kiểm tra.");
+        }
+
+        List<String> modelsToTry = new ArrayList<>();
+        if (!modelsToTry.contains("gemini-3.5-flash")) modelsToTry.add("gemini-3.5-flash");
+        if (!modelsToTry.contains("gemini-3.5-flash-lite")) modelsToTry.add("gemini-3.5-flash-lite");
+        if (!modelsToTry.contains(this.model)) modelsToTry.add(this.model);
+        if (!modelsToTry.contains("gemini-flash-latest")) modelsToTry.add("gemini-flash-latest");
+        if (!modelsToTry.contains("gemini-flash-lite-latest")) modelsToTry.add("gemini-flash-lite-latest");
+
+        int lastCode = 0;
+        String lastBody = "";
+
+        for (String m : modelsToTry) {
+            try {
+                String endpoint = String.format("%s/%s:generateContent?key=%s", baseUrl, m, testKey.trim());
+                Map<String, Object> textPart = Map.of("text", "Return JSON: {\"status\":\"OK\"}");
+                Map<String, Object> content = Map.of("parts", List.of(textPart));
+                Map<String, Object> requestPayload = Map.of("contents", List.of(content));
+                String requestBody = objectMapper.writeValueAsString(requestPayload);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(endpoint))
+                        .header("Content-Type", "application/json; charset=utf-8")
+                        .header("x-goog-api-key", testKey.trim())
+                        .timeout(Duration.ofSeconds(12))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                int code = response.statusCode();
+                lastCode = code;
+                lastBody = response.body() != null ? response.body() : "";
+
+                if (code == 200) {
+                    return new TestKeyResult(true, 200, "Kết nối thành công với Google Gemini (" + m + ")!");
+                }
+
+                // If 404, 503, or 429 quota on this model, try next supported model
+                if (code == 404 || code == 503 || code == 429) {
+                    log.info("Gemini testApiKey with model {} returned {}, trying next candidate...", m, code);
+                    continue;
+                }
+
+                // If auth error, return immediately
+                break;
+            } catch (Exception e) {
+                log.warn("Gemini testApiKey with model {} exception: {}", m, e.getMessage());
+            }
+        }
+
+        log.warn("Gemini testApiKey failed with HTTP {}: {}", lastCode, lastBody);
+
+        if (lastCode == 401) {
+            if (lastBody.contains("ACCESS_TOKEN_TYPE_UNSUPPORTED")) {
+                return new TestKeyResult(false, 401,
+                        "Google từ chối Key (401 - ACCESS_TOKEN_TYPE_UNSUPPORTED): Key này chưa được kích hoạt quyền Generative Language API hoặc bị giới hạn trong Google Cloud Console. Hãy vào Google AI Studio, chọn 'Create API key in new project' để được cấp quyền tự động.");
+            }
+            return new TestKeyResult(false, 401,
+                    "Google báo API Key không hợp lệ (401). Vui lòng kiểm tra lại key đã copy hoặc tạo key mới tại Google AI Studio.");
+        } else if (lastCode == 403) {
+            return new TestKeyResult(false, 403,
+                    "Google từ chối truy cập (403): Dự án Google Cloud của bạn chưa bật Generative Language API hoặc bị giới hạn IP/Domain.");
+        } else if (lastCode == 429) {
+            return new TestKeyResult(false, 429,
+                    "Hạn mức gọi Google Gemini bị tạm khóa do vượt quá quota (429 Too Many Requests). Vui lòng thử lại sau giây lát.");
+        } else {
+            return new TestKeyResult(false, lastCode != 0 ? lastCode : 500,
+                    "Google Gemini trả về mã lỗi HTTP " + lastCode + ". Vui lòng kiểm tra lại key.");
+        }
+    }
+
     /**
      * Validates a provided user Gemini API key with a fast ping.
      */
     public boolean testApiKey(String testKey) {
-        if (testKey == null || testKey.isBlank()) return false;
-        try {
-            String testPrompt = "Return a JSON object with key 'status' set to 'OK'.";
-            String res = callGeminiApi(testPrompt, testKey.trim());
-            return res != null && !res.isBlank();
-        } catch (Exception e) {
-            log.warn("Gemini testApiKey failed: {}", e.getMessage());
-            return false;
-        }
+        return testApiKeyDetails(testKey).valid();
     }
 
     public List<SentenceChallengeItemDto> generateChallenges(List<Vocabulary> vocabularies) {
@@ -115,12 +186,23 @@ public class GeminiSentenceService {
             }
 
             String prompt = """
-                    You are an expert bilingual English-Vietnamese language teacher.
-                    Generate creative, natural, and varied sentence translation challenges for an English learner based on these vocabulary items:
+                    You are an expert bilingual English-Vietnamese language coach who specializes in natural, everyday spoken English.
+                    Generate practical, natural, and conversational sentence translation challenges for an English learner based on these vocabulary items:
                     
                     %s
                     
-                    Create an engaging Vietnamese sentence for each vocabulary word that requires the user to translate it to English using the target word.
+                    CRITICAL GUIDELINES FOR THE SENTENCES:
+                    1. PRACTICAL, RELATABLE & USUAL (Đời thường, thông dụng, dễ áp dụng ngoài đời):
+                       - ABSOLUTELY DO NOT create stiff, robotic, textbook-like, or overly academic sentences (e.g. NEVER make sentences like 'Chúng ta cần chạy kỹ năng này để đạt được thành công').
+                       - Sentences must reflect real life situations: daily routines, casual chatting with friends/colleagues, family, dining, shopping, travel, casual feelings, or everyday tasks.
+                       - Use the target word in its most common, natural collocations.
+                         * For example with 'run': use everyday contexts like running in the morning ("Tôi thường chạy bộ 20 phút mỗi sáng"), running late ("Xin lỗi tôi đến trễ vì kẹt xe"), running a small shop/business ("Anh ấy mở và quản lý một quán cà phê nhỏ"), running out of something ("Chúng ta sắp hết sữa rồi"), etc.
+                         * For example with 'book': "Tôi cần đặt một bàn cho hai người vào tối nay."
+                       - Keep sentences concise, clear, and easy to relate to.
+                    2. NATURAL BILINGUAL TRANSLATION:
+                       - "vietnamesePrompt": Must sound like natural, fluent Vietnamese that an ordinary Vietnamese person speaks in real life.
+                       - "referenceEnglish": Natural native English sentence translating the prompt, correctly and idiomatically applying the target word.
+                       - "hint": A friendly, helpful tip in Vietnamese on how the word is commonly used in this context.
                     
                     Return a JSON array where each object has:
                     - "termId": (number, matching the input Term ID)
@@ -212,23 +294,46 @@ public class GeminiSentenceService {
 
         try {
             String prompt = """
-                    You are a strict yet encouraging bilingual native English and Vietnamese language instructor.
-                    Evaluate the English translation written by a learner:
+                    You are a friendly, highly skilled bilingual English-Vietnamese language coach.
+                    Your mission: Evaluate the learner's English sentence, fix their mistakes so the sentence is accurate and natural, and guide them on everyday native usage.
                     
-                    - Target Word to practice: "%s"
-                    - Vietnamese Prompt: "%s"
+                    - Target Word: "%s"
+                    - Vietnamese Prompt to translate: "%s"
                     - Learner's English Sentence: "%s"
-                    - Reference Native Translation: "%s"
+                    - Reference English: "%s"
                     
-                    Evaluate accurately and output a JSON object with:
-                    - "score": integer 0-100 (90-100: native-like & perfect grammar; 75-89: minor stylistic issues; 50-74: noticeable grammar or vocabulary mistakes; <50: severe errors or missing target word)
-                    - "passed": boolean (true if score >= 70, false otherwise)
-                    - "targetWordUsed": boolean (true if user correctly and appropriately applied the target word or its inflections)
-                    - "rating": string (one of: "EXCELLENT", "GOOD", "NEEDS_IMPROVEMENT", "INCORRECT")
-                    - "feedback": string in Vietnamese (clear, encouraging, 1-2 concise sentences explaining what was good and what should be improved)
-                    - "correctedSentence": string (the learner's sentence with grammar/typos fixed)
-                    - "nativeAlternative": string (the most natural phrasing an educated native speaker would say)
-                    - "grammarNotes": array of strings in Vietnamese (bullet points pointing out specific grammar/preposition/tense/spelling rules)
+                    CRITICAL EVALUATION REQUIREMENTS:
+                    1. SỬA LỖI TRỰC TIẾP (Corrected Sentence):
+                       - Carefully fix all spelling mistakes (e.g. 'achive' -> 'achieve', 'successsfull' -> 'successful' or 'success'), grammatical errors, tense, prepositions, articles, capitalization, and punctuation.
+                       - Keep the learner's sentence structure and intent, but rewrite it into 100%% grammatically correct English.
+                       - Put this improved version in "correctedSentence".
+                    2. GỢI Ý CÁCH NÓI TỰ NHIÊN, ĐỜI THƯỜNG (Native & Usual Alternative):
+                       - In "nativeAlternative", provide the most natural, idiomatic way a native speaker would express this idea in daily life (conversational, usual, practical, NOT overly formal or stiff).
+                    3. PHÂN TÍCH NGỮ PHÁP, CHÍNH TẢ & NGỮ CẢNH (Grammar Notes):
+                       - In "grammarNotes" (array of strings in Vietnamese), clearly point out:
+                         * Lỗi chính tả (Spelling): Chỉ rõ từ viết sai ➔ từ viết đúng (ví dụ: 'achive' ➔ 'achieve', 'successsfull' ➔ 'successful' hoặc 'success').
+                         * Lỗi ngữ pháp / từ loại: (ví dụ: sau động từ 'achieve' cần danh từ 'success', không dùng tính từ 'successful').
+                         * Lỗi ngữ cảnh & kết hợp từ (Collocation): Giải thích rõ ràng nếu kết hợp từ chưa tự nhiên (ví dụ: người bản xứ không dùng 'run a skill', mà dùng 'master/develop a skill'; từ 'run' thường dùng với 'run a business', 'run every morning', 'run a project'...).
+                    4. NHẬN XÉT TỔNG QUAN (Feedback):
+                       - In "feedback", write 1-2 friendly, encouraging sentences in Vietnamese summarizing their effort and the key takeaway.
+                    5. MẸO SỬ DỤNG ĐỜI THƯỜNG (Context Tip):
+                       - In "contextTip", give 1 practical tip in Vietnamese about how to use the target word naturally in everyday conversations.
+                    6. ĐIỂM SỐ (Score 0-100):
+                       - 90-100: Tự nhiên, đúng ngữ pháp và từ vựng hoàn hảo.
+                       - 75-89: Hiểu đúng ý, đúng từ mục tiêu, chỉ có lỗi nhỏ về phong cách hoặc ngữ pháp nhẹ.
+                       - 50-74: Đúng ý nhưng sai chính tả, sai từ loại hoặc dùng kết hợp từ chưa tự nhiên.
+                       - <50: Sai hoàn toàn cấu trúc hoặc không dùng từ mục tiêu.
+                    
+                    Return a JSON object with:
+                    - "score": integer (0-100)
+                    - "passed": boolean (score >= 70)
+                    - "targetWordUsed": boolean
+                    - "rating": string ("EXCELLENT", "GOOD", "NEEDS_IMPROVEMENT", "INCORRECT")
+                    - "feedback": string in Vietnamese
+                    - "correctedSentence": string (Learner's sentence with all typos & grammar fixed)
+                    - "nativeAlternative": string (Natural conversational English sentence)
+                    - "grammarNotes": array of strings in Vietnamese
+                    - "contextTip": string in Vietnamese (Practical tip for daily life usage)
                     """.formatted(
                     request.getTargetWord() != null ? request.getTargetWord() : "",
                     request.getVietnamesePrompt() != null ? request.getVietnamesePrompt() : "",
@@ -250,6 +355,7 @@ public class GeminiSentenceService {
             String feedback = root.has("feedback") ? root.get("feedback").asText() : "Đã hoàn thành đánh giá câu.";
             String corrected = root.has("correctedSentence") ? root.get("correctedSentence").asText() : request.getUserSentence();
             String nativeAlt = root.has("nativeAlternative") ? root.get("nativeAlternative").asText() : request.getReferenceEnglish();
+            String contextTip = root.has("contextTip") ? root.get("contextTip").asText() : null;
 
             List<String> grammarNotes = new ArrayList<>();
             if (root.has("grammarNotes") && root.get("grammarNotes").isArray()) {
@@ -266,7 +372,8 @@ public class GeminiSentenceService {
                     feedback,
                     corrected,
                     nativeAlt,
-                    grammarNotes
+                    grammarNotes,
+                    contextTip
             );
 
             log.info("Gemini successfully evaluated sentence with score: {}", score);
@@ -279,10 +386,32 @@ public class GeminiSentenceService {
     }
 
     /**
-     * Executes REST call to Gemini 1.5 Flash endpoint with structured JSON output configuration.
+     * Generic structured JSON generation helper using Gemini with candidate model fallbacks.
      */
-    private String callGeminiApi(String promptText, String effectiveApiKey) throws Exception {
-        String endpoint = String.format("%s/%s:generateContent?key=%s", baseUrl, model, effectiveApiKey);
+    public String generateContent(String promptText, String customApiKey) {
+        String activeKey = resolveApiKey(customApiKey);
+        if (activeKey == null || promptText == null || promptText.isBlank()) {
+            return null;
+        }
+        try {
+            return callGeminiApi(promptText, activeKey);
+        } catch (Exception e) {
+            log.warn("Gemini generateContent error: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Executes REST call to Gemini Flash endpoint with structured JSON output configuration.
+     * Automatically falls back to supported models if primary model is 404 or 503.
+     */
+    public String callGeminiApi(String promptText, String effectiveApiKey) throws Exception {
+        List<String> modelsToTry = new ArrayList<>();
+        if (!modelsToTry.contains("gemini-flash-lite-latest")) modelsToTry.add("gemini-flash-lite-latest");
+        if (!modelsToTry.contains("gemini-3.5-flash-lite")) modelsToTry.add("gemini-3.5-flash-lite");
+        if (!modelsToTry.contains("gemini-flash-latest")) modelsToTry.add("gemini-flash-latest");
+        if (!modelsToTry.contains(this.model)) modelsToTry.add(this.model);
+        if (!modelsToTry.contains("gemini-3.5-flash")) modelsToTry.add("gemini-3.5-flash");
 
         Map<String, Object> textPart = Map.of("text", promptText);
         Map<String, Object> content = Map.of("parts", List.of(textPart));
@@ -298,40 +427,51 @@ public class GeminiSentenceService {
 
         String requestBody = objectMapper.writeValueAsString(requestPayload);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
-                .header("Content-Type", "application/json; charset=utf-8")
-                .timeout(Duration.ofSeconds(15))
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
+        for (String m : modelsToTry) {
+            try {
+                String endpoint = String.format("%s/%s:generateContent?key=%s", baseUrl, m, effectiveApiKey);
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(endpoint))
+                        .header("Content-Type", "application/json; charset=utf-8")
+                        .header("x-goog-api-key", effectiveApiKey)
+                        .timeout(Duration.ofSeconds(30))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .build();
 
-        if (response.statusCode() != 200) {
-            log.warn("Gemini API returned status {}: {}", response.statusCode(), response.body());
-            return null;
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() != 200) {
+                    log.warn("Gemini API ({}) returned status {}: {}", m, response.statusCode(), response.body());
+                    continue; // Try next model candidate
+                }
+
+                JsonNode responseNode = objectMapper.readTree(response.body());
+                JsonNode candidates = responseNode.get("candidates");
+                if (candidates == null || !candidates.isArray() || candidates.isEmpty()) {
+                    log.warn("Gemini API ({}) returned empty candidates: {}", m, response.body());
+                    continue;
+                }
+
+                JsonNode firstCandidate = candidates.get(0);
+                JsonNode contentNode = firstCandidate.get("content");
+                if (contentNode == null || !contentNode.has("parts")) {
+                    continue;
+                }
+
+                JsonNode parts = contentNode.get("parts");
+                if (!parts.isArray() || parts.isEmpty()) {
+                    continue;
+                }
+
+                String rawText = parts.get(0).get("text").asText();
+                return cleanJsonOutput(rawText);
+            } catch (Exception modelErr) {
+                log.warn("Gemini candidate {} attempt failed: {}. Trying next candidate...", m, modelErr.getMessage());
+            }
         }
 
-        JsonNode responseNode = objectMapper.readTree(response.body());
-        JsonNode candidates = responseNode.get("candidates");
-        if (candidates == null || !candidates.isArray() || candidates.isEmpty()) {
-            log.warn("Gemini API returned empty candidates: {}", response.body());
-            return null;
-        }
-
-        JsonNode firstCandidate = candidates.get(0);
-        JsonNode contentNode = firstCandidate.get("content");
-        if (contentNode == null || !contentNode.has("parts")) {
-            return null;
-        }
-
-        JsonNode parts = contentNode.get("parts");
-        if (!parts.isArray() || parts.isEmpty()) {
-            return null;
-        }
-
-        String rawText = parts.get(0).get("text").asText();
-        return cleanJsonOutput(rawText);
+        return null;
     }
 
     private String cleanJsonOutput(String rawText) {

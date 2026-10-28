@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X, Check, BookOpen } from 'lucide-react';
 import { deckService } from '../../services/deckService';
 import { studyPlanService } from '../../services/studyPlanService';
+import Ripple from '../../components/common/Ripple';
 import { useStudyPlan } from './StudyPlanContext';
 import './StudyPlan.css';
 
@@ -209,8 +210,9 @@ export default function CreateStudyPlanModal({ isOpen, onClose, initialDeckId = 
               </div>
 
               {loadingDecks ? (
-                <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
-                  Đang tải danh sách bộ từ...
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <Ripple size={36} color="#3b82f6" />
+                  <span>Đang tải danh sách bộ từ...</span>
                 </div>
               ) : decks.length === 0 ? (
                 <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
@@ -414,7 +416,14 @@ export default function CreateStudyPlanModal({ isOpen, onClose, initialDeckId = 
                 opacity: submitting || selectedDeckIds.length === 0 ? 0.7 : 1,
               }}
             >
-              {submitting ? 'Đang tạo...' : 'Lưu lộ trình'}
+              {submitting ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <Ripple size={16} color="#ffffff" />
+                  <span>Đang tạo...</span>
+                </span>
+              ) : (
+                'Lưu lộ trình'
+              )}
             </button>
           </div>
         </form>
