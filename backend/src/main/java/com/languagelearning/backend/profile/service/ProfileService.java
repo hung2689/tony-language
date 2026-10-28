@@ -212,20 +212,11 @@ public class ProfileService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseGet(() -> new UserProfile(user, user.getUsername()));
 
-        // Delete old avatar file from disk if present
-        deleteOldAvatarFile(profile.getAvatarUrl());
-
-        // Generate unguessable random server filename
-        String filename = "av_" + userId + "_" + UUID.randomUUID().toString() + ".png";
-        Path targetPath = getStoragePath().resolve(filename);
-
-        try {
-            Files.write(targetPath, sanitizedPng, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException("Lỗi lưu trữ ảnh avatar", e);
-        }
-
-        String storedUrl = "/api/profile/avatar/" + filename;
+        // Store avatar bytes in database (Neon-safe, no ephemeral disk dependency)
+        profile.setAvatarData(sanitizedPng);
+        profile.setAvatarMime("image/png");
+        // URL pattern: /api/profile/avatar/<userId> — served directly from DB bytes
+        String storedUrl = "/api/profile/avatar/" + userId;
         profile.setAvatarUrl(storedUrl);
         userProfileRepository.save(profile);
 
@@ -237,31 +228,35 @@ public class ProfileService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElse(null);
 
-        if (profile != null && profile.getAvatarUrl() != null) {
-            deleteOldAvatarFile(profile.getAvatarUrl());
+        if (profile != null) {
+            profile.setAvatarData(null);
+            profile.setAvatarMime(null);
             profile.setAvatarUrl(null);
             userProfileRepository.save(profile);
         }
     }
 
     public ResourceFile loadAvatarFile(String filename) {
-        if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+        // filename is now the userId for DB-stored avatars
+        Long userId;
+        try {
+            // Support both old disk path "av_<userId>_<uuid>.png" and new DB path "<userId>"
+            String idStr = filename.replaceAll("\\.png$", "").replaceAll("^av_(\\d+)_.*$", "$1");
+            userId = Long.parseLong(idStr);
+        } catch (NumberFormatException e) {
             throw new ValidationException("INVALID_FILENAME", "Tên tệp không hợp lệ");
         }
 
-        Path file = getStoragePath().resolve(filename).normalize();
-        if (!file.startsWith(getStoragePath()) || !Files.exists(file) || !Files.isRegularFile(file)) {
-            throw new ResourceNotFoundException("AVATAR_NOT_FOUND", "Không tìm thấy ảnh đại diện");
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("AVATAR_NOT_FOUND", "Không tìm thấy ảnh đại diện"));
+
+        byte[] data = profile.getAvatarData();
+        if (data == null || data.length == 0) {
+            throw new ResourceNotFoundException("AVATAR_NOT_FOUND", "Người dùng chưa có ảnh đại diện");
         }
 
-        try {
-            byte[] data = Files.readAllBytes(file);
-            String contentType = Files.probeContentType(file);
-            if (contentType == null) contentType = "image/png";
-            return new ResourceFile(data, contentType);
-        } catch (IOException e) {
-            throw new RuntimeException("Lỗi đọc tệp ảnh đại diện", e);
-        }
+        String contentType = profile.getAvatarMime() != null ? profile.getAvatarMime() : "image/png";
+        return new ResourceFile(data, contentType);
     }
 
     @Transactional

@@ -32,7 +32,7 @@ const TABS = [
   { id: 'levels', path: '/profile/levels', label: 'Cấp bậc', icon: Award },
 ];
 
-const DEFAULT_AVATAR = '/assets/profile/wanted-default-avatar.png';
+const DEFAULT_AVATAR = '/assets/profile/default-avatar.png';
 const DEFAULT_BIO = 'Small steps every day, big dreams one day.';
 
 function validateDisplayName(name) {

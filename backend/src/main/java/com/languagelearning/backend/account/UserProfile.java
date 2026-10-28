@@ -21,6 +21,13 @@ public class UserProfile {
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
+    @Column(name = "avatar_data", columnDefinition = "BYTEA")
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] avatarData;
+
+    @Column(name = "avatar_mime", length = 20)
+    private String avatarMime;
+
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
@@ -84,6 +91,22 @@ public class UserProfile {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public byte[] getAvatarData() {
+        return avatarData;
+    }
+
+    public void setAvatarData(byte[] avatarData) {
+        this.avatarData = avatarData;
+    }
+
+    public String getAvatarMime() {
+        return avatarMime;
+    }
+
+    public void setAvatarMime(String avatarMime) {
+        this.avatarMime = avatarMime;
     }
 
     public String getBio() {

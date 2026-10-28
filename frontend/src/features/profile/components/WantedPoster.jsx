@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DEFAULT_WANTED_AVATAR = '/assets/profile/wanted-default-avatar.png';
+const DEFAULT_WANTED_AVATAR = '/assets/profile/default-avatar.png';
 
 export function formatBounty(bountyValue) {
   if (bountyValue === null || bountyValue === undefined || bountyValue === '') {
