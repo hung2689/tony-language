@@ -15,7 +15,9 @@ screenshots/
 uploads/
 **/uploads/
 **/video/
-**/wallpapers/*
+uploads/wallpapers/*
+**/uploads/wallpapers/*
+!frontend/src/features/wallpapers/**
 !frontend/public/wallpapers/*
 Duy
 Hung/
