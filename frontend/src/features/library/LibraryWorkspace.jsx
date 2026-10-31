@@ -30,6 +30,7 @@ import {
   ChevronDown,
   ScrollText,
   Compass,
+  Calendar,
 } from 'lucide-react';
 import ExplorerSidebar from './components/ExplorerSidebar';
 import { MAP_DESTINATIONS, LEXICON_ASSETS } from './lexiconMapData';
@@ -514,6 +515,16 @@ export default function LibraryWorkspace() {
               >
                 <Plus size={15} />
                 <span>Tạo bộ thẻ mới</span>
+              </button>
+
+              <button
+                type="button"
+                className="journal-srs-forecast-btn"
+                onClick={handleQuickSRSClick}
+                title="Xem dự báo lặp lại ngắt quãng của toàn bộ lộ trình"
+              >
+                <Calendar size={15} />
+                <span>Lịch ôn tập (SRS)</span>
               </button>
 
               <div className="rpg-sort-pill-wrap">
