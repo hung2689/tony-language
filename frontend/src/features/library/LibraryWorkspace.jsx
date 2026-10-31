@@ -43,11 +43,11 @@ export default function LibraryWorkspace() {
   const outletContext = useOutletContext() || {};
   const globalSearchQuery = outletContext.searchQuery ?? '';
 
-  const [folders, setFolders] = useState([]);
-  const [decks, setDecks] = useState([]);
+  const [folders, setFolders] = useState(() => folderService.getCachedFolders() || []);
+  const [decks, setDecks] = useState(() => deckService.getCachedDecks() || []);
   const [overview, setOverview] = useState(outletContext.overview || null);
   const [userProfile, setUserProfile] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => !deckService.getCachedDecks());
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
   const ledgerSectionRef = useRef(null);
@@ -190,34 +190,39 @@ export default function LibraryWorkspace() {
     };
   }, []);
 
-  // Load folders
-  const loadFolders = useCallback(async () => {
+  // Load folders with Stale-While-Revalidate (no layout flicker if cached)
+  const loadFolders = useCallback(async (options = {}) => {
     try {
-      const data = await folderService.getFolders();
+      const data = await folderService.getFolders(options);
       setFolders(data || []);
     } catch (err) {
       showToast(err.message || 'Không thể tải danh sách thư mục', 'error');
     }
   }, [showToast]);
 
-  // Load decks according to folder filter
-  const loadDecks = useCallback(async () => {
-    setLoading(true);
+  // Load decks with Stale-While-Revalidate (no white screen flash)
+  const loadDecks = useCallback(async (options = {}) => {
+    const params = {};
+    if (activeCategory === 'uncategorized') {
+      params.uncategorized = true;
+    } else if (selectedFolderId !== null) {
+      params.folderId = selectedFolderId;
+    }
+
+    const cached = deckService.getCachedDecks(params);
+    if (!cached && decks.length === 0) {
+      setLoading(true);
+    }
+
     try {
-      const params = {};
-      if (activeCategory === 'uncategorized') {
-        params.uncategorized = true;
-      } else if (selectedFolderId !== null) {
-        params.folderId = selectedFolderId;
-      }
-      const data = await deckService.getDecks(params);
+      const data = await deckService.getDecks(params, options);
       setDecks(data || []);
     } catch (err) {
       showToast(err.message || 'Không thể tải danh sách bộ từ', 'error');
     } finally {
       setLoading(false);
     }
-  }, [selectedFolderId, activeCategory, showToast]);
+  }, [selectedFolderId, activeCategory, decks.length, showToast]);
 
   useEffect(() => {
     loadFolders();
@@ -290,15 +295,21 @@ export default function LibraryWorkspace() {
   const handleCreateOrEditFolder = async (name) => {
     try {
       if (folderToEdit) {
-        await folderService.renameFolder(folderToEdit.id, name);
+        const updated = await folderService.renameFolder(folderToEdit.id, name);
         showToast('Đổi tên thư mục thành công');
+        setFolders((prev) =>
+          prev.map((f) => (f.id === folderToEdit.id ? { ...f, name: updated.name } : f))
+        );
       } else {
-        await folderService.createFolder(name);
+        const created = await folderService.createFolder(name);
         showToast('Tạo thư mục thành công');
+        if (created) {
+          setFolders((prev) => [created, ...prev]);
+        }
       }
       setIsCreateFolderOpen(false);
       setFolderToEdit(null);
-      await loadFolders();
+      loadFolders({ skipCache: true });
       outletContext.refreshFolders?.();
     } catch (err) {
       showToast(err.message || 'Lỗi xử lý thư mục', 'error');
@@ -309,7 +320,10 @@ export default function LibraryWorkspace() {
     try {
       const newFolder = await folderService.createFolder(name);
       showToast('Đã tạo thư mục mới');
-      await loadFolders();
+      if (newFolder) {
+        setFolders((prev) => [newFolder, ...prev]);
+      }
+      loadFolders({ skipCache: true });
       outletContext.refreshFolders?.();
       return newFolder;
     } catch (err) {
@@ -320,16 +334,27 @@ export default function LibraryWorkspace() {
 
   const handleDeleteFolderConfirm = async (folderId, mode) => {
     try {
-      await folderService.deleteFolder(folderId, mode);
-      showToast('Xóa thư mục thành công');
+      // Optimistic update
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
+      if (mode === 'deleteDecks') {
+        setDecks((prev) => prev.filter((d) => d.folderId !== folderId));
+      } else {
+        setDecks((prev) =>
+          prev.map((d) => (d.folderId === folderId ? { ...d, folderId: null, folderName: null } : d))
+        );
+      }
       setFolderToDelete(null);
       if (selectedFolderId === folderId) {
         setSearchParams({});
       }
-      await Promise.all([loadFolders(), loadDecks()]);
+
+      await folderService.deleteFolder(folderId, mode);
+      showToast('Xóa thư mục thành công');
+      await Promise.all([loadFolders({ skipCache: true }), loadDecks({ skipCache: true })]);
       outletContext.refreshFolders?.();
     } catch (err) {
       showToast(err.message || 'Lỗi khi xóa thư mục', 'error');
+      await Promise.all([loadFolders({ skipCache: true }), loadDecks({ skipCache: true })]);
     }
   };
 
@@ -354,15 +379,48 @@ export default function LibraryWorkspace() {
     setIsSavingDeck(true);
     try {
       if (deckToEdit) {
-        await deckService.updateDeck(deckToEdit.id, deckData);
+        const updated = await deckService.updateDeck(deckToEdit.id, deckData);
         showToast('Cập nhật bộ từ vựng thành công');
+        if (updated) {
+          setDecks((prev) =>
+            prev.map((d) =>
+              d.id === deckToEdit.id
+                ? {
+                    ...d,
+                    name: updated.name,
+                    description: updated.description,
+                    folderId: updated.folderId,
+                    folderName: updated.folderName,
+                    cardCount: updated.cards?.length ?? d.cardCount,
+                    updatedAt: updated.updatedAt,
+                  }
+                : d
+            )
+          );
+        }
       } else {
-        await deckService.createDeck(deckData);
+        const created = await deckService.createDeck(deckData);
         showToast('Tạo bộ từ vựng thành công');
+        if (created) {
+          setDecks((prev) => [
+            {
+              id: created.id,
+              name: created.name,
+              description: created.description,
+              folderId: created.folderId,
+              folderName: created.folderName,
+              cardCount: created.cards?.length ?? 0,
+              createdAt: created.createdAt,
+              updatedAt: created.updatedAt,
+            },
+            ...prev,
+          ]);
+        }
       }
       setIsDeckFormOpen(false);
       setDeckToEdit(null);
-      await Promise.all([loadFolders(), loadDecks()]);
+      // Revalidate in background without blocking UI
+      Promise.all([loadFolders({ skipCache: true }), loadDecks({ skipCache: true })]);
     } catch (err) {
       showToast(err.message || 'Lỗi khi lưu bộ từ vựng', 'error');
     } finally {
@@ -371,13 +429,28 @@ export default function LibraryWorkspace() {
   };
 
   const handleMoveDeckConfirm = async (deckId, targetFolderId) => {
+    const targetFolder = folders.find((f) => f.id === targetFolderId);
+    // Optimistic UI update
+    setDecks((prev) =>
+      prev.map((d) =>
+        d.id === deckId
+          ? {
+              ...d,
+              folderId: targetFolderId,
+              folderName: targetFolder ? targetFolder.name : null,
+            }
+          : d
+      )
+    );
+    setDeckToMove(null);
+
     try {
       await deckService.moveDeck(deckId, targetFolderId);
       showToast('Chuyển thư mục thành công');
-      setDeckToMove(null);
-      await Promise.all([loadFolders(), loadDecks()]);
+      Promise.all([loadFolders({ skipCache: true }), loadDecks({ skipCache: true })]);
     } catch (err) {
       showToast(err.message || 'Lỗi khi chuyển thư mục', 'error');
+      Promise.all([loadFolders({ skipCache: true }), loadDecks({ skipCache: true })]);
     }
   };
 
@@ -393,7 +466,7 @@ export default function LibraryWorkspace() {
     try {
       await deckService.deleteDeck(targetDeck.id);
       showToast('Đã xóa bộ từ vựng');
-      await Promise.all([loadFolders(), loadDecks()]);
+      Promise.all([loadFolders({ skipCache: true }), loadDecks({ skipCache: true })]);
     } catch (err) {
       setDecks(previousDecks);
       showToast(err.message || 'Lỗi khi xóa bộ từ vựng', 'error');
