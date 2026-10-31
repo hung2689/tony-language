@@ -1,32 +1,183 @@
 /* ==========================================================================
-   Analytics & Study Insights Dashboard Styles (Monochrome with Accents)
+   Analytics & Study Insights Dashboard - Vintage Pirate Cartography System
    ========================================================================== */
 
+/* 0. Scoped Body Override: Hide Modern Wallpaper & Floating Dock */
+body.analytics-vintage-active .app-wallpaper-layer,
+body.analytics-vintage-active .app-floating-dock-wrapper,
+body.analytics-vintage-active .magic-dock-wrapper,
+body.analytics-vintage-active .mobile-bottom-nav {
+  display: none !important;
+}
+
+body.analytics-vintage-active {
+  background-color: #F5E9CE !important;
+  background-image:
+    radial-gradient(ellipse at 18% 12%, rgba(255, 249, 235, 0.78) 0%, transparent 55%),
+    radial-gradient(ellipse at 82% 88%, rgba(196, 161, 112, 0.28) 0%, transparent 60%),
+    linear-gradient(180deg, #F5E9CE 0%, #EFE0BE 50%, #EAD8B3 100%) !important;
+  background-attachment: fixed !important;
+  color: #3B2B1C !important;
+  overflow-x: hidden !important;
+}
+
+body.analytics-vintage-active .app-shell-layout,
+body.analytics-vintage-active .app-main-column,
+body.analytics-vintage-active .app-content-body {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 .analytics-page {
-  max-width: 1400px;
+  max-width: 1360px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 36px 110px 36px;
+  padding: 24px 32px 48px 32px;
+  box-sizing: border-box;
+}
+
+/* Loading & Error States */
+.analytics-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 16px;
+  color: #6B4C26;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.analytics-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(180deg, #FDF4E9 0%, #FAECE0 100%);
+  border: 1.5px solid #C47856;
+  border-radius: 12px;
+  padding: 12px 18px;
+  color: #8A2D1B;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(138, 45, 27, 0.08);
+}
+
+.btn-analytics-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFFDF8;
+  border: 1px solid #C47856;
+  color: #8A2D1B;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 0.825rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-analytics-retry:hover {
+  background: #8A2D1B;
+  color: #FFFDF8;
 }
 
 /* ==========================================================================
-   1. Hero Learner Tier Banner (matching reference screenshot)
+   1. Header Plaque (Antique Parchment & Brass Double Border)
+   ========================================================================== */
+.analytics-header-plaque {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.35rem;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, rgba(253, 248, 237, 0.98) 0%, rgba(245, 232, 205, 0.98) 100%);
+  border: 2px solid #C4A97D;
+  border-radius: 16px;
+  padding: 18px 24px;
+  box-shadow: 0 10px 30px rgba(36, 24, 12, 0.14), 0 2px 8px rgba(36, 24, 12, 0.06);
+  position: relative;
+}
+
+.analytics-header-title-group h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  margin: 0;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.analytics-header-icon {
+  color: #8E5A23;
+  flex-shrink: 0;
+}
+
+.analytics-header-subtitle {
+  font-size: 0.88rem;
+  color: #6E5336;
+  margin: 5px 0 0 0;
+  font-weight: 500;
+}
+
+.analytics-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-analytics-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid #C4A97D;
+  background: linear-gradient(180deg, #FFFDF8 0%, #F5E9CE 100%);
+  color: #5A3A1A;
+  box-shadow: 0 2px 6px rgba(45, 30, 18, 0.08);
+}
+
+.btn-analytics-nav:hover {
+  background: linear-gradient(180deg, #F5E9CE 0%, #EBD5A9 100%);
+  border-color: #9C7844;
+  color: #2C1D11;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 30, 18, 0.12);
+}
+
+/* ==========================================================================
+   2. Hero Learner Tier Banner (Antique Leather Logbook & Brass Accents)
    ========================================================================== */
 .analytics-hero-banner {
   width: 100%;
-  min-height: 105px;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #e0f2fe 0%, #e0e7ff 40%, #ede9fe 75%, #f1f5f9 100%);
-  border: 1px solid rgba(199, 210, 254, 0.7);
-  padding: 1.25rem 2rem;
-  margin-bottom: 20px;
+  min-height: 110px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2D1E16 0%, #3B2A1E 55%, #251710 100%);
+  border: 2px solid #C49856;
+  padding: 1.35rem 2rem;
+  margin-bottom: 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 10px 30px rgba(26, 15, 8, 0.32), inset 0 1px 0 rgba(255, 220, 150, 0.18);
+  box-sizing: border-box;
 }
 
 .hero-banner-art {
@@ -36,7 +187,7 @@
   width: 55%;
   height: 100%;
   pointer-events: none;
-  opacity: 0.85;
+  opacity: 0.45;
   overflow: hidden;
   z-index: 1;
 }
@@ -50,73 +201,72 @@
 .hero-banner-left {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1.35rem;
   position: relative;
   z-index: 2;
 }
 
 .hero-tier-squircle {
-  width: 54px;
-  height: 54px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #09090b 0%, #1e1b4b 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  width: 56px;
+  height: 56px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #4A2E19 0%, #1A0F0A 100%);
+  border: 2px solid #D4A857;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.65rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.hero-diamond-emoji {
-  line-height: 1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 .hero-tier-details {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .hero-tier-title-row {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .hero-tier-pill {
-  background-color: #6366f1;
-  color: #ffffff;
+  background: linear-gradient(180deg, #D4A857 0%, #B88938 100%);
+  color: #1A0F0A;
   font-size: 0.725rem;
   font-weight: 800;
-  padding: 0.2rem 0.65rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 9999px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .hero-tier-heading {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 800;
-  color: #09090b;
-  letter-spacing: -0.01em;
+  color: #FDF8ED;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .hero-tier-sub {
   margin: 0;
   font-size: 0.85rem;
-  color: #475569;
+  color: #E2CEB1;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-weight: 500;
+  gap: 0.45rem;
+  font-weight: 600;
 }
 
 .hero-sparkle-icon {
-  color: #f59e0b;
+  color: #F59E0B;
   flex-shrink: 0;
 }
 
@@ -127,28 +277,34 @@
 }
 
 .hero-streak-pill {
-  background: #18181b;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 0.6rem 1.15rem;
+  background: linear-gradient(135deg, #3A2314 0%, #1E120A 100%);
+  color: #FDF8ED;
+  border: 1.5px solid #C49856;
+  border-radius: 14px;
+  padding: 0.7rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  gap: 0.85rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .hero-streak-pill:hover {
-  background: #27272a;
-  transform: translateY(-1px);
+  border-color: #E6BC73;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
 }
 
 .hero-streak-flame {
-  color: #f97316;
+  color: #F59E0B;
   flex-shrink: 0;
   animation: flame-flicker 2s infinite ease-in-out;
+}
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4)); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.75)); }
 }
 
 .hero-streak-text {
@@ -158,71 +314,75 @@
 }
 
 .hero-streak-num {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
   line-height: 1;
-  color: #ffffff;
+  color: #FFFDF8;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
 }
 
 .hero-streak-label {
   font-size: 0.65rem;
-  font-weight: 700;
-  color: #fdba74;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
+  font-weight: 800;
+  color: #D4A857;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
 }
 
 .hero-streak-chevron {
-  color: #a1a1aa;
+  color: #C49856;
 }
 
 /* ==========================================================================
-   2. Achievements Section (Huy hiệu thành tích 4/6 - 3 columns x 2 rows)
+   3. Achievements Section (Huy hiệu thành tích 4/6)
    ========================================================================== */
 .achievements-card-container {
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: linear-gradient(180deg, rgba(253, 248, 237, 0.98) 0%, rgba(246, 234, 210, 0.98) 100%);
+  border: 2px solid #C4A97D;
+  border-radius: 16px;
+  padding: 1.35rem 1.65rem;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 24px rgba(45, 30, 18, 0.12), 0 2px 6px rgba(45, 30, 18, 0.05);
 }
 
 .achievements-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
 }
 
 .achievements-card-title {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #09090b;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  letter-spacing: 0.01em;
 }
 
 .achievements-trophy-icon {
-  color: #2563eb;
+  color: #C49856;
 }
 
 .achievements-view-all-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: #7B4A12;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  transition: opacity 0.15s ease;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
 }
 
 .achievements-view-all-btn:hover {
-  opacity: 0.8;
+  color: #2C1D11;
+  transform: translateX(2px);
 }
 
 .achievements-cards-grid {
@@ -237,15 +397,17 @@
   gap: 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
-  transition: all 0.2s ease;
+  border: 1.5px solid #D9C29E;
+  background-color: #FFFDF8;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+  box-shadow: 0 2px 8px rgba(45, 30, 18, 0.05);
 }
 
 .achievement-tile:hover {
+  border-color: #B38644;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 18px rgba(45, 30, 18, 0.12);
 }
 
 .achievement-tile-icon-circle {
@@ -257,6 +419,7 @@
   justify-content: center;
   font-size: 1.35rem;
   flex-shrink: 0;
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .achievement-tile-content {
@@ -266,9 +429,10 @@
 
 .achievement-tile-name {
   margin: 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -277,7 +441,7 @@
 .achievement-tile-desc {
   margin: 2px 0 6px;
   font-size: 0.775rem;
-  color: #64748b;
+  color: #72573B;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -294,13 +458,15 @@
 }
 
 .achievement-status-tag.is-unlocked {
-  background-color: #dcfce7;
-  color: #15803d;
+  background-color: #E2EED8;
+  color: #244E1F;
+  border: 1px solid #9EC394;
 }
 
 .achievement-status-tag.is-pill {
-  background-color: #f1f5f9;
-  color: #64748b;
+  background-color: #EFE4D0;
+  color: #6E5336;
+  border: 1px solid #D4C0A2;
   font-weight: 600;
 }
 
@@ -313,13 +479,13 @@
 
 .achievement-bar-label {
   font-size: 0.7rem;
-  font-weight: 600;
-  color: #475569;
+  font-weight: 700;
+  color: #72573B;
 }
 
 .achievement-bar-track {
-  height: 5px;
-  background-color: #e2e8f0;
+  height: 6px;
+  background-color: #E6D7BC;
   border-radius: 9999px;
   overflow: hidden;
   width: 100%;
@@ -327,34 +493,34 @@
 
 .achievement-bar-fill {
   height: 100%;
-  background-color: #2563eb;
+  background: linear-gradient(90deg, #C49856 0%, #9C7844 100%);
   border-radius: 9999px;
   transition: width 0.4s ease;
 }
 
 .achievement-tile-arrow {
-  color: #94a3b8;
+  color: #B38644;
   flex-shrink: 0;
 }
 
 /* ==========================================================================
-   3. Two-Column Side-by-Side Section (Heatmap & SM-2 Retention)
+   4. Two-Column Side-by-Side Section (Heatmap & SM-2 Retention)
    ========================================================================== */
 .analytics-two-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: stretch;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .analytics-section {
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: linear-gradient(180deg, rgba(253, 248, 237, 0.98) 0%, rgba(246, 234, 210, 0.98) 100%);
+  border: 2px solid #C4A97D;
+  border-radius: 16px;
+  padding: 1.35rem 1.65rem;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 24px rgba(45, 30, 18, 0.12), 0 2px 6px rgba(45, 30, 18, 0.05);
   display: flex;
   flex-direction: column;
 }
@@ -362,28 +528,70 @@
 .analytics-two-columns .analytics-section {
   margin-bottom: 0;
   height: 100%;
+  box-sizing: border-box;
 }
 
 .analytics-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
 .analytics-section-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #09090b;
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  letter-spacing: 0.01em;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 /* Heatmap specific styling in Left Column */
+.heatmap-year-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EFE2C6;
+  border: 1.5px solid #C4A97D;
+  border-radius: 8px;
+  padding: 2px 6px;
+}
+
+.heatmap-year-btn {
+  background: transparent;
+  border: none;
+  color: #5A3A1A;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.heatmap-year-btn:hover:not(:disabled) {
+  background: #D9C29E;
+}
+
+.heatmap-year-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.heatmap-year-display {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #2C1D11;
+  padding: 0 4px;
+}
+
 .heatmap-container {
   overflow-x: auto;
   padding-bottom: 0.25rem;
@@ -399,14 +607,15 @@
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   font-size: 0.725rem;
-  color: #64748b;
-  margin-bottom: 0.4rem;
+  font-weight: 700;
+  color: #72573B;
+  margin-bottom: 0.45rem;
   padding-left: 1.6rem;
 }
 
 .heatmap-body {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .heatmap-day-labels {
@@ -414,7 +623,8 @@
   flex-direction: column;
   justify-content: space-between;
   font-size: 0.675rem;
-  color: #94a3b8;
+  font-weight: 700;
+  color: #8C6D4A;
   padding: 1px 0;
   width: 1.4rem;
   flex-shrink: 0;
@@ -423,77 +633,139 @@
 .heatmap-weeks-grid {
   display: grid;
   grid-template-columns: repeat(53, 1fr);
-  gap: 2px;
+  gap: 2.5px;
   flex: 1;
 }
 
 .heatmap-week-col {
   display: grid;
   grid-template-rows: repeat(7, 1fr);
-  gap: 2px;
+  gap: 2.5px;
 }
 
 .heatmap-cell {
   width: 8.5px;
   height: 8.5px;
   border-radius: 2px;
-  background-color: #f1f5f9;
+  background-color: #E8DCBE;
+  border: 1px solid rgba(160, 130, 85, 0.25);
   position: relative;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, outline 0.1s ease;
+  box-sizing: border-box;
 }
 
 .heatmap-cell:hover {
-  transform: scale(1.35);
-  outline: 1.5px solid #18181b;
+  transform: scale(1.4);
+  outline: 2px solid #5A3A1A;
   z-index: 10;
 }
 
+/* Antique Jade / Explorer Emerald Palette */
 .heatmap-cell.level-0 {
-  background-color: #f1f5f9;
+  background-color: #E8DCBE;
 }
 
 .heatmap-cell.level-1 {
-  background-color: #d1fae5;
+  background-color: #BDD9B8;
+  border-color: #9FC499;
 }
 
 .heatmap-cell.level-2 {
-  background-color: #6ee7b7;
+  background-color: #7FA875;
+  border-color: #648E5A;
 }
 
 .heatmap-cell.level-3 {
-  background-color: #10b981;
+  background-color: #466E3A;
+  border-color: #35562C;
 }
 
 .heatmap-cell.level-4 {
-  background-color: #047857;
+  background-color: #26491C;
+  border-color: #1A3413;
 }
 
 .heatmap-legend {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.35rem;
+  gap: 0.4rem;
   font-size: 0.725rem;
-  color: #64748b;
-  margin-top: 1rem;
+  font-weight: 700;
+  color: #72573B;
+  margin-top: 1.15rem;
 }
 
 .legend-swatch {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 2px;
+  border: 1px solid rgba(160, 130, 85, 0.3);
 }
 
-/* Retention Distribution specific styling in Right Column */
+.legend-swatch.level-0 {
+  background-color: #E8DCBE;
+}
+
+.legend-swatch.level-1 {
+  background-color: #BDD9B8;
+}
+
+.legend-swatch.level-2 {
+  background-color: #7FA875;
+}
+
+.legend-swatch.level-3 {
+  background-color: #466E3A;
+}
+
+.legend-swatch.level-4 {
+  background-color: #26491C;
+}
+
+.heatmap-vintage-tooltip {
+  background: #2D1E16;
+  border: 1.5px solid #C49856;
+  border-radius: 8px;
+  padding: 6px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+}
+
+.heatmap-vintage-tooltip .tooltip-date {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #D4A857;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  margin-bottom: 2px;
+}
+
+.heatmap-vintage-tooltip .tooltip-details {
+  font-size: 0.75rem;
+  color: #FDF8ED;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   5. SM-2 Retention Distribution
+   ========================================================================== */
 .retention-section-card {
   display: flex;
   flex-direction: column;
 }
 
 .retention-header-total {
-  font-size: 0.8rem;
-  color: #64748b;
+  font-size: 0.825rem;
+  color: #72573B;
+}
+
+.retention-header-total strong {
+  color: #2C1D11;
+  font-weight: 800;
 }
 
 .retention-cards-layout {
@@ -504,46 +776,52 @@
 }
 
 .retention-card {
-  padding: 12px 14px;
+  padding: 13px 15px;
   border-radius: 12px;
-  border: 1px solid;
+  border: 1.5px solid;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(45, 30, 18, 0.05);
+}
+
+.retention-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 30, 18, 0.1);
 }
 
 .retention-card-mastered {
-  border-color: #bbf7d0;
-  background-color: #f0fdf4;
+  border-color: #9EC394;
+  background: linear-gradient(180deg, #F9FCF7 0%, #EEF6EB 100%);
 }
 
 .retention-card-reviewing {
-  border-color: #fde68a;
-  background-color: #fffbeb;
+  border-color: #E2BF7D;
+  background: linear-gradient(180deg, #FFFCF7 0%, #FAF0DD 100%);
 }
 
 .retention-card-learning {
-  border-color: #bfdbfe;
-  background-color: #eff6ff;
+  border-color: #A4BFD8;
+  background: linear-gradient(180deg, #F8FAFD 0%, #EBF2F9 100%);
 }
 
 .retention-card-wide {
   grid-column: span 3;
-  border-color: #e2e8f0;
-  background-color: #f8fafc;
+  border-color: #D1C5B0;
+  background: linear-gradient(180deg, #F8F5EE 0%, #EFE8DA 100%);
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 16px;
+  padding: 12px 18px;
 }
 
 .retention-wide-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .retention-wide-right {
@@ -553,65 +831,99 @@
 .retention-card-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 0.725rem;
-  font-weight: 700;
-  padding: 2px 8px;
+  font-weight: 800;
+  padding: 2px 9px;
   border-radius: 9999px;
   width: fit-content;
 }
 
 .tag-mastered {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: #D8EBCE;
+  color: #204C1C;
+  border: 1px solid #9EC394;
 }
 
 .tag-reviewing {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: #FDE8BD;
+  color: #7B4A12;
+  border: 1px solid #E2BF7D;
 }
 
 .tag-learning {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: #DCE8F5;
+  color: #1E3E64;
+  border: 1px solid #A4BFD8;
 }
 
 .tag-unseen {
-  background-color: #f1f5f9;
-  color: #475569;
+  background-color: #E5DDCB;
+  color: #5C4A35;
+  border: 1px solid #D1C5B0;
 }
 
 .tag-unseen-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #94a3b8;
+  background-color: #8C6D4A;
   display: inline-block;
 }
 
 .retention-card-count {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: #0f172a;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
   margin-top: 2px;
 }
 
 .retention-card-pct {
   font-size: 0.8rem;
-  font-weight: 500;
-  color: #64748b;
+  font-weight: 600;
+  color: #72573B;
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
 }
 
 .retention-card-desc {
-  font-size: 0.725rem;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: #6E5336;
   margin: 0;
   line-height: 1.35;
+  font-weight: 500;
 }
 
 /* ==========================================================================
-   4. Weak Words Section
+   6. Weak Words Section (Top từ hay trả lời sai nhất)
    ========================================================================== */
+.weak-words-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 10px;
+}
+
+.weak-words-empty-icon {
+  color: #3E5A2D;
+}
+
+.weak-words-empty-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+}
+
+.weak-words-empty-desc {
+  font-size: 0.875rem;
+  color: #72573B;
+  font-weight: 500;
+}
+
 .weak-words-table {
   width: 100%;
   border-collapse: collapse;
@@ -619,43 +931,105 @@
 
 .weak-words-table th {
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.75rem 0.85rem;
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: #64748b;
-  border-bottom: 1px solid #e5e7eb;
-  font-weight: 600;
+  color: #5A3A1A;
+  background: #EFE3C7;
+  border-bottom: 2px solid #C4A97D;
+  font-weight: 800;
+  letter-spacing: 0.05em;
 }
 
 .weak-words-table td {
-  padding: 0.75rem;
+  padding: 0.85rem;
   font-size: 0.875rem;
-  border-bottom: 1px solid #f3f4f6;
-  color: #111827;
+  border-bottom: 1px solid #E6D7BC;
+  color: #2C1D11;
+}
+
+.weak-words-table tr:hover td {
+  background: rgba(196, 169, 125, 0.12);
 }
 
 .weak-words-table tr:last-child td {
   border-bottom: none;
 }
 
+.weak-word-term {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #2C1D11;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+}
+
+.weak-word-meaning {
+  color: #5C4328;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.weak-word-miss-pill {
+  background: #FCE8E6;
+  border: 1px solid #E8A8A1;
+  color: #8A2D1B;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  padding: 3px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.weak-accuracy-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weak-accuracy-track {
+  flex: 1;
+  height: 6px;
+  background-color: #E2D3B8;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.weak-accuracy-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.weak-accuracy-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #5A3A1A;
+  min-width: 36px;
+  text-align: right;
+}
+
 .btn-practice-weak {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background-color: #18181b;
-  color: #ffffff;
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.45rem 0.95rem;
+  gap: 0.55rem;
+  background: linear-gradient(180deg, #3E5A2D 0%, #293E1D 100%);
+  color: #FFFDF8;
+  border: 1.5px solid #63854B;
+  border-radius: 10px;
+  padding: 0.55rem 1.15rem;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  box-shadow: 0 4px 12px rgba(41, 62, 29, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-practice-weak:hover {
-  background-color: #27272a;
+  background: linear-gradient(180deg, #4A6C36 0%, #324B24 100%);
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(41, 62, 29, 0.35);
 }
 
 /* ==========================================================================
@@ -681,7 +1055,11 @@
 
 @media (max-width: 640px) {
   .analytics-page {
-    padding: 16px 16px 110px 16px;
+    padding: 16px 16px 48px 16px;
+  }
+
+  .analytics-header-plaque {
+    padding: 14px 16px;
   }
 
   .analytics-hero-banner {
@@ -692,12 +1070,12 @@
   }
 
   .hero-tier-heading {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
   }
 
   .hero-tier-squircle {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
   }
 
@@ -722,248 +1100,6 @@
     grid-column: span 1;
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: 8px;
   }
-}
-
-/* ==========================================================================
-   Dark Mode Support (Deep Slate Palette #0F172A / #1E293B / #334155)
-   ========================================================================== */
-[data-theme='dark'] .analytics-hero-banner {
-  background: linear-gradient(135deg, #1e293b 0%, #273449 100%);
-  border-color: #334155;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-}
-
-[data-theme='dark'] .hero-tier-squircle {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-[data-theme='dark'] .hero-tier-heading {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .hero-tier-sub {
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .hero-streak-pill {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-[data-theme='dark'] .hero-streak-pill:hover {
-  background: #182234;
-}
-
-[data-theme='dark'] .achievements-card-container,
-[data-theme='dark'] .analytics-section {
-  background-color: #1e293b;
-  border-color: #334155;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-}
-
-[data-theme='dark'] .achievements-card-title,
-[data-theme='dark'] .analytics-section-title {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .achievements-view-all-btn {
-  color: #60a5fa;
-}
-
-/* Huy hiệu đã đạt: nền vàng mờ + viền vàng mờ + chữ sáng */
-[data-theme='dark'] .achievement-tile.is-unlocked {
-  background-color: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.35);
-}
-
-[data-theme='dark'] .achievement-tile.is-unlocked .achievement-tile-name {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .achievement-tile.is-unlocked .achievement-tile-desc {
-  color: #cbd5e1;
-}
-
-[data-theme='dark'] .achievement-status-tag.is-unlocked {
-  background-color: rgba(52, 211, 153, 0.18);
-  color: #34d399;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-}
-
-/* Huy hiệu chưa đạt: nền surface xám, icon mờ nhưng chữ vẫn đọc được */
-[data-theme='dark'] .achievement-tile.is-in-progress {
-  background-color: #1e293b;
-  border-color: #334155;
-}
-
-[data-theme='dark'] .achievement-tile.is-in-progress .achievement-tile-icon-circle {
-  opacity: 0.7;
-}
-
-[data-theme='dark'] .achievement-tile.is-in-progress .achievement-tile-name {
-  color: #cbd5e1;
-}
-
-[data-theme='dark'] .achievement-tile.is-in-progress .achievement-tile-desc {
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .achievement-status-tag.is-pill {
-  background-color: #273449;
-  color: #94a3b8;
-  border: 1px solid #334155;
-}
-
-[data-theme='dark'] .achievement-bar-label {
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .achievement-bar-track {
-  background-color: #334155;
-}
-
-[data-theme='dark'] .achievement-bar-fill {
-  background-color: #60a5fa;
-}
-
-[data-theme='dark'] .achievement-tile-arrow {
-  color: #64748b;
-}
-
-/* Heatmap Dark Mode */
-[data-theme='dark'] .heatmap-months-row {
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .heatmap-day-labels {
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .heatmap-cell.level-0 {
-  background-color: #334155;
-}
-
-[data-theme='dark'] .heatmap-cell.level-1 {
-  background-color: #065f46;
-}
-
-[data-theme='dark'] .heatmap-cell.level-2 {
-  background-color: #059669;
-}
-
-[data-theme='dark'] .heatmap-cell.level-3 {
-  background-color: #10b981;
-}
-
-[data-theme='dark'] .heatmap-cell.level-4 {
-  background-color: #34d399;
-}
-
-[data-theme='dark'] .legend-swatch.level-0 {
-  background-color: #334155;
-}
-
-[data-theme='dark'] .legend-swatch.level-1 {
-  background-color: #065f46;
-}
-
-[data-theme='dark'] .legend-swatch.level-2 {
-  background-color: #059669;
-}
-
-[data-theme='dark'] .legend-swatch.level-3 {
-  background-color: #10b981;
-}
-
-[data-theme='dark'] .legend-swatch.level-4 {
-  background-color: #34d399;
-}
-
-[data-theme='dark'] .heatmap-legend {
-  color: #94a3b8;
-}
-
-/* Retention Distribution Dark Mode */
-[data-theme='dark'] .retention-header-total {
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .retention-header-total strong {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .retention-card-mastered {
-  background-color: rgba(52, 211, 153, 0.12);
-  border-color: rgba(52, 211, 153, 0.35);
-}
-
-[data-theme='dark'] .retention-card-reviewing {
-  background-color: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.35);
-}
-
-[data-theme='dark'] .retention-card-learning {
-  background-color: rgba(96, 165, 250, 0.12);
-  border-color: rgba(96, 165, 250, 0.35);
-}
-
-[data-theme='dark'] .retention-card-wide {
-  background-color: #1e293b;
-  border-color: #334155;
-}
-
-[data-theme='dark'] .tag-mastered {
-  background-color: rgba(52, 211, 153, 0.2);
-  color: #34d399;
-}
-
-[data-theme='dark'] .tag-reviewing {
-  background-color: rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
-}
-
-[data-theme='dark'] .tag-learning {
-  background-color: rgba(96, 165, 250, 0.2);
-  color: #60a5fa;
-}
-
-[data-theme='dark'] .tag-unseen {
-  background-color: #273449;
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .retention-card-count {
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .retention-card-pct {
-  color: #cbd5e1;
-}
-
-[data-theme='dark'] .retention-card-desc {
-  color: #94a3b8;
-}
-
-/* Weak words table */
-[data-theme='dark'] .weak-words-table th {
-  background-color: #1e293b;
-  border-bottom-color: #334155;
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .weak-words-table td {
-  border-bottom-color: #334155;
-  color: #f1f5f9;
-}
-
-[data-theme='dark'] .btn-practice-weak {
-  background-color: #60a5fa;
-  color: #0f172a;
-}
-
-[data-theme='dark'] .btn-practice-weak:hover {
-  background-color: #93c5fd;
 }

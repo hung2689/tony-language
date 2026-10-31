@@ -11,6 +11,8 @@ import {
   Sparkles,
   ChevronRight,
   ArrowRight,
+  ArrowLeft,
+  Compass,
   Star,
   Zap,
   Crown,
@@ -63,6 +65,16 @@ export default function AnalyticsPage() {
   const handleYearChange = (newYear) => {
     setCurrentYear(newYear);
   };
+
+  // Scoped class on body: hides modern wallpaper and bottom dock, applies parchment background
+  useEffect(() => {
+    document.body.classList.add('rpg-library-active');
+    document.body.classList.add('analytics-vintage-active');
+    return () => {
+      document.body.classList.remove('rpg-library-active');
+      document.body.classList.remove('analytics-vintage-active');
+    };
+  }, []);
 
   const handlePracticeWeakWords = () => {
     if (weakWords.length === 0) return;
@@ -199,9 +211,9 @@ export default function AnalyticsPage() {
   if (loading && !overview) {
     return (
       <div className="analytics-page">
-        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-secondary, #6b7280)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-          <Ripple size={48} color="#3b82f6" />
-          <span>Đang tổng hợp dữ liệu học tập...</span>
+        <div className="analytics-loading-state">
+          <Ripple size={48} color="#C49856" />
+          <span>Đang khai mở cuốn sử ký hải hành...</span>
         </div>
       </div>
     );
@@ -209,34 +221,47 @@ export default function AnalyticsPage() {
 
   return (
     <div className="analytics-page">
+      {/* Top Header Plaque (Antique Parchment & Brass Double Border) */}
+      <div className="analytics-header-plaque">
+        <div className="analytics-header-title-group">
+          <h1>
+            <BarChart3 size={24} className="analytics-header-icon" />
+            <span>Sử Ký & Bảng Thành Tích Hải Hành</span>
+          </h1>
+          <p className="analytics-header-subtitle">
+            Tổng hợp tiến trình thám hiểm, nhật ký học tập và chuỗi ngày rèn luyện
+          </p>
+        </div>
+
+        <div className="analytics-header-actions">
+          <button
+            type="button"
+            className="btn-analytics-nav"
+            onClick={() => navigate('/library')}
+            title="Quay lại Thư viện bộ từ"
+          >
+            <ArrowLeft size={15} />
+            <span>Thư viện</span>
+          </button>
+          <button
+            type="button"
+            className="btn-analytics-nav"
+            onClick={() => navigate('/study-plan')}
+            title="Xem Hải trình ôn tập"
+          >
+            <Compass size={15} />
+            <span>Hải trình</span>
+          </button>
+        </div>
+      </div>
+
       {errorMsg && (
-        <div
-          style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#b91c1c',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
+        <div className="analytics-error-banner">
           <span>{errorMsg}</span>
           <button
             type="button"
             onClick={() => loadData(currentYear)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#b91c1c',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-            }}
+            className="btn-analytics-retry"
           >
             <RefreshCw size={14} /> Thử lại
           </button>

@@ -44,22 +44,38 @@ export default function DailyGateReminder() {
           <div className="hard-gate-icon-wrapper">
             <Lock size={28} />
           </div>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: '#111827' }}>
-            Khóa học hằng ngày
+          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#3B2B1C', fontFamily: "'Lora', serif" }}>
+            Khóa Cổng Hải Trình
           </h2>
-          <p style={{ fontSize: '0.925rem', color: '#6b7280', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.95rem', color: '#6E5336', margin: '0 0 1.5rem 0', lineHeight: 1.6, fontFamily: "'Be Vietnam Pro', sans-serif" }}>
             Bạn đang bật tính năng <strong>Khóa tập trung</strong>. Hôm nay bạn còn{' '}
-            <strong>{todayQueue.totalWords} từ</strong> cần hoàn thành ({todayQueue.dueWords} từ đến hạn,{' '}
+            <strong style={{ color: '#3B2B1C' }}>{todayQueue.totalWords} từ</strong> cần hoàn thành ({todayQueue.dueWords} từ đến hạn,{' '}
             {todayQueue.weakWords} từ yếu, {todayQueue.newWords} từ mới).
           </p>
 
           <button
             type="button"
             className="btn-start-today"
-            style={{ width: '100%', justifyContent: 'center', backgroundColor: '#18181b', color: '#ffffff', marginBottom: '0.75rem' }}
+            style={{
+              width: '100%',
+              justifyContent: 'center',
+              backgroundColor: '#46583A',
+              color: '#FAF0DA',
+              border: '1.5px solid #A8783E',
+              borderRadius: '24px',
+              padding: '11px 24px',
+              fontWeight: 700,
+              fontSize: '1rem',
+              marginBottom: '0.75rem',
+              boxShadow: '0 4px 12px rgba(59, 43, 28, 0.25)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
             onClick={handleStartToday}
           >
-            <span>Học ngay hôm nay</span>
+            <span>Bắt đầu ôn luyện hôm nay</span>
             <ArrowRight size={18} />
           </button>
 
@@ -69,13 +85,14 @@ export default function DailyGateReminder() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#6b7280',
-              fontSize: '0.825rem',
+              color: '#796246',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.375rem',
               padding: '0.5rem',
+              textDecoration: 'underline',
             }}
           >
             <Unlock size={14} />
@@ -95,7 +112,7 @@ export default function DailyGateReminder() {
     <div className="daily-gate-banner" role="status">
       <div className="daily-gate-banner-text">
         <div className="daily-gate-title">
-          <Sparkles size={18} style={{ color: '#d97706' }} />
+          <Sparkles size={18} style={{ color: '#A8783E' }} />
           <span>Hôm nay bạn có {todayQueue.totalWords} từ cần học</span>
         </div>
         <div className="daily-gate-subtitle">
@@ -113,14 +130,15 @@ export default function DailyGateReminder() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.375rem',
-            backgroundColor: '#18181b',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            padding: '0.5rem 0.875rem',
+            backgroundColor: '#46583A',
+            color: '#FAF0DA',
+            border: '1.5px solid #A8783E',
+            borderRadius: '20px',
+            padding: '0.45rem 1rem',
             fontSize: '0.85rem',
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(59, 43, 28, 0.2)',
           }}
         >
           <span>Học ngay</span>

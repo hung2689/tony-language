@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
   ArrowRight,
+  ArrowLeft,
   Plus,
   Trash2,
   BookOpen,
@@ -38,12 +39,22 @@ export default function StudyPlanPage() {
   const [editHardGate, setEditHardGate] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Scoped class on body: hides modern wallpaper and floating dock, applies authentic parchment background
+  useEffect(() => {
+    document.body.classList.add('rpg-library-active');
+    document.body.classList.add('study-plan-vintage-active');
+    return () => {
+      document.body.classList.remove('rpg-library-active');
+      document.body.classList.remove('study-plan-vintage-active');
+    };
+  }, []);
+
   if (loading && !activePlan) {
     return (
       <div className="study-plan-page">
-        <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-secondary, #6b7280)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-          <Ripple size={48} color="#3b82f6" />
-          <span>Đang tải thông tin lộ trình...</span>
+        <div className="study-plan-loading-state">
+          <Ripple size={48} color="#C49856" />
+          <span>Đang mở bản đồ hải trình ôn tập...</span>
         </div>
       </div>
     );
@@ -52,50 +63,24 @@ export default function StudyPlanPage() {
   if (!activePlan) {
     return (
       <div className="study-plan-page">
-        <div
-          style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '1rem',
-            padding: '3rem 2rem',
-            textAlign: 'center',
-            maxWidth: '560px',
-            margin: '2rem auto',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '1rem',
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              backgroundColor: '#f4f4f5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#18181b',
-            }}
-          >
-            <BookOpen size={30} />
+        <div className="study-plan-empty-card">
+          <div className="study-plan-empty-icon-wrap">
+            <BookOpen size={32} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: '#111827' }}>
-            Chưa có lộ trình ôn tập nào
+          <h2 className="study-plan-empty-title">
+            Chưa có hải trình ôn tập nào
           </h2>
-          <p style={{ color: '#6b7280', fontSize: '0.95rem', margin: 0, lineHeight: 1.5 }}>
-            Thiết lập lộ trình ôn tập thông minh bằng thuật toán lặp lại ngắt quãng (SM-2).
-            Hệ thống sẽ tự động phân bổ từ cần học mỗi ngày theo hạn chót của bạn.
+          <p className="study-plan-empty-desc">
+            Thiết lập hải trình ôn tập thông minh bằng thuật toán lặp lại ngắt quãng (SM-2).
+            Hệ thống hoa tiêu sẽ tự động phân bổ từ cần học mỗi ngày theo hạn chót của bạn.
           </p>
           <button
             type="button"
-            className="btn-start-today"
-            style={{ backgroundColor: '#18181b', color: '#ffffff', marginTop: '0.5rem' }}
+            className="btn-start-today btn-create-plan-primary"
             onClick={() => openCreateModal()}
           >
             <Plus size={18} />
-            <span>Tạo lộ trình ngay</span>
+            <span>Khởi hành hải trình mới</span>
           </button>
         </div>
       </div>
@@ -189,6 +174,16 @@ export default function StudyPlanPage() {
         </div>
 
         <div className="study-plan-header-actions">
+          <button
+            type="button"
+            className="btn-plan-secondary btn-plan-back"
+            onClick={() => navigate('/library')}
+            title="Quay lại Thư viện bộ từ"
+          >
+            <ArrowLeft size={15} />
+            <span>Thư viện</span>
+          </button>
+
           <button
             type="button"
             className="btn-plan-secondary"
@@ -293,7 +288,7 @@ export default function StudyPlanPage() {
               <h2 className="study-plan-hero-title">
                 Bạn đã hoàn thành mục tiêu hôm nay!
               </h2>
-              <p style={{ color: '#a1a1aa', margin: 0, fontSize: '0.9rem' }}>
+              <p className="study-plan-hero-done-desc">
                 Tuyệt vời! Thuật toán SM-2 sẽ chuẩn bị danh sách từ ôn tập tiếp theo vào lúc 4:00 AM ngày mai.
               </p>
             </>
@@ -311,8 +306,8 @@ export default function StudyPlanPage() {
             <ArrowRight size={18} />
           </button>
           {activePlan.status === 'PAUSED' && (
-            <span style={{ fontSize: '0.75rem', color: '#fca5a5' }}>
-              Lộ trình đang tạm dừng. Hãy bấm Tiếp tục để học.
+            <span className="study-plan-hero-paused-hint">
+              Hải trình đang tạm dừng. Hãy bấm Tiếp tục để học.
             </span>
           )}
         </div>

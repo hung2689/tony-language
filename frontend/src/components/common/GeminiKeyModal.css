@@ -1,46 +1,55 @@
+/* ==========================================================================
+   Gemini API Key Modal — Vintage Explorer / Cartography Concept
+   ========================================================================== */
+
 .gemini-modal-content {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  color: #3B2B1C;
 }
 
 .gemini-info-card {
   display: flex;
   gap: 14px;
   padding: 16px;
-  background: var(--color-bg-subtle, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
+  background: #FAF2DE linear-gradient(180deg, #FDF8ED 0%, #F5E8CD 100%);
+  border: 1.5px solid #D6C29E;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(59, 43, 28, 0.08);
 }
 
 .gemini-info-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
-  background: #fef3c7;
-  color: #d97706;
+  background: #FAF0DA;
+  border: 1.5px solid #C4A97D;
+  color: #A8783E;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(59, 43, 28, 0.12);
 }
 
 .gemini-sparkle-gold {
-  color: #f59e0b;
+  color: #D97706;
 }
 
 .gemini-info-text h4 {
   margin: 0 0 4px 0;
   font-size: 14px;
   font-weight: 700;
-  color: var(--color-text-main, #0f172a);
+  color: #3B2B1C;
+  font-family: 'Merriweather', 'Playfair Display', Georgia, serif;
 }
 
 .gemini-info-text p {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--color-text-secondary, #475569);
+  color: #6E5336;
 }
 
 .gemini-security-badge {
@@ -48,11 +57,12 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(70, 88, 58, 0.12);
+  border: 1px solid #46583A;
   border-radius: 8px;
   font-size: 12px;
-  color: #065f46;
+  font-weight: 600;
+  color: #2E6B38;
 }
 
 .gemini-guide-row {
@@ -61,7 +71,7 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 13px;
-  color: var(--color-text-secondary, #64748b);
+  color: #796246;
   padding: 4px 0;
 }
 
@@ -69,26 +79,27 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #2563eb;
-  font-weight: 600;
-  text-decoration: none;
+  color: #8C5819;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .gemini-studio-link:hover {
-  text-decoration: underline;
+  color: #A8783E;
 }
 
 .gemini-tip-box {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 14px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  padding: 11px 14px;
+  background: #FFF8E7;
+  border: 1.5px solid #D4A359;
   border-radius: 8px;
   font-size: 12.5px;
   line-height: 1.45;
-  color: #1e40af;
+  color: #8C5819;
 }
 
 .gemini-tip-icon {
@@ -98,30 +109,29 @@
 }
 
 .gemini-tip-text code {
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(168, 120, 62, 0.15);
   padding: 1px 5px;
   border-radius: 4px;
-  font-weight: 600;
-  font-family: inherit;
-  color: #1d4ed8;
+  font-weight: 700;
+  font-family: monospace;
+  color: #3B2B1C;
 }
 
 .gemini-force-save-btn {
   padding: 8px 14px;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  background: #FAF0DA;
+  border: 1.5px solid #C4A97D;
+  border-radius: 20px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #334155;
+  color: #3B2B1C;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .gemini-force-save-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: #F3E6C8;
+  border-color: #A8783E;
 }
 
 .gemini-key-form {
@@ -135,8 +145,8 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-main, #1e293b);
+  font-weight: 700;
+  color: #3B2B1C;
 }
 
 .gemini-input-wrapper {
@@ -147,59 +157,63 @@
 
 .gemini-key-input {
   width: 100%;
-  padding: 10px 42px 10px 14px;
+  padding: 11px 42px 11px 14px;
   font-size: 14px;
   font-family: monospace;
-  background: var(--color-bg-surface, #ffffff);
-  border: 1.5px solid var(--color-border, #cbd5e1);
+  background: #FDF8EE;
+  border: 1.5px solid #C4A97D;
   border-radius: 8px;
-  color: var(--color-text-main, #0f172a);
+  color: #3B2B1C;
   transition: all 0.15s ease;
   box-sizing: border-box;
 }
 
 .gemini-key-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: #FFFFFF;
+  border-color: #46583A;
+  box-shadow: 0 0 0 3px rgba(70, 88, 58, 0.2);
 }
 
 .gemini-toggle-vis-btn {
   position: absolute;
-  right: 10px;
+  right: 12px;
   background: none;
   border: none;
-  color: var(--color-text-secondary, #94a3b8);
+  color: #A68E6F;
   cursor: pointer;
   padding: 4px;
   display: inline-flex;
   align-items: center;
+  transition: color 0.15s ease;
 }
 
 .gemini-toggle-vis-btn:hover {
-  color: var(--color-text-main, #0f172a);
+  color: #3B2B1C;
 }
 
 .gemini-status-alert {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.4;
 }
 
 .gemini-status-alert.is-success {
-  background: #dcfce7;
-  color: #15803d;
-  border: 1px solid #86efac;
+  background: rgba(70, 88, 58, 0.15);
+  color: #2E6B38;
+  border: 1.5px solid #46583A;
+  font-weight: 600;
 }
 
 .gemini-status-alert.is-error {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
+  background: rgba(153, 43, 43, 0.12);
+  color: #992B2B;
+  border: 1.5px solid #992B2B;
+  font-weight: 600;
 }
 
 .gemini-modal-actions {
@@ -208,6 +222,8 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1.5px dashed #D6C29E;
   flex-wrap: wrap;
 }
 
@@ -222,118 +238,71 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
-  background: #0f172a;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
+  padding: 10px 22px;
+  background: #46583A;
+  color: #FAF0DA;
+  border: 1.5px solid #A8783E;
+  border-radius: 24px;
   font-size: 13px;
-  font-weight: 600;
+  font-family: inherit;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(59, 43, 28, 0.25);
+  transition: all 0.18s ease;
 }
 
 .gemini-save-btn:hover:not(:disabled) {
-  background: #1e293b;
+  background: #3B4B31;
+  border-color: #C49856;
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 43, 28, 0.35);
 }
 
 .gemini-save-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .gemini-cancel-btn {
-  padding: 9px 16px;
-  background: none;
-  border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 8px;
+  padding: 10px 18px;
+  background: #FAF0DA;
+  border: 1.5px solid #C4A97D;
+  border-radius: 24px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-secondary, #475569);
+  font-family: inherit;
+  font-weight: 600;
+  color: #3B2B1C;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .gemini-cancel-btn:hover {
-  background: var(--color-bg-subtle, #f1f5f9);
+  background: #F3E6C8;
+  border-color: #A8783E;
+  transform: translateY(-1px);
 }
 
 .gemini-remove-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 8px 12px;
-  background: none;
-  border: 1px solid #fca5a5;
-  color: #b91c1c;
-  border-radius: 8px;
+  padding: 9px 14px;
+  background: transparent;
+  border: 1.5px solid #992B2B;
+  color: #992B2B;
+  border-radius: 24px;
   font-size: 12px;
-  font-weight: 500;
+  font-family: inherit;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .gemini-remove-btn:hover {
-  background: #fef2f2;
+  background: rgba(153, 43, 43, 0.12);
+  transform: translateY(-1px);
 }
 
 .gemini-spinner {
   animation: spin 1s linear infinite;
-}
-
-/* Dark mode overrides */
-[data-theme='dark'] .gemini-info-card {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-[data-theme='dark'] .gemini-key-input {
-  background: #0f172a;
-  border-color: #334155;
-  color: #f8fafc;
-}
-
-[data-theme='dark'] .gemini-security-badge {
-  background: rgba(16, 185, 129, 0.12);
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-[data-theme='dark'] .gemini-save-btn {
-  background: #3b82f6;
-  color: #ffffff;
-}
-
-[data-theme='dark'] .gemini-save-btn:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-[data-theme='dark'] .gemini-cancel-btn {
-  border-color: #334155;
-  color: #94a3b8;
-}
-
-[data-theme='dark'] .gemini-cancel-btn:hover {
-  background: #1e293b;
-}
-
-[data-theme='dark'] .gemini-tip-box {
-  background: rgba(30, 58, 138, 0.25);
-  border-color: rgba(59, 130, 246, 0.35);
-  color: #bfdbfe;
-}
-
-[data-theme='dark'] .gemini-tip-text code {
-  background: rgba(59, 130, 246, 0.2);
-  color: #93c5fd;
-}
-
-[data-theme='dark'] .gemini-force-save-btn {
-  background: #1e293b;
-  border-color: #475569;
-  color: #cbd5e1;
-}
-
-[data-theme='dark'] .gemini-force-save-btn:hover {
-  background: #334155;
-  color: #ffffff;
 }
