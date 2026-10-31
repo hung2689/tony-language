@@ -403,7 +403,7 @@ export default function DeckDetailPage() {
               <div className="empty-cards-icon-wrap" style={{ display: 'inline-flex', padding: '12px', background: '#EFE0C2', borderRadius: '50%', marginBottom: '14px' }}>
                 <Plus size={32} color="#4C3C2A" />
               </div>
-              <h2 className="empty-cards-title" style={{ fontFamily: 'Cinzel, Georgia, serif', color: '#2C1A0E', fontSize: '20px', marginBottom: '8px' }}>
+              <h2 className="empty-cards-title" style={{ fontFamily: "'Lora', Georgia, serif", color: '#2C1A0E', fontSize: '20px', marginBottom: '8px' }}>
                 Bộ từ chưa có thẻ nào
               </h2>
               <p className="empty-cards-desc" style={{ color: '#5C4F3E', fontSize: '14px', maxWidth: '420px', margin: '0 auto 18px' }}>

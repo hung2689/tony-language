@@ -70,38 +70,21 @@ export default function ActivityHeatmap({ heatmapData, currentYear, onYearChange
           <span>Biểu đồ hoạt động ({currentYear})</span>
         </h3>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="heatmap-year-selector">
           <button
             type="button"
+            className="heatmap-year-btn"
             onClick={() => onYearChange(currentYear - 1)}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              padding: '0.25rem 0.5rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-            }}
             title="Năm trước"
           >
             <ChevronLeft size={14} />
           </button>
-          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#111827' }}>{currentYear}</span>
+          <span className="heatmap-year-display">{currentYear}</span>
           <button
             type="button"
+            className="heatmap-year-btn"
             onClick={() => onYearChange(currentYear + 1)}
             disabled={currentYear >= CURRENT_CALENDAR_YEAR}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              padding: '0.25rem 0.5rem',
-              cursor: currentYear >= CURRENT_CALENDAR_YEAR ? 'not-allowed' : 'pointer',
-              opacity: currentYear >= CURRENT_CALENDAR_YEAR ? 0.4 : 1,
-              display: 'flex',
-              alignItems: 'center',
-            }}
             title="Năm sau"
           >
             <ChevronRight size={14} />
@@ -157,11 +140,11 @@ export default function ActivityHeatmap({ heatmapData, currentYear, onYearChange
           {/* Legend */}
           <div className="heatmap-legend">
             <span>Ít hơn</span>
-            <div className="legend-swatch level-0" style={{ backgroundColor: '#f3f4f6' }} />
-            <div className="legend-swatch level-1" style={{ backgroundColor: '#d1fae5' }} />
-            <div className="legend-swatch level-2" style={{ backgroundColor: '#6ee7b7' }} />
-            <div className="legend-swatch level-3" style={{ backgroundColor: '#10b981' }} />
-            <div className="legend-swatch level-4" style={{ backgroundColor: '#047857' }} />
+            <div className="legend-swatch level-0" />
+            <div className="legend-swatch level-1" />
+            <div className="legend-swatch level-2" />
+            <div className="legend-swatch level-3" />
+            <div className="legend-swatch level-4" />
             <span>Nhiều hơn</span>
           </div>
         </div>
@@ -170,24 +153,15 @@ export default function ActivityHeatmap({ heatmapData, currentYear, onYearChange
       {/* Floating Tooltip */}
       {tooltip && (
         <div
+          className="heatmap-vintage-tooltip"
           style={{
             position: 'fixed',
             left: tooltip.x,
             top: tooltip.y,
-            transform: 'translate(-50%, -100%)',
-            backgroundColor: '#18181b',
-            color: '#ffffff',
-            padding: '0.4rem 0.65rem',
-            borderRadius: '0.375rem',
-            fontSize: '0.75rem',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            zIndex: 9999,
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           }}
         >
-          <div style={{ fontWeight: 600 }}>{tooltip.date}</div>
-          <div style={{ color: '#d1d5db' }}>
+          <div className="tooltip-date">{tooltip.date}</div>
+          <div className="tooltip-details">
             {tooltip.totalQuestions > 0
               ? `${tooltip.totalQuestions} câu hỏi • Chính xác ${tooltip.accuracy}%`
               : 'Không có hoạt động học'}

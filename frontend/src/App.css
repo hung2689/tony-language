@@ -4549,16 +4549,17 @@
   border: 1px solid rgba(229, 231, 235, 0.95);
 }
 
-/* 3. Wallpaper Switcher Modal UI */
+/* 3. Wallpaper Switcher Modal UI — Vintage Explorer Concept */
 .wallpaper-modal-content {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  color: #3B2B1C;
 }
 
 .wallpaper-modal-desc {
   font-size: 13.5px;
-  color: #4b5563;
+  color: #6E5336;
   margin: 0;
   line-height: 1.5;
 }
@@ -4571,33 +4572,34 @@
 }
 
 .wallpaper-card-item {
-  border: 2px solid #e5e7eb;
+  border: 1.5px solid #D6C29E;
   border-radius: 12px;
   overflow: hidden;
-  background-color: #ffffff;
+  background-color: #FAF2DE;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   user-select: none;
+  box-shadow: 0 2px 8px rgba(59, 43, 28, 0.08);
 }
 
 .wallpaper-card-item:hover {
-  border-color: #9ca3af;
+  border-color: #A8783E;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 16px rgba(59, 43, 28, 0.16);
 }
 
 .wallpaper-card-item.is-selected {
-  border-color: #111827;
-  box-shadow: 0 0 0 2px #111827, 0 8px 20px rgba(0, 0, 0, 0.08);
+  border-color: #46583A;
+  box-shadow: 0 0 0 2px #46583A, 0 8px 20px rgba(59, 43, 28, 0.2);
 }
 
 .wallpaper-thumb-wrapper {
   position: relative;
   width: 100%;
   height: 130px;
-  background-color: #f3f4f6;
+  background-color: #FDF8EE;
   overflow: hidden;
 }
 
@@ -4620,10 +4622,10 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #6b7280;
+  color: #796246;
   font-size: 12px;
-  font-weight: 500;
-  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  font-weight: 600;
+  background: linear-gradient(135deg, #FAF0DA, #F5E8CD);
 }
 
 .wallpaper-check-badge {
@@ -4633,35 +4635,37 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background-color: #111827;
-  color: #ffffff;
+  background-color: #46583A;
+  color: #FAF0DA;
+  border: 1px solid #FAF0DA;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .wallpaper-card-info {
   padding: 10px 12px;
+  background: #FAF2DE;
 }
 
 .wallpaper-card-title {
   font-size: 13px;
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #3B2B1C;
   margin-bottom: 2px;
 }
 
 .wallpaper-card-caption {
   font-size: 11.5px;
-  color: #6b7280;
+  color: #796246;
   line-height: 1.35;
 }
 
 /* Transparency range slider */
 .wallpaper-overlay-control {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background-color: #FAF2DE;
+  border: 1.5px solid #D6C29E;
   border-radius: 10px;
   padding: 14px 16px;
   margin-top: 6px;
@@ -4679,22 +4683,23 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: #3B2B1C;
 }
 
 .wallpaper-slider-value {
   font-size: 13px;
   font-weight: 700;
-  color: #111827;
-  background-color: #e5e7eb;
+  color: #3B2B1C;
+  background-color: #FDF8EE;
+  border: 1px solid #C4A97D;
   padding: 2px 8px;
   border-radius: 6px;
 }
 
 .wallpaper-range-slider {
   width: 100%;
-  accent-color: #111827;
+  accent-color: #46583A;
   cursor: pointer;
   margin: 6px 0;
 }
@@ -4703,7 +4708,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #6b7280;
+  color: #796246;
   margin-top: 2px;
 }
 
@@ -4732,22 +4737,22 @@
 
 .wallpaper-upload-hint {
   font-size: 12px;
-  color: #6b7280;
+  color: #796246;
 }
 
 /* Upload progress bar */
 .wallpaper-progress-bar-wrap {
   width: 100%;
-  height: 4px;
-  background: #e5e7eb;
-  border-radius: 2px;
+  height: 5px;
+  background: #E8D9BD;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .wallpaper-progress-bar-fill {
   height: 100%;
-  background: #111827;
-  border-radius: 2px;
+  background: #46583A;
+  border-radius: 3px;
   transition: width 0.15s ease;
 }
 
@@ -4756,12 +4761,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  background-color: rgba(153, 43, 43, 0.12);
+  border: 1.5px solid #992B2B;
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13px;
-  color: #b91c1c;
+  color: #992B2B;
+  font-weight: 600;
 }
 
 .wallpaper-error-banner svg {
@@ -4775,7 +4781,7 @@
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
-  color: #b91c1c;
+  color: #992B2B;
   padding: 0 2px;
 }
 

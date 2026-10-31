@@ -50,7 +50,8 @@
   --radius-lg: 16px;
   --radius-full: 9999px;
 
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: 'Lora', 'Merriweather', 'Playfair Display', Georgia, serif;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -333,35 +334,48 @@ button, input, select, textarea {
   color: var(--text-secondary);
 }
 
-/* Modals */
+/* ==========================================================================
+   Modals (Vintage Pirate Explorer / Antique Cartography System)
+   ========================================================================== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(17, 24, 39, 0.45);
+  background-color: rgba(28, 18, 10, 0.68) !important;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalBackdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-container {
-  background-color: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-lg);
+  background: #FAF0DA linear-gradient(180deg, #FDF8ED 0%, #F5E8CD 100%) !important;
+  border-radius: 14px !important;
+  border: 2px solid #A8783E !important;
+  box-shadow: 0 20px 44px rgba(36, 24, 12, 0.45), 0 6px 16px rgba(36, 24, 12, 0.25) !important;
+  color: #3B2B1C !important;
+  font-family: var(--font-family);
   width: 100%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modalEnter 0.18s ease-out;
+  animation: modalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 @keyframes modalEnter {
   from {
     opacity: 0;
-    transform: scale(0.97) translateY(-6px);
+    transform: scale(0.96) translateY(-8px);
   }
   to {
     opacity: 1;
@@ -374,87 +388,224 @@ button, input, select, textarea {
   align-items: center;
   justify-content: space-between;
   padding: 16px 22px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1.5px dashed #D6C29E !important;
+  background: transparent;
+}
+
+.modal-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #FAF0DA;
+  border: 1.5px solid #C4A97D;
+  color: #A8783E;
+  flex-shrink: 0;
 }
 
 .modal-title {
-  font-size: 16px;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-main);
+  color: #3B2B1C !important;
+  margin: 0;
+  letter-spacing: 0.3px;
+  font-family: var(--font-serif) !important;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.modal-subtitle {
+  font-size: 0.88rem;
+  color: #796246;
+  margin: 2px 0 0 0;
+  line-height: 1.4;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .modal-close-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
+  background: #FAF0DA;
+  border: 1.5px solid #C4A97D;
+  color: #796246;
   cursor: pointer;
-  padding: 6px;
-  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
 }
 
 .modal-close-btn:hover {
-  color: var(--text-main);
-  background-color: var(--bg-subtle);
+  color: #3B2B1C;
+  background-color: #E8D3A8;
+  border-color: #A8783E;
+  transform: scale(1.1) rotate(10deg);
+  box-shadow: 0 2px 8px rgba(59, 43, 28, 0.2);
 }
 
 .modal-body {
   padding: 22px;
   overflow-y: auto;
+  color: #3B2B1C;
+}
+
+.modal-body .form-label {
+  color: #5A442E;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.modal-body .form-input,
+.modal-body .form-select,
+.modal-body textarea {
+  background-color: #FDF8EE;
+  border: 1.5px solid #C4A97D;
+  border-radius: 8px;
+  color: #3B2B1C;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.18s ease;
+}
+
+.modal-body .form-input:focus,
+.modal-body .form-select:focus,
+.modal-body textarea:focus {
+  outline: none;
+  background-color: #FFFFFF;
+  border-color: #46583A;
+  box-shadow: 0 0 0 3px rgba(70, 88, 58, 0.2);
 }
 
 .modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1.5px dashed #D6C29E;
+  margin-top: 14px;
+}
+
+.modal-footer .btn-primary,
+.modal-body .btn-primary {
+  background: #46583A !important;
+  color: #FAF0DA !important;
+  border: 1.5px solid #A8783E !important;
+  border-radius: 24px !important;
+  padding: 9px 22px !important;
+  font-family: inherit;
+  font-weight: 700 !important;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 43, 28, 0.25);
+  transition: all 0.18s ease;
+}
+
+.modal-footer .btn-primary:hover:not(:disabled),
+.modal-body .btn-primary:hover:not(:disabled) {
+  background: #3B4B31 !important;
+  border-color: #C49856 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 43, 28, 0.35);
+}
+
+.modal-footer .btn-secondary,
+.modal-footer .btn-outline,
+.modal-body .btn-secondary,
+.modal-body .btn-outline {
+  background: #FAF0DA !important;
+  color: #3B2B1C !important;
+  border: 1.5px solid #C4A97D !important;
+  border-radius: 24px !important;
+  padding: 9px 20px !important;
+  font-family: inherit;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.modal-footer .btn-secondary:hover:not(:disabled),
+.modal-footer .btn-outline:hover:not(:disabled),
+.modal-body .btn-secondary:hover:not(:disabled),
+.modal-body .btn-outline:hover:not(:disabled) {
+  background: #F3E6C8 !important;
+  border-color: #A8783E !important;
+  transform: translateY(-1px);
+}
+
+.modal-footer .btn-danger,
+.modal-body .btn-danger {
+  background: #992B2B !important;
+  color: #FAF0DA !important;
+  border: 1.5px solid #B4533A !important;
+  border-radius: 24px !important;
+  padding: 9px 22px !important;
+  font-family: inherit;
+  font-weight: 700 !important;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(153, 43, 43, 0.25);
+  transition: all 0.18s ease;
+}
+
+.modal-footer .btn-danger:hover:not(:disabled),
+.modal-body .btn-danger:hover:not(:disabled) {
+  background: #7F2323 !important;
+  border-color: #992B2B !important;
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
-   Confirm Dialog (Minimalist UI - Black, White & Grayscale)
+   Confirm Dialog (Vintage Pirate Explorer / Antique Cartography System)
    ========================================================================== */
 
 .confirm-dialog-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(17, 24, 39, 0.45);
+  background-color: rgba(28, 18, 10, 0.68) !important;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1100;
   padding: 20px;
-  animation: confirmFadeIn 0.15s ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: confirmFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes confirmFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .confirm-dialog-container {
-  background-color: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e5e5e5;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  background: #FAF0DA linear-gradient(180deg, #FDF8ED 0%, #F5E8CD 100%) !important;
+  border-radius: 16px !important;
+  border: 2px solid #A8783E !important;
+  box-shadow: 0 20px 44px rgba(36, 24, 12, 0.45), 0 6px 16px rgba(36, 24, 12, 0.25) !important;
+  color: #3B2B1C !important;
+  font-family: var(--font-family);
   width: 100%;
   max-width: 500px;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  animation: confirmScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: confirmScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+  position: relative;
 }
 
 @keyframes confirmScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(-4px);
+    transform: scale(0.96) translateY(-6px);
   }
   to {
     opacity: 1;
@@ -467,6 +618,8 @@ button, input, select, textarea {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  padding-bottom: 14px;
+  border-bottom: 1.5px dashed #D6C29E !important;
 }
 
 .confirm-dialog-header-left {
@@ -476,58 +629,66 @@ button, input, select, textarea {
 }
 
 .confirm-dialog-icon-circle {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background-color: #f5f5f5;
-  border: 1px solid #e5e5e5;
+  background-color: #FAF0DA;
+  border: 1.5px solid #C4A97D;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(59, 43, 28, 0.15);
 }
 
 .confirm-dialog-icon {
-  color: #171717;
+  color: #A8783E;
 }
 
 .confirm-dialog-title {
-  font-size: 1.375rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: #171717;
+  color: #3B2B1C !important;
   margin: 0;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
+  font-family: var(--font-serif) !important;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
 }
 
 .confirm-dialog-close-btn {
-  background: none;
-  border: none;
-  color: #737373;
+  background: #FAF0DA;
+  border: 1.5px solid #C4A97D;
+  color: #796246;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 8px;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
 }
 
 .confirm-dialog-close-btn:hover:not(:disabled) {
-  color: #171717;
-  background-color: #f5f5f5;
+  color: #3B2B1C;
+  background-color: #E8D3A8;
+  border-color: #A8783E;
+  transform: scale(1.1) rotate(10deg);
 }
 
 .confirm-dialog-content {
-  margin-top: 16px;
-  margin-bottom: 26px;
+  margin-top: 18px;
+  margin-bottom: 24px;
 }
 
 .confirm-dialog-message {
-  font-size: 0.95rem;
-  color: #737373;
-  line-height: 1.5;
+  font-size: 0.98rem;
+  color: #6E5336 !important;
+  line-height: 1.6;
   margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .confirm-dialog-footer {
@@ -535,40 +696,62 @@ button, input, select, textarea {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  padding-top: 14px;
+  border-top: 1.5px dashed #D6C29E;
 }
 
 .confirm-dialog-btn-secondary {
-  background-color: #ffffff;
-  color: #171717;
-  border: 1px solid #e5e5e5;
-  border-radius: 11px;
-  padding: 9px 20px;
+  background-color: #FAF0DA !important;
+  color: #3B2B1C !important;
+  border: 1.5px solid #C4A97D !important;
+  border-radius: 24px !important;
+  padding: 9px 22px;
   font-size: 0.925rem;
-  font-weight: 500;
+  font-family: inherit;
+  font-weight: 600 !important;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(59, 43, 28, 0.1);
 }
 
 .confirm-dialog-btn-secondary:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  border-color: #d4d4d4;
+  background-color: #F3E6C8 !important;
+  border-color: #A8783E !important;
+  transform: translateY(-1px);
 }
 
 .confirm-dialog-btn-primary {
-  background-color: #171717;
-  color: #ffffff;
-  border: 1px solid #171717;
-  border-radius: 11px;
-  padding: 9px 22px;
+  background-color: #46583A !important;
+  color: #FAF0DA !important;
+  border: 1.5px solid #A8783E !important;
+  border-radius: 24px !important;
+  padding: 9px 24px;
   font-size: 0.925rem;
-  font-weight: 600;
+  font-family: inherit;
+  font-weight: 700 !important;
   cursor: pointer;
-  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(59, 43, 28, 0.25);
+  transition: all 0.18s ease;
 }
 
 .confirm-dialog-btn-primary:hover:not(:disabled) {
-  background-color: #333333;
-  border-color: #333333;
+  background-color: #3B4B31 !important;
+  border-color: #C49856 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 43, 28, 0.35);
+}
+
+.confirm-dialog-btn-primary.is-danger {
+  background-color: #992B2B !important;
+  border-color: #B4533A !important;
+  color: #FAF0DA !important;
+  box-shadow: 0 4px 12px rgba(153, 43, 43, 0.28);
+}
+
+.confirm-dialog-btn-primary.is-danger:hover:not(:disabled) {
+  background-color: #7F2323 !important;
+  border-color: #992B2B !important;
+  box-shadow: 0 6px 16px rgba(153, 43, 43, 0.4);
 }
 
 .confirm-dialog-btn-primary:active:not(:disabled) {
@@ -577,7 +760,7 @@ button, input, select, textarea {
 
 .confirm-dialog-btn-primary:disabled,
 .confirm-dialog-btn-secondary:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
@@ -588,7 +771,7 @@ button, input, select, textarea {
   }
 
   .confirm-dialog-title {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
   }
 
   .confirm-dialog-footer {
@@ -602,6 +785,73 @@ button, input, select, textarea {
     text-align: center;
     padding: 11px;
   }
+}
+
+/* Dialog Alert Box & Radio Cards in Modals (Vintage Parchment Style) */
+.dialog-alert-box {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background-color: #F8EED7;
+  border: 1.5px solid #D6C29E;
+  border-radius: 10px;
+  color: #3B2B1C;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.delete-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.radio-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background-color: #FAF4E5;
+  border: 1.5px solid #D6C29E;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.radio-card:hover {
+  background-color: #FDF9EE;
+  border-color: #A8783E;
+  transform: translateY(-1px);
+}
+
+.radio-card input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #46583A;
+  cursor: pointer;
+}
+
+.radio-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.9rem;
+  color: #3B2B1C;
+}
+
+.radio-card.radio-danger {
+  border-color: #E2B8B8;
+  background-color: #FDF4F4;
+}
+
+.radio-card.radio-danger:hover {
+  border-color: #B4533A;
+  background-color: #FCEAEA;
+}
+
+.radio-card.radio-danger input[type="radio"] {
+  accent-color: #992B2B;
 }
 
 /* Tabs */

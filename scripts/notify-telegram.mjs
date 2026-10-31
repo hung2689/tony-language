@@ -65,7 +65,7 @@ export async function sendTelegramNotification(message) {
   }
 }
 
-export async function sendTelegramPhoto(filePath, caption = '') {
+export async function sendTelegramPhoto(filePath, caption = '', retries = 2) {
   const { token, chatId } = getEnvConfig();
 
   if (!token || !chatId) {
@@ -74,33 +74,39 @@ export async function sendTelegramPhoto(filePath, caption = '') {
   }
 
   const url = `https://api.telegram.org/bot${token}/sendPhoto`;
-  try {
-    const fileBytes = fs.readFileSync(filePath);
-    const fileBlob = new Blob([fileBytes]);
-    const formData = new FormData();
-    formData.append('chat_id', chatId);
-    formData.append('photo', fileBlob, path.basename(filePath));
-    if (caption) {
-      formData.append('caption', caption);
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    try {
+      const fileBytes = fs.readFileSync(filePath);
+      const fileBlob = new Blob([fileBytes]);
+      const formData = new FormData();
+      formData.append('chat_id', chatId);
+      formData.append('photo', fileBlob, path.basename(filePath));
+      if (caption) {
+        formData.append('caption', caption);
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(45000),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        console.error('❌ Failed to send Telegram photo:', data.description);
+        return false;
+      }
+
+      console.log('✅ Telegram photo sent successfully!');
+      return true;
+    } catch (err) {
+      console.error(`❌ Attempt ${attempt} error sending Telegram photo:`, err.message);
+      if (attempt <= retries) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
     }
-
-    const res = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
-
-    const data = await res.json();
-    if (!data.ok) {
-      console.error('❌ Failed to send Telegram photo:', data.description);
-      return false;
-    }
-
-    console.log('✅ Telegram photo sent successfully!');
-    return true;
-  } catch (err) {
-    console.error('❌ Error sending Telegram photo:', err.message);
-    return false;
   }
+  return false;
 }
 
 export async function sendTelegramDocument(filePath, caption = '') {
@@ -125,6 +131,7 @@ export async function sendTelegramDocument(filePath, caption = '') {
     const res = await fetch(url, {
       method: 'POST',
       body: formData,
+      signal: AbortSignal.timeout(20000),
     });
 
     const data = await res.json();

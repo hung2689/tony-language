@@ -23,12 +23,12 @@ export default function WeakWordsList({ weakWords = [], onPractice }) {
       </div>
 
       {weakWords.length === 0 ? (
-        <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#6b7280' }}>
-          <CheckCircle2 size={36} color="#10b981" style={{ marginBottom: '0.5rem' }} />
-          <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.95rem' }}>
+        <div className="weak-words-empty-state">
+          <CheckCircle2 size={36} className="weak-words-empty-icon" />
+          <div className="weak-words-empty-title">
             Không có từ yếu cần củng cố!
           </div>
-          <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+          <div className="weak-words-empty-desc">
             Bạn đang trả lời rất tốt trong các phiên học gần đây.
           </div>
         </div>
@@ -45,38 +45,26 @@ export default function WeakWordsList({ weakWords = [], onPractice }) {
           <tbody>
             {weakWords.map((item) => (
               <tr key={item.vocabularyId}>
-                <td style={{ fontWeight: 600, color: '#111827' }}>{item.word}</td>
-                <td style={{ color: '#4b5563' }}>{item.meaning}</td>
+                <td className="weak-word-term">{item.word}</td>
+                <td className="weak-word-meaning">{item.meaning}</td>
                 <td>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      color: '#dc2626',
-                      fontWeight: 600,
-                      backgroundColor: '#fef2f2',
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.8rem',
-                    }}
-                  >
+                  <span className="weak-word-miss-pill">
                     <AlertCircle size={12} />
                     <span>{item.wrongCount} lần</span>
                   </span>
                 </td>
                 <td style={{ width: '180px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ flex: 1, height: 6, backgroundColor: '#f3f4f6', borderRadius: 9999, overflow: 'hidden' }}>
+                  <div className="weak-accuracy-wrap">
+                    <div className="weak-accuracy-track">
                       <div
+                        className="weak-accuracy-fill"
                         style={{
-                          height: '100%',
                           width: `${item.accuracy}%`,
-                          backgroundColor: item.accuracy >= 70 ? '#10b981' : item.accuracy >= 40 ? '#f59e0b' : '#ef4444',
+                          backgroundColor: item.accuracy >= 70 ? '#46583A' : item.accuracy >= 40 ? '#C49856' : '#992B2B',
                         }}
                       />
                     </div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, width: '38px', textAlign: 'right' }}>
+                    <span className="weak-accuracy-num">
                       {item.accuracy}%
                     </span>
                   </div>

@@ -14,8 +14,8 @@
   --profile-moss-dark: #414A2F;
   --profile-crimson: #8E3524;
   --profile-gold: #C69A45;
-  --profile-serif: 'Times New Roman', Georgia, serif;
-  --profile-body: 'Times New Roman', Georgia, serif;
+  --profile-serif: 'Lora', 'Merriweather', Georgia, serif;
+  --profile-body: 'Be Vietnam Pro', 'Inter', sans-serif;
 }
 
 .lexicon-profile-shell,
