@@ -15,11 +15,16 @@ import com.languagelearning.backend.folder.entity.Folder;
 import com.languagelearning.backend.folder.repository.FolderRepository;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
 import com.languagelearning.backend.term.repository.VocabularySynonymRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class FolderService {
@@ -30,6 +35,9 @@ public class FolderService {
     private final VocabularyRepository vocabularyRepository;
     private final VocabularySynonymRepository vocabularySynonymRepository;
     private final CurrentUserProvider currentUserProvider;
+
+    @Autowired(required = false)
+    private JdbcTemplate jdbcTemplate;
 
     public FolderService(FolderRepository folderRepository,
                          VocabularySetRepository vocabularySetRepository,
@@ -69,9 +77,23 @@ public class FolderService {
     public List<FolderResponse> getFolders() {
         Long userId = currentUserProvider.getCurrentUserId();
         List<Folder> folders = folderRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        List<FolderResponse> responses = new ArrayList<>();
+        if (folders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, Long> deckCountMap = new HashMap<>();
+        List<Object[]> countRows = vocabularySetRepository.countByUserIdGroupByFolderId(userId);
+        if (countRows != null) {
+            for (Object[] row : countRows) {
+                if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                    deckCountMap.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+                }
+            }
+        }
+
+        List<FolderResponse> responses = new ArrayList<>(folders.size());
         for (Folder folder : folders) {
-            long deckCount = vocabularySetRepository.countByFolderId(folder.getId());
+            long deckCount = deckCountMap.getOrDefault(folder.getId(), 0L);
             responses.add(new FolderResponse(
                     folder.getId(),
                     folder.getName(),
@@ -123,6 +145,36 @@ public class FolderService {
         Long userId = currentUserProvider.getCurrentUserId();
         Folder folder = folderRepository.findByIdAndUserId(folderId, userId)
                 .orElseThrow(() -> new FolderNotFoundException(folderId));
+
+        if (jdbcTemplate != null) {
+            if ("deleteDecks".equalsIgnoreCase(mode)) {
+                jdbcTemplate.update(
+                        "DELETE FROM vocabularies v " +
+                        "USING vocabulary_set_items vsi, vocabulary_sets vs " +
+                        "WHERE v.id = vsi.vocabulary_id " +
+                        "  AND vsi.vocabulary_set_id = vs.id " +
+                        "  AND vs.user_id = ? AND vs.folder_id = ? " +
+                        "  AND NOT EXISTS (" +
+                        "      SELECT 1 FROM vocabulary_set_items vsi2 " +
+                        "      JOIN vocabulary_sets vs2 ON vsi2.vocabulary_set_id = vs2.id " +
+                        "      WHERE vsi2.vocabulary_id = v.id " +
+                        "        AND (vs2.folder_id IS NULL OR vs2.folder_id <> ?)" +
+                        "  )",
+                        userId, folderId, folderId
+                );
+                jdbcTemplate.update(
+                        "DELETE FROM vocabulary_sets WHERE user_id = ? AND folder_id = ?",
+                        userId, folderId
+                );
+            } else {
+                jdbcTemplate.update(
+                        "UPDATE vocabulary_sets SET folder_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND folder_id = ?",
+                        userId, folderId
+                );
+            }
+            folderRepository.delete(folder);
+            return;
+        }
 
         List<VocabularySet> decksInFolder = vocabularySetRepository.findByUserIdAndFolderIdOrderByCreatedAtDesc(userId, folderId);
 

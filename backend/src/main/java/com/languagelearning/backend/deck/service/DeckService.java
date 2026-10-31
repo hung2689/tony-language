@@ -22,6 +22,8 @@ import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.entity.VocabularySynonym;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
 import com.languagelearning.backend.term.repository.VocabularySynonymRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,9 @@ public class DeckService {
     private final FolderRepository folderRepository;
     private final CurrentUserProvider currentUserProvider;
     private final StudyPlanDeckRepository studyPlanDeckRepository;
+
+    @Autowired(required = false)
+    private JdbcTemplate jdbcTemplate;
 
     public DeckService(VocabularySetRepository vocabularySetRepository,
                        VocabularySetItemRepository vocabularySetItemRepository,
@@ -67,14 +72,17 @@ public class DeckService {
 
         Long userId = currentUserProvider.getCurrentUserId();
 
-        // Check folder ownership if folderId is provided
+        // Check folder ownership if folderId is provided and reuse folderName
+        String folderName = null;
         if (request.getFolderId() != null) {
-            folderRepository.findByIdAndUserId(request.getFolderId(), userId)
+            Folder folder = folderRepository.findByIdAndUserId(request.getFolderId(), userId)
                     .orElseThrow(() -> new FolderNotFoundException(request.getFolderId()));
+            folderName = folder.getName();
         }
 
-        // Check duplicate terms within this deck
+        // Check duplicate terms and validate card fields upfront
         checkDuplicateTermsInList(request.getCards());
+        validateCardsNotEmpty(request.getCards());
 
         // Create deck
         VocabularySet deck = new VocabularySet(
@@ -85,14 +93,9 @@ public class DeckService {
         );
         VocabularySet savedDeck = vocabularySetRepository.save(deck);
 
-        // Create vocabulary cards and synonyms
-        List<TermCardDto> savedCardDtos = new ArrayList<>();
-        for (TermCardDto cardDto : request.getCards()) {
-            TermCardDto saved = createCardForDeck(savedDeck.getId(), cardDto);
-            savedCardDtos.add(saved);
-        }
+        // Batch create vocabulary cards, set items, and synonyms
+        List<TermCardDto> savedCardDtos = createCardsForDeckBatch(savedDeck.getId(), request.getCards());
 
-        String folderName = getFolderName(savedDeck.getFolderId(), userId);
         return new DeckDetailResponse(
                 savedDeck.getId(),
                 savedDeck.getName(),
@@ -111,24 +114,23 @@ public class DeckService {
         if (request.getCards() == null || request.getCards().isEmpty()) {
             throw new ValidationException("Bộ từ vựng cần có ít nhất 1 thẻ từ");
         }
+        if (request.getCards().size() > 1000) {
+            throw new ValidationException("Một bộ từ vựng không được vượt quá 1000 thẻ");
+        }
 
         Long userId = currentUserProvider.getCurrentUserId();
         VocabularySet deck = vocabularySetRepository.findByIdAndUserId(deckId, userId)
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
 
+        String folderName = null;
         if (request.getFolderId() != null) {
-            folderRepository.findByIdAndUserId(request.getFolderId(), userId)
+            Folder folder = folderRepository.findByIdAndUserId(request.getFolderId(), userId)
                     .orElseThrow(() -> new FolderNotFoundException(request.getFolderId()));
+            folderName = folder.getName();
         }
 
-        // Check duplicate terms in updated list
-        if (request.getCards() == null || request.getCards().isEmpty()) {
-            throw new ValidationException("Bộ từ vựng cần có ít nhất 1 thẻ từ");
-        }
-        if (request.getCards().size() > 1000) {
-            throw new ValidationException("Một bộ từ vựng không được vượt quá 1000 thẻ");
-        }
         checkDuplicateTermsInList(request.getCards());
+        validateCardsNotEmpty(request.getCards());
 
         deck.setName(request.getName().trim());
         deck.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
@@ -142,11 +144,13 @@ public class DeckService {
                 .collect(Collectors.toSet());
 
         Set<Long> retainedVocabIds = new HashSet<>();
-        List<TermCardDto> updatedCardDtos = new ArrayList<>();
+        List<TermCardDto> updatedCardDtos = new ArrayList<>(request.getCards().size());
+        List<Integer> newCardIndices = new ArrayList<>();
+        List<TermCardDto> newCardsToInsert = new ArrayList<>();
 
-        for (TermCardDto cardDto : request.getCards()) {
+        for (int i = 0; i < request.getCards().size(); i++) {
+            TermCardDto cardDto = request.getCards().get(i);
             if (cardDto.getId() != null && existingVocabIdsInDeck.contains(cardDto.getId())) {
-                // In-place update existing vocabulary row
                 Vocabulary vocab = vocabularyRepository.findById(cardDto.getId())
                         .orElseThrow(() -> new ValidationException("Không tìm thấy thẻ từ với id: " + cardDto.getId()));
 
@@ -157,7 +161,6 @@ public class DeckService {
                 vocab.setExampleSentence(cardDto.getExample() != null ? cardDto.getExample().trim() : null);
                 vocabularyRepository.save(vocab);
 
-                // Update synonyms: remove existing and re-insert
                 vocabularySynonymRepository.deleteByVocabularyId(vocab.getId());
                 List<String> savedSynonyms = saveSynonyms(vocab.getId(), cardDto.getSynonyms());
 
@@ -172,26 +175,30 @@ public class DeckService {
                         savedSynonyms
                 ));
             } else {
-                // New card added during edit
-                TermCardDto created = createCardForDeck(deckId, cardDto);
+                updatedCardDtos.add(null);
+                newCardIndices.add(i);
+                newCardsToInsert.add(cardDto);
+            }
+        }
+
+        if (!newCardsToInsert.isEmpty()) {
+            List<TermCardDto> createdBatch = createCardsForDeckBatch(deckId, newCardsToInsert);
+            for (int idx = 0; idx < createdBatch.size(); idx++) {
+                TermCardDto created = createdBatch.get(idx);
                 retainedVocabIds.add(created.getId());
-                updatedCardDtos.add(created);
+                updatedCardDtos.set(newCardIndices.get(idx), created);
             }
         }
 
         // Delete removed cards from deck and db (preserving cards shared with other decks)
-        for (Long vocabId : existingVocabIdsInDeck) {
-            if (!retainedVocabIds.contains(vocabId)) {
-                vocabularySetItemRepository.deleteById(new VocabularySetItemId(deckId, vocabId));
-                boolean stillUsedInOtherDeck = vocabularySetItemRepository.existsByIdVocabularyId(vocabId);
-                if (!stillUsedInOtherDeck) {
-                    vocabularySynonymRepository.deleteByVocabularyId(vocabId);
-                    vocabularyRepository.deleteById(vocabId);
-                }
-            }
+        List<Long> removedVocabIds = existingVocabIdsInDeck.stream()
+                .filter(id -> !retainedVocabIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!removedVocabIds.isEmpty()) {
+            deleteCardsFromDeckBatch(deckId, removedVocabIds);
         }
 
-        String folderName = getFolderName(savedDeck.getFolderId(), userId);
         return new DeckDetailResponse(
                 savedDeck.getId(),
                 savedDeck.getName(),
@@ -209,6 +216,29 @@ public class DeckService {
         Long userId = currentUserProvider.getCurrentUserId();
         VocabularySet deck = vocabularySetRepository.findByIdAndUserId(deckId, userId)
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
+
+        if (jdbcTemplate != null) {
+            // 1. Bulk-delete all vocabularies in this deck that are not shared with any other deck.
+            // PostgreSQL ON DELETE CASCADE automatically deletes vocabulary_synonyms, vocabulary_set_items,
+            // study_progress, and study_answers in the same round-trip.
+            jdbcTemplate.update(
+                    "DELETE FROM vocabularies v " +
+                    "USING vocabulary_set_items vsi " +
+                    "WHERE v.id = vsi.vocabulary_id " +
+                    "  AND vsi.vocabulary_set_id = ? " +
+                    "  AND NOT EXISTS (" +
+                    "      SELECT 1 FROM vocabulary_set_items vsi2 " +
+                    "      WHERE vsi2.vocabulary_id = v.id " +
+                    "        AND vsi2.vocabulary_set_id <> ?" +
+                    "  )",
+                    deckId, deckId
+            );
+            // 2. Clean up any remaining set items (for shared vocabularies) and study plan associations
+            jdbcTemplate.update("DELETE FROM vocabulary_set_items WHERE vocabulary_set_id = ?", deckId);
+            jdbcTemplate.update("DELETE FROM study_plan_decks WHERE deck_id = ?", deckId);
+            vocabularySetRepository.delete(deck);
+            return;
+        }
 
         List<VocabularySetItem> items = vocabularySetItemRepository.findByIdVocabularySetId(deckId);
         for (VocabularySetItem item : items) {
@@ -250,13 +280,25 @@ public class DeckService {
                 .orElseThrow(() -> new DeckNotFoundException(deckId));
 
         List<Vocabulary> vocabularies = vocabularyRepository.findByDeckId(deckId);
-        List<TermCardDto> cards = new ArrayList<>();
-        for (Vocabulary vocab : vocabularies) {
-            List<String> synonyms = vocabularySynonymRepository.findByVocabularyId(vocab.getId())
-                    .stream()
-                    .map(VocabularySynonym::getSynonym)
-                    .collect(Collectors.toList());
+        Map<Long, List<String>> synonymsByVocabId = new HashMap<>();
 
+        if (!vocabularies.isEmpty()) {
+            List<Long> vocabIds = vocabularies.stream()
+                    .map(Vocabulary::getId)
+                    .collect(Collectors.toList());
+            List<VocabularySynonym> allSynonyms = vocabularySynonymRepository.findByVocabularyIdIn(vocabIds);
+            if (allSynonyms != null) {
+                for (VocabularySynonym syn : allSynonyms) {
+                    synonymsByVocabId
+                            .computeIfAbsent(syn.getVocabularyId(), k -> new ArrayList<>())
+                            .add(syn.getSynonym());
+                }
+            }
+        }
+
+        List<TermCardDto> cards = new ArrayList<>(vocabularies.size());
+        for (Vocabulary vocab : vocabularies) {
+            List<String> synonyms = synonymsByVocabId.getOrDefault(vocab.getId(), Collections.emptyList());
             cards.add(new TermCardDto(
                     vocab.getId(),
                     vocab.getWord(),
@@ -301,13 +343,28 @@ public class DeckService {
                     .collect(Collectors.toList());
         }
 
+        if (decks.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         Map<Long, String> folderNames = folderRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .collect(Collectors.toMap(Folder::getId, Folder::getName));
 
-        List<DeckResponse> responses = new ArrayList<>();
+        List<Long> deckIds = decks.stream().map(VocabularySet::getId).collect(Collectors.toList());
+        Map<Long, Long> cardCountMap = new HashMap<>();
+        List<Object[]> countRows = vocabularySetItemRepository.countByVocabularySetIds(deckIds);
+        if (countRows != null) {
+            for (Object[] row : countRows) {
+                if (row != null && row.length >= 2 && row[0] != null && row[1] != null) {
+                    cardCountMap.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+                }
+            }
+        }
+
+        List<DeckResponse> responses = new ArrayList<>(decks.size());
         for (VocabularySet deck : decks) {
-            long cardCount = vocabularySetItemRepository.countByIdVocabularySetId(deck.getId());
+            long cardCount = cardCountMap.getOrDefault(deck.getId(), 0L);
             String folderName = deck.getFolderId() != null ? folderNames.get(deck.getFolderId()) : null;
             responses.add(new DeckResponse(
                     deck.getId(),
@@ -321,6 +378,147 @@ public class DeckService {
             ));
         }
         return responses;
+    }
+
+    private void validateCardsNotEmpty(List<TermCardDto> cards) {
+        for (TermCardDto cardDto : cards) {
+            if (cardDto.getTerm() == null || cardDto.getTerm().trim().isEmpty()) {
+                throw new ValidationException("Thuật ngữ không được để trống");
+            }
+            if (cardDto.getDefinition() == null || cardDto.getDefinition().trim().isEmpty()) {
+                throw new ValidationException("Định nghĩa không được để trống");
+            }
+        }
+    }
+
+    private List<TermCardDto> createCardsForDeckBatch(Long deckId, List<TermCardDto> cards) {
+        if (cards == null || cards.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        if (jdbcTemplate != null) {
+            // 1. Single multi-row INSERT into vocabularies with RETURNING id
+            StringBuilder vocabSql = new StringBuilder(
+                    "INSERT INTO vocabularies (word, meaning, word_type, pronunciation, example_sentence, created_at, updated_at) VALUES "
+            );
+            List<Object> vocabParams = new ArrayList<>(cards.size() * 5);
+            for (int i = 0; i < cards.size(); i++) {
+                if (i > 0) vocabSql.append(", ");
+                vocabSql.append("(?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+                TermCardDto c = cards.get(i);
+                vocabParams.add(c.getTerm().trim());
+                vocabParams.add(c.getDefinition().trim());
+                vocabParams.add(c.getPartOfSpeech() != null ? c.getPartOfSpeech().trim() : null);
+                vocabParams.add(c.getPronunciation() != null ? c.getPronunciation().trim() : null);
+                vocabParams.add(c.getExample() != null ? c.getExample().trim() : null);
+            }
+            vocabSql.append(" RETURNING id");
+
+            List<Long> insertedVocabIds = jdbcTemplate.query(
+                    vocabSql.toString(),
+                    (rs, rowNum) -> rs.getLong(1),
+                    vocabParams.toArray()
+            );
+
+            // 2. Single multi-row INSERT into vocabulary_set_items
+            StringBuilder itemSql = new StringBuilder(
+                    "INSERT INTO vocabulary_set_items (vocabulary_set_id, vocabulary_id) VALUES "
+            );
+            List<Object> itemParams = new ArrayList<>(insertedVocabIds.size() * 2);
+            for (int i = 0; i < insertedVocabIds.size(); i++) {
+                if (i > 0) itemSql.append(", ");
+                itemSql.append("(?, ?)");
+                itemParams.add(deckId);
+                itemParams.add(insertedVocabIds.get(i));
+            }
+            itemSql.append(" ON CONFLICT DO NOTHING");
+            jdbcTemplate.update(itemSql.toString(), itemParams.toArray());
+
+            // 3. Single multi-row INSERT into vocabulary_synonyms (if any)
+            StringBuilder synSql = new StringBuilder(
+                    "INSERT INTO vocabulary_synonyms (vocabulary_id, synonym) VALUES "
+            );
+            List<Object> synParams = new ArrayList<>();
+            List<List<String>> cardSavedSynonyms = new ArrayList<>(cards.size());
+            int synCount = 0;
+
+            for (int i = 0; i < cards.size(); i++) {
+                Long vocabId = insertedVocabIds.get(i);
+                List<String> deduplicated = normalizeSynonyms(cards.get(i).getSynonyms());
+                cardSavedSynonyms.add(deduplicated);
+                for (String syn : deduplicated) {
+                    if (synCount > 0) synSql.append(", ");
+                    synSql.append("(?, ?)");
+                    synParams.add(vocabId);
+                    synParams.add(syn);
+                    synCount++;
+                }
+            }
+            if (synCount > 0) {
+                synSql.append(" ON CONFLICT DO NOTHING");
+                jdbcTemplate.update(synSql.toString(), synParams.toArray());
+            }
+
+            List<TermCardDto> results = new ArrayList<>(cards.size());
+            for (int i = 0; i < cards.size(); i++) {
+                TermCardDto c = cards.get(i);
+                results.add(new TermCardDto(
+                        insertedVocabIds.get(i),
+                        c.getTerm().trim(),
+                        c.getDefinition().trim(),
+                        c.getPronunciation() != null ? c.getPronunciation().trim() : null,
+                        c.getPartOfSpeech() != null ? c.getPartOfSpeech().trim() : null,
+                        c.getExample() != null ? c.getExample().trim() : null,
+                        cardSavedSynonyms.get(i)
+                ));
+            }
+            return results;
+        }
+
+        // Fallback for unit tests without JdbcTemplate
+        List<TermCardDto> savedCardDtos = new ArrayList<>(cards.size());
+        for (TermCardDto cardDto : cards) {
+            savedCardDtos.add(createCardForDeck(deckId, cardDto));
+        }
+        return savedCardDtos;
+    }
+
+    private void deleteCardsFromDeckBatch(Long deckId, List<Long> removedVocabIds) {
+        if (removedVocabIds == null || removedVocabIds.isEmpty()) {
+            return;
+        }
+        if (jdbcTemplate != null) {
+            String placeholders = removedVocabIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+
+            // 1. Delete links from this deck
+            List<Object> deleteItemParams = new ArrayList<>(removedVocabIds.size() + 1);
+            deleteItemParams.add(deckId);
+            deleteItemParams.addAll(removedVocabIds);
+            jdbcTemplate.update(
+                    "DELETE FROM vocabulary_set_items WHERE vocabulary_set_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                    deleteItemParams.toArray()
+            );
+
+            // 2. Delete vocabularies not used in any other deck (cascades to synonyms)
+            jdbcTemplate.update(
+                    "DELETE FROM vocabularies v " +
+                    "WHERE v.id IN (" + placeholders + ") " +
+                    "  AND NOT EXISTS (" +
+                    "      SELECT 1 FROM vocabulary_set_items vsi WHERE vsi.vocabulary_id = v.id" +
+                    "  )",
+                    removedVocabIds.toArray()
+            );
+            return;
+        }
+
+        for (Long vocabId : removedVocabIds) {
+            vocabularySetItemRepository.deleteById(new VocabularySetItemId(deckId, vocabId));
+            boolean stillUsedInOtherDeck = vocabularySetItemRepository.existsByIdVocabularyId(vocabId);
+            if (!stillUsedInOtherDeck) {
+                vocabularySynonymRepository.deleteByVocabularyId(vocabId);
+                vocabularyRepository.deleteById(vocabId);
+            }
+        }
     }
 
     private TermCardDto createCardForDeck(Long deckId, TermCardDto cardDto) {
@@ -354,24 +552,31 @@ public class DeckService {
         );
     }
 
-    private List<String> saveSynonyms(Long vocabularyId, List<String> synonyms) {
+    private List<String> normalizeSynonyms(List<String> synonyms) {
         if (synonyms == null || synonyms.isEmpty()) {
             return Collections.emptyList();
         }
         Set<String> distinctLowerSynonyms = new HashSet<>();
-        List<String> savedList = new ArrayList<>();
+        List<String> normalized = new ArrayList<>();
         for (String syn : synonyms) {
             if (syn != null && !syn.trim().isEmpty()) {
                 String trimmed = syn.trim();
                 String lower = trimmed.toLowerCase();
                 if (!distinctLowerSynonyms.contains(lower)) {
                     distinctLowerSynonyms.add(lower);
-                    vocabularySynonymRepository.save(new VocabularySynonym(vocabularyId, trimmed));
-                    savedList.add(trimmed);
+                    normalized.add(trimmed);
                 }
             }
         }
-        return savedList;
+        return normalized;
+    }
+
+    private List<String> saveSynonyms(Long vocabularyId, List<String> synonyms) {
+        List<String> normalized = normalizeSynonyms(synonyms);
+        for (String syn : normalized) {
+            vocabularySynonymRepository.save(new VocabularySynonym(vocabularyId, syn));
+        }
+        return normalized;
     }
 
     private void checkDuplicateTermsInList(List<TermCardDto> cards) {
