@@ -1342,6 +1342,31 @@ body.rpg-library-active .app-topbar,
   transform: translateY(-1px);
 }
 
+.journal-srs-forecast-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: var(--journal-paper-light);
+  color: var(--journal-ink);
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1.5px solid var(--journal-border);
+  box-shadow: 0 1px 3px rgba(46, 39, 30, 0.08);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.journal-srs-forecast-btn:hover {
+  background: var(--journal-paper);
+  border-color: var(--journal-ink-muted);
+  transform: translateY(-1px);
+  color: var(--journal-terracotta);
+}
+
 .rpg-library-workspace-box {
   background: var(--journal-paper-light);
   border: 1.5px solid var(--journal-border);
