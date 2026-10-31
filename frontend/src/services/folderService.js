@@ -1,8 +1,28 @@
 import { request } from './api';
 
+// In-memory client cache for folders
+let cachedFolders = null;
+
 export const folderService = {
-  getFolders() {
-    return request('/folders');
+  async getFolders({ skipCache = false } = {}) {
+    if (!skipCache && cachedFolders) {
+      return cachedFolders;
+    }
+    const data = await request('/folders');
+    cachedFolders = data;
+    return data;
+  },
+
+  getCachedFolders() {
+    return cachedFolders;
+  },
+
+  setCachedFolders(data) {
+    cachedFolders = data;
+  },
+
+  clearCache() {
+    cachedFolders = null;
   },
 
   getFolder(id) {

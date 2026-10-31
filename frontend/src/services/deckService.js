@@ -1,14 +1,55 @@
 import { request } from './api';
 
+// In-memory client cache for decks to support Stale-While-Revalidate and instant tab transitions
+const deckCache = new Map();
+
+export const clearDeckCache = () => {
+  deckCache.clear();
+};
+
 export const deckService = {
-  getDecks({ folderId, uncategorized, search } = {}) {
+  async getDecks({ folderId, uncategorized, search } = {}, { skipCache = false } = {}) {
     const params = new URLSearchParams();
     if (folderId !== undefined && folderId !== null) params.append('folderId', folderId);
     if (uncategorized) params.append('uncategorized', 'true');
     if (search) params.append('search', search);
 
     const queryString = params.toString();
-    return request(`/decks${queryString ? `?${queryString}` : ''}`);
+    const cacheKey = queryString || 'all';
+
+    if (!skipCache && deckCache.has(cacheKey)) {
+      return deckCache.get(cacheKey);
+    }
+
+    const data = await request(`/decks${queryString ? `?${queryString}` : ''}`);
+    deckCache.set(cacheKey, data);
+    return data;
+  },
+
+  getCachedDecks({ folderId, uncategorized, search } = {}) {
+    const params = new URLSearchParams();
+    if (folderId !== undefined && folderId !== null) params.append('folderId', folderId);
+    if (uncategorized) params.append('uncategorized', 'true');
+    if (search) params.append('search', search);
+
+    const queryString = params.toString();
+    const cacheKey = queryString || 'all';
+    return deckCache.get(cacheKey) || null;
+  },
+
+  setCachedDecks({ folderId, uncategorized, search } = {}, data) {
+    const params = new URLSearchParams();
+    if (folderId !== undefined && folderId !== null) params.append('folderId', folderId);
+    if (uncategorized) params.append('uncategorized', 'true');
+    if (search) params.append('search', search);
+
+    const queryString = params.toString();
+    const cacheKey = queryString || 'all';
+    deckCache.set(cacheKey, data);
+  },
+
+  clearCache() {
+    deckCache.clear();
   },
 
   getDeck(id) {
