@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/common/Modal';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Tabs from '../../components/common/Tabs';
 import BulkImportTab from '../bulkimport/BulkImportTab';
+import { parseBulkText } from '../bulkimport/parseBulkText';
 import { useStudyPlan } from '../studyplan/StudyPlanContext';
-import { Plus, Trash2, FolderPlus, Edit3, Upload, Sparkles, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, FolderPlus, Edit3, Upload, Sparkles, AlertCircle, Feather } from 'lucide-react';
+import './DeckFormModal.css';
 
 const emptyCard = () => ({
   id: null,
@@ -37,6 +39,11 @@ export default function DeckFormModal({
   const [isQuickFolderOpen, setIsQuickFolderOpen] = useState(false);
   const { activePlan } = useStudyPlan();
   const [addToStudyPlan, setAddToStudyPlan] = useState(false);
+  const [bulkState, setBulkState] = useState({ inputText: '', parsedResult: null });
+
+  const handleBulkStateChange = useCallback((nextBulkState) => {
+    setBulkState(nextBulkState);
+  }, []);
 
   useEffect(() => {
     if (deckToEdit) {
@@ -67,6 +74,7 @@ export default function DeckFormModal({
     setErrors({});
     setActiveTab('manual');
     setIsQuickFolderOpen(false);
+    setBulkState({ inputText: '', parsedResult: null });
   }, [deckToEdit, currentFolderId, isOpen]);
 
   const isEditing = Boolean(deckToEdit);
@@ -116,16 +124,93 @@ export default function DeckFormModal({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // If user is on bulk tab, guide them to click "Thêm X thẻ vào bộ từ" first
-    if (activeTab === 'bulk') {
-      setErrors({ general: 'Vui lòng nhấn nút "Thêm thẻ vào bộ từ" trong tab Bulk Import trước, sau đó nhấn Hoàn thành.' });
-      return;
-    }
-
     const newErrors = {};
 
     if (!name.trim()) {
       newErrors.name = 'Tên bộ từ vựng không được để trống';
+    }
+
+    // Direct submission from Bulk Import tab without switching to Manual tab
+    if (activeTab === 'bulk') {
+      const existingNonEmptyCards = cards.filter(
+        (c) => c.term.trim() && c.definition.trim()
+      );
+
+      let latestParsed = bulkState.parsedResult;
+      if (
+        bulkState.inputText.trim() &&
+        (!latestParsed || !latestParsed.rows || latestParsed.rows.length === 0)
+      ) {
+        latestParsed = parseBulkText(bulkState.inputText, {
+          existingTerms: existingNonEmptyCards.map((c) => c.term),
+        });
+      }
+
+      if (latestParsed?.isExceededLimit && latestParsed?.globalError) {
+        newErrors.general = latestParsed.globalError;
+      }
+
+      const importableRows = (latestParsed?.rows || []).filter(
+        (r) => r.status === 'valid' || r.status === 'warning'
+      );
+
+      const bulkCards = importableRows.map((r) => ({
+        id: null,
+        term: r.fields.term.trim(),
+        definition: r.fields.definition.trim(),
+        pronunciation: r.fields.pronunciation ? r.fields.pronunciation.trim() : null,
+        partOfSpeech: r.fields.partOfSpeech ? r.fields.partOfSpeech.trim() : null,
+        example: r.fields.example ? r.fields.example.trim() : null,
+        synonyms: Array.isArray(r.fields.synonyms)
+          ? r.fields.synonyms.map((s) => s.trim()).filter(Boolean)
+          : r.fields.rawSynonyms
+            ? r.fields.rawSynonyms
+                .split(/[,;]/)
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [],
+      }));
+
+      const manualPayloadCards = existingNonEmptyCards.map((c) => ({
+        id: c.id || null,
+        term: c.term.trim(),
+        definition: c.definition.trim(),
+        pronunciation: c.pronunciation ? c.pronunciation.trim() : null,
+        partOfSpeech: c.partOfSpeech ? c.partOfSpeech.trim() : null,
+        example: c.example ? c.example.trim() : null,
+        synonyms: c.synonymsText
+          ? c.synonymsText
+              .split(/[,;]/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      }));
+
+      const finalPayloadCards = [...manualPayloadCards, ...bulkCards];
+
+      if (!newErrors.general && finalPayloadCards.length === 0) {
+        if ((latestParsed?.rows || []).length > 0) {
+          newErrors.general =
+            'Không có thẻ hợp lệ nào để tạo. Vui lòng kiểm tra các dòng bị lỗi hoặc trùng lặp bên dưới.';
+        } else {
+          newErrors.general =
+            'Vui lòng dán danh sách từ vựng vào khung Bulk Import trước khi tạo bộ từ.';
+        }
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
+
+      onSubmit({
+        name: name.trim(),
+        description: description.trim() || null,
+        folderId: folderId ? Number(folderId) : null,
+        cards: finalPayloadCards,
+        addToStudyPlan: !isEditing && addToStudyPlan,
+      });
+      return;
     }
 
     if (cards.length === 0) {
@@ -208,117 +293,154 @@ export default function DeckFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEditing ? 'Chỉnh sửa bộ từ vựng' : 'Tạo bộ từ vựng mới'}
-      maxWidth="860px"
+      subtitle="Ghi lại những kiến thức mới trên hành trình khám phá."
+      headerIcon={
+        <div className="journal-modal-seal" aria-hidden="true">
+          <img
+            src="/assets/decor_icon/decor_feather.png"
+            alt=""
+            className="journal-modal-seal-img"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <Feather size={18} className="journal-modal-seal-fallback" />
+        </div>
+      }
+      className="lexicon-journal-modal"
+      backdropClassName="lexicon-journal-backdrop"
+      maxWidth="880px"
     >
       <form onSubmit={handleSubmit} className="deck-form">
-        {errors.general && (
-          <div className="alert-banner alert-danger">
-            <AlertCircle size={16} />
-            <span>{errors.general}</span>
-          </div>
-        )}
+        <div className="deck-form-scroll-area">
+          {errors.general && (
+            <div className="alert-banner alert-danger">
+              <AlertCircle size={16} />
+              <span>{errors.general}</span>
+            </div>
+          )}
 
-        {/* Deck Basic Info */}
-        <div className="deck-form-info-grid">
-          <Input
-            label="Tên bộ từ vựng"
-            required
-            placeholder="Ví dụ: Oxford 3000, 50 động từ bất quy tắc..."
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
-            }}
-            error={errors.name}
-          />
+          {/* Deck Basic Info */}
+          <div className="deck-form-info-section">
+            <div className="deck-form-info-grid">
+              <Input
+                label="Tên bộ từ vựng"
+                required
+                placeholder="Ví dụ: Oxford 3000, 50 động từ bất quy tắc..."
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
+                }}
+                error={errors.name}
+              />
 
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="form-label">Thư mục lưu trữ</label>
-              {!isQuickFolderOpen && (
-                <button
-                  type="button"
-                  className="link-btn-sm"
-                  onClick={() => setIsQuickFolderOpen(true)}
-                >
-                  <FolderPlus size={14} style={{ marginRight: '3px' }} />
-                  + Tạo thư mục mới
-                </button>
-              )}
+              <div className="form-group">
+                <div className="deck-folder-label-row">
+                  <label className="form-label" style={{ marginBottom: 0 }}>Thư mục lưu trữ</label>
+                  {!isQuickFolderOpen && (
+                    <button
+                      type="button"
+                      className="link-btn-sm journal-new-folder-btn"
+                      onClick={() => setIsQuickFolderOpen(true)}
+                    >
+                      <FolderPlus size={14} />
+                      <span>+ Tạo thư mục mới</span>
+                    </button>
+                  )}
+                </div>
+
+                {isQuickFolderOpen ? (
+                  <div className="quick-folder-input-row">
+                    <input
+                      type="text"
+                      className="form-input form-input-sm"
+                      placeholder="Nhập tên thư mục mới..."
+                      value={quickFolderName}
+                      onChange={(e) => setQuickFolderName(e.target.value)}
+                      autoFocus
+                    />
+                    <Button size="sm" variant="primary" onClick={handleCreateQuickFolder}>
+                      Lưu
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsQuickFolderOpen(false)}>
+                      Hủy
+                    </Button>
+                  </div>
+                ) : (
+                  <select
+                    className="form-select"
+                    value={folderId}
+                    onChange={(e) => setFolderId(e.target.value)}
+                  >
+                    <option value="">-- Chưa phân loại (Không có thư mục) --</option>
+                    {folders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
 
-            {isQuickFolderOpen ? (
-              <div className="quick-folder-input-row">
-                <input
-                  type="text"
-                  className="form-input form-input-sm"
-                  placeholder="Nhập tên thư mục mới..."
-                  value={quickFolderName}
-                  onChange={(e) => setQuickFolderName(e.target.value)}
-                  autoFocus
-                />
-                <Button size="sm" variant="primary" onClick={handleCreateQuickFolder}>
-                  Lưu
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setIsQuickFolderOpen(false)}>
-                  Hủy
-                </Button>
+            <Input
+              label="Mô tả bộ từ (tùy chọn)"
+              placeholder="Mô tả mục đích hoặc chủ đề học tập..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+
+            {!isEditing && activePlan && (
+              <div className="journal-study-plan-optin">
+                <label className="journal-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={addToStudyPlan}
+                    onChange={(e) => setAddToStudyPlan(e.target.checked)}
+                  />
+                  <span>Thêm bộ từ này vào lộ trình ôn tập &quot;{activePlan.name}&quot;</span>
+                </label>
               </div>
-            ) : (
-              <select
-                className="form-select"
-                value={folderId}
-                onChange={(e) => setFolderId(e.target.value)}
-              >
-                <option value="">-- Chưa phân loại (Không có thư mục) --</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
             )}
           </div>
-        </div>
 
-        <Input
-          label="Mô tả bộ từ (tùy chọn)"
-          placeholder="Mô tả mục đích hoặc chủ đề học tập..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-
-        {!isEditing && activePlan && (
-          <div style={{ marginTop: '0.75rem', marginBottom: '0.25rem' }}>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>
-              <input
-                type="checkbox"
-                checked={addToStudyPlan}
-                onChange={(e) => setAddToStudyPlan(e.target.checked)}
-              />
-              <span>Thêm bộ từ này vào lộ trình ôn tập &quot;{activePlan.name}&quot;</span>
-            </label>
+          <div className="journal-ink-divider" aria-hidden="true">
+            <span className="journal-divider-line" />
+            <span className="journal-divider-ornament">❖</span>
+            <span className="journal-divider-line" />
           </div>
-        )}
 
-        <div className="sidebar-divider" style={{ margin: '20px 0' }} />
+          {/* 3-Tab Interface */}
+          <div className="deck-terms-header">
+            <Tabs tabs={tabs} activeTab={activeTab} onTabChange={(nextTab) => {
+              setActiveTab(nextTab);
+              if (errors.general) setErrors((prev) => ({ ...prev, general: '' }));
+            }} />
+            <span className="deck-terms-count">
+              Tổng cộng:{' '}
+              {activeTab === 'bulk'
+                ? cards.filter((c) => c.term.trim() && c.definition.trim()).length +
+                  ((bulkState.parsedResult?.rows || []).filter(
+                    (r) => r.status === 'valid' || r.status === 'warning'
+                  ).length)
+                : cards.length}{' '}
+              thẻ
+            </span>
+          </div>
 
-        {/* 3-Tab Interface */}
-        <div className="deck-terms-header">
-          <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-          <span className="deck-terms-count">Tổng cộng: {cards.length} thẻ</span>
-        </div>
+          {/* Tab Content */}
+          <div style={{ display: activeTab === 'bulk' ? 'block' : 'none' }}>
+            <BulkImportTab
+              existingCards={cards}
+              onImportCards={handleBulkImportCards}
+              onBulkStateChange={handleBulkStateChange}
+              isOpen={isOpen}
+            />
+          </div>
 
-        {/* Tab Content */}
-        <div style={{ display: activeTab === 'bulk' ? 'block' : 'none' }}>
-          <BulkImportTab
-            existingCards={cards}
-            onImportCards={handleBulkImportCards}
-          />
-        </div>
-
-        <div style={{ display: activeTab === 'manual' ? 'block' : 'none' }}>
-          {/* Cards list (Manual Entry) */}
+          <div style={{ display: activeTab === 'manual' ? 'block' : 'none' }}>
+            {/* Cards list (Manual Entry) */}
             <div className="deck-cards-editor">
               {cards.map((card, index) => (
                 <div key={card.id || index} className="card-editor-item">
@@ -444,14 +566,15 @@ export default function DeckFormModal({
                 variant="outline"
                 onClick={handleAddCard}
                 icon={Plus}
-                className="w-full"
+                className="w-full journal-add-card-btn"
               >
                 Thêm thẻ từ mới
               </Button>
             </div>
           </div>
+        </div>
 
-        <div className="modal-footer" style={{ marginTop: '24px' }}>
+        <div className="modal-footer journal-modal-footer">
           <Button variant="secondary" onClick={onClose} disabled={loading}>
             Hủy bỏ
           </Button>

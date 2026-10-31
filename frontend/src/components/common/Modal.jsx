@@ -6,6 +6,10 @@ export default function Modal({
   isOpen,
   onClose,
   title,
+  subtitle,
+  headerIcon,
+  className = '',
+  backdropClassName = '',
   children,
   maxWidth = '550px',
 }) {
@@ -30,16 +34,22 @@ export default function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className={`modal-backdrop ${backdropClassName}`.trim()} onClick={onClose}>
       <div
-        className="modal-container"
+        className={`modal-container ${className}`.trim()}
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
         <div className="modal-header">
-          <h3 className="modal-title">{title}</h3>
+          <div className="modal-header-title-group">
+            {headerIcon && <div className="modal-header-icon">{headerIcon}</div>}
+            <div className="modal-header-text">
+              <h3 className="modal-title">{title}</h3>
+              {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+            </div>
+          </div>
           <button
             type="button"
             className="modal-close-btn"

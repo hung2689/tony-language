@@ -19,6 +19,8 @@ import Button from '../../components/common/Button';
 export default function BulkImportTab({
   existingCards = [],
   onImportCards,
+  onBulkStateChange,
+  isOpen = true,
   onToast,
 }) {
   const [inputText, setInputText] = useState('');
@@ -27,16 +29,29 @@ export default function BulkImportTab({
     parseBulkText('', { existingTerms: existingCards })
   );
 
+  // Reset bulk input when modal reopens
+  useEffect(() => {
+    if (!isOpen) {
+      setInputText('');
+      setParsedResult(parseBulkText('', { existingTerms: [] }));
+    }
+  }, [isOpen]);
+
   // Debounced parsing when input text changes
   useEffect(() => {
     const timer = setTimeout(() => {
       const existingTerms = existingCards.map((c) => c.term);
       const res = parseBulkText(inputText, { existingTerms });
       setParsedResult(res);
-    }, 250);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [inputText, existingCards]);
+
+  // Sync latest bulk state to parent DeckFormModal so user can submit directly
+  useEffect(() => {
+    onBulkStateChange?.({ inputText, parsedResult });
+  }, [inputText, parsedResult, onBulkStateChange]);
 
   const handleCopySample = () => {
     navigator.clipboard?.writeText(SAMPLE_BULK_LINES).then(
@@ -372,13 +387,12 @@ export default function BulkImportTab({
           </div>
 
           <Button
-            type="button"
+            type="submit"
             variant="primary"
-            onClick={handleConfirmImport}
             disabled={importableCardsCount === 0}
-            icon={Plus}
+            icon={Check}
           >
-            Thêm {importableCardsCount} thẻ vào bộ từ
+            Tạo ngay ({importableCardsCount} thẻ)
           </Button>
         </div>
       )}

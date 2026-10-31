@@ -22,6 +22,9 @@ public interface VocabularySetRepository extends JpaRepository<VocabularySet, Lo
 
     long countByFolderId(Long folderId);
 
+    @Query("SELECT v.folderId, COUNT(v) FROM VocabularySet v WHERE v.userId = :userId AND v.folderId IS NOT NULL GROUP BY v.folderId")
+    List<Object[]> countByUserIdGroupByFolderId(@Param("userId") Long userId);
+
     long countByUserId(Long userId);
 
     long countByUserIdAndFolderIdIsNull(Long userId);

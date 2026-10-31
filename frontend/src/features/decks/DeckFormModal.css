@@ -1,0 +1,1058 @@
+/* ==========================================================================
+   LEXICON — DECK FORM MODAL ("TẠO BỘ TỪ VỰNG MỚI" / "CHỈNH SỬA BỘ TỪ VỰNG")
+   Art Direction: Vintage Explorer Journal / Illustrated Adventure Field Notes
+   ========================================================================== */
+
+.lexicon-journal-backdrop {
+  background-color: rgba(34, 24, 14, 0.62) !important;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  padding: 20px;
+}
+
+/* --------------------------------------------------------------------------
+   1. OVERALL POPUP STRUCTURE — Explorer Journal Sheet
+   -------------------------------------------------------------------------- */
+.modal-container.lexicon-journal-modal {
+  --lx-parchment: #F3E6C8;
+  --lx-paper-light: #FAF0DA;
+  --lx-paper-aged: #E8D3A8;
+  --lx-ink-main: #3B2B1C;
+  --lx-ink-secondary: #796246;
+  --lx-forest: #46583A;
+  --lx-forest-hover: #3A4A30;
+  --lx-moss-light: #DCE0C2;
+  --lx-brass: #A8783E;
+  --lx-border: #B99A6A;
+  --lx-teal: #779D98;
+  --lx-terracotta: #B4533A;
+  --lx-terracotta-bg: rgba(180, 83, 58, 0.12);
+  --lx-serif: 'Playfair Display', 'Merriweather', Georgia, 'Times New Roman', serif;
+  --lx-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  position: relative;
+  background-color: var(--lx-parchment) !important;
+  background-image:
+    radial-gradient(ellipse at 12% 10%, rgba(250, 240, 218, 0.88) 0%, transparent 55%),
+    radial-gradient(ellipse at 88% 92%, rgba(232, 211, 168, 0.72) 0%, transparent 58%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(168, 120, 62, 0.018) 0px,
+      rgba(168, 120, 62, 0.018) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    linear-gradient(180deg, #F7ECD3 0%, #F3E6C8 52%, #EDE0BF 100%) !important;
+  border: 2px solid var(--lx-brass) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 0 0 3px var(--lx-parchment),
+    inset 0 0 0 4px rgba(185, 154, 106, 0.55),
+    0 20px 44px rgba(36, 24, 12, 0.42),
+    0 6px 16px rgba(36, 24, 12, 0.22) !important;
+  color: var(--lx-ink-main) !important;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: lxJournalModalEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Subtle hand-drawn brass corner brackets on the modal frame */
+.modal-container.lexicon-journal-modal::before,
+.modal-container.lexicon-journal-modal::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--lx-brass);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 25;
+  opacity: 0.72;
+}
+
+.modal-container.lexicon-journal-modal::before {
+  top: 7px;
+  left: 7px;
+  border-width: 2px 0 0 2px;
+  border-top-left-radius: 4px;
+}
+
+.modal-container.lexicon-journal-modal::after {
+  bottom: 7px;
+  right: 7px;
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: 4px;
+}
+
+@keyframes lxJournalModalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.965) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. HEADER — Trang Ghi Chép Mới
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .modal-header {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 26px 15px !important;
+  background:
+    radial-gradient(circle at 92% 50%, rgba(168, 120, 62, 0.12) 0%, transparent 45%),
+    linear-gradient(180deg, #FAF0DA 0%, #EFE0BE 100%) !important;
+  border-bottom: 1.5px solid var(--lx-border) !important;
+  box-shadow: 0 2px 8px rgba(59, 43, 28, 0.06);
+}
+
+/* Fine ink line accent under header */
+.lexicon-journal-modal .modal-header::after {
+  content: '';
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  bottom: 3px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(168, 120, 62, 0.48) 15%,
+    rgba(168, 120, 62, 0.48) 85%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.lexicon-journal-modal .modal-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.lexicon-journal-modal .journal-modal-seal {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #FAF0DA 0%, #E8D3A8 100%);
+  border: 1.5px solid var(--lx-brass);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 252, 244, 0.8),
+    0 2px 5px rgba(59, 43, 28, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--lx-forest);
+  position: relative;
+}
+
+.lexicon-journal-modal .journal-modal-seal-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 1px 2px rgba(59, 43, 28, 0.2));
+}
+
+.lexicon-journal-modal .journal-modal-seal-fallback {
+  position: absolute;
+  color: var(--lx-brass);
+  opacity: 0.35;
+}
+
+.lexicon-journal-modal .modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lexicon-journal-modal .modal-title {
+  font-family: var(--lx-serif) !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  color: var(--lx-ink-main) !important;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  margin: 0;
+  text-shadow: 0 1px 0 rgba(255, 250, 238, 0.8);
+}
+
+.lexicon-journal-modal .modal-subtitle {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--lx-ink-secondary);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.lexicon-journal-modal .modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px !important;
+  background-color: var(--lx-paper-light) !important;
+  border: 1.5px solid var(--lx-border) !important;
+  color: var(--lx-ink-secondary) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 1px 3px rgba(59, 43, 28, 0.1);
+  transition: all 0.16s ease;
+  flex-shrink: 0;
+}
+
+.lexicon-journal-modal .modal-close-btn:hover {
+  background-color: var(--lx-paper-aged) !important;
+  border-color: var(--lx-brass) !important;
+  color: var(--lx-ink-main) !important;
+  transform: translateY(-1px);
+}
+
+.lexicon-journal-modal .modal-close-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* --------------------------------------------------------------------------
+   3. MODAL BODY & SCROLL AREA (Single Smooth Parchment Scrollbar)
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .modal-body {
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.lexicon-journal-modal .deck-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+}
+
+.lexicon-journal-modal .deck-form-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 26px 22px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lx-border) var(--lx-paper-aged);
+}
+
+.lexicon-journal-modal .deck-form-scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lexicon-journal-modal .deck-form-scroll-area::-webkit-scrollbar-track {
+  background: var(--lx-paper-aged);
+  border-left: 1px solid rgba(185, 154, 106, 0.35);
+}
+
+.lexicon-journal-modal .deck-form-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--lx-border);
+  border-radius: 999px;
+  border: 2px solid var(--lx-paper-aged);
+}
+
+.lexicon-journal-modal .deck-form-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: var(--lx-brass);
+}
+
+/* Alert Banner inside Journal Form */
+.lexicon-journal-modal .alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lexicon-journal-modal .alert-banner.alert-danger {
+  background-color: #FAEDE8;
+  border: 1.5px solid var(--lx-terracotta);
+  color: #8F351E;
+}
+
+/* --------------------------------------------------------------------------
+   4. DECK BASIC INFO SECTION — Labels, Inputs, Selects, Folder Actions
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .deck-form-info-section {
+  background: rgba(250, 240, 218, 0.55);
+  border: 1px solid rgba(185, 154, 106, 0.65);
+  border-radius: 10px;
+  padding: 16px 18px 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.7);
+}
+
+.lexicon-journal-modal .deck-form-info-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.lexicon-journal-modal .form-group {
+  margin-bottom: 12px !important;
+}
+
+.lexicon-journal-modal .form-label {
+  font-family: var(--lx-serif) !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: var(--lx-ink-main) !important;
+  margin-bottom: 6px !important;
+  letter-spacing: 0.01em;
+}
+
+.lexicon-journal-modal .form-label-sm {
+  font-family: var(--lx-sans) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--lx-ink-main) !important;
+  margin-bottom: 5px !important;
+  display: inline-block;
+}
+
+.lexicon-journal-modal .text-danger {
+  color: var(--lx-terracotta) !important;
+  font-weight: 700;
+}
+
+/* Override any global/leaked input padding and apply clean parchment field style */
+.lexicon-journal-modal .form-input,
+.lexicon-journal-modal .form-select {
+  width: 100%;
+  padding: 9px 13px !important;
+  font-family: var(--lx-sans) !important;
+  font-size: 13.5px !important;
+  line-height: 1.4 !important;
+  color: var(--lx-ink-main) !important;
+  background-color: var(--lx-paper-light) !important;
+  border: 1.5px solid var(--lx-border) !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 1px 2px rgba(59, 43, 28, 0.06) !important;
+  outline: none !important;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.lexicon-journal-modal .form-input-sm,
+.lexicon-journal-modal .form-select.form-input-sm {
+  padding: 7px 11px !important;
+  font-size: 13px !important;
+  border-radius: 7px !important;
+}
+
+.lexicon-journal-modal .form-select,
+.lexicon-journal-modal .form-select.form-input-sm {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 32px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23796246' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 11px center !important;
+  background-size: 14px 14px !important;
+  cursor: pointer;
+}
+
+.lexicon-journal-modal .form-input::placeholder {
+  color: var(--lx-ink-secondary) !important;
+  opacity: 0.72;
+}
+
+.lexicon-journal-modal .form-input:hover:not(:disabled),
+.lexicon-journal-modal .form-select:hover:not(:disabled) {
+  border-color: var(--lx-brass) !important;
+}
+
+.lexicon-journal-modal .form-input:focus,
+.lexicon-journal-modal .form-select:focus {
+  background-color: #FFFDF7 !important;
+  border-color: var(--lx-forest) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(59, 43, 28, 0.04),
+    0 0 0 3px rgba(70, 88, 58, 0.18) !important;
+}
+
+.lexicon-journal-modal .form-input.is-invalid,
+.lexicon-journal-modal .form-select.is-invalid {
+  border-color: var(--lx-terracotta) !important;
+  background-color: #FDF3EF !important;
+}
+
+.lexicon-journal-modal .form-error,
+.lexicon-journal-modal .form-error-sm {
+  color: var(--lx-terracotta) !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  margin-top: 4px !important;
+}
+
+/* Folder Label Row & "+ Tạo thư mục mới" Button */
+.lexicon-journal-modal .deck-folder-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lexicon-journal-modal .journal-new-folder-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  font-family: var(--lx-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lx-forest);
+  background-color: var(--lx-paper-light);
+  border: 1px dashed var(--lx-brass);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lexicon-journal-modal .journal-new-folder-btn:hover {
+  background-color: var(--lx-paper-aged);
+  border-style: solid;
+  border-color: var(--lx-forest);
+  color: var(--lx-ink-main);
+  transform: translateY(-1px);
+}
+
+.lexicon-journal-modal .quick-folder-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Study Plan Opt-in Strip */
+.lexicon-journal-modal .journal-study-plan-optin {
+  margin: 4px 0 10px;
+  padding: 8px 12px;
+  background-color: rgba(220, 224, 194, 0.5);
+  border: 1px solid var(--lx-border);
+  border-radius: 8px;
+}
+
+.lexicon-journal-modal .journal-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lx-ink-main);
+}
+
+.lexicon-journal-modal .journal-checkbox-label input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--lx-forest);
+  cursor: pointer;
+}
+
+/* Ornamental Ink Divider */
+.lexicon-journal-modal .journal-ink-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 14px;
+  user-select: none;
+}
+
+.lexicon-journal-modal .journal-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(185, 154, 106, 0.2) 0%,
+    var(--lx-border) 50%,
+    rgba(185, 154, 106, 0.2) 100%
+  );
+}
+
+.lexicon-journal-modal .journal-divider-ornament {
+  font-size: 11px;
+  color: var(--lx-brass);
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   5. TABS NHẬP TỪ VỰNG — Explorer Journal Bookmark Tabs
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .deck-terms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1.5px solid var(--lx-border);
+  padding-bottom: 0;
+}
+
+.lexicon-journal-modal .tab-bar {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  gap: 4px;
+}
+
+.lexicon-journal-modal .tab-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  font-family: var(--lx-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lx-ink-secondary) !important;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 2.5px solid transparent !important;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: -1.5px;
+  transition: all 0.16s ease;
+}
+
+.lexicon-journal-modal .tab-item .tab-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--lx-ink-secondary);
+  transition: color 0.16s ease;
+}
+
+.lexicon-journal-modal .tab-item:hover:not(:disabled) {
+  color: var(--lx-ink-main) !important;
+  background-color: rgba(232, 211, 168, 0.48);
+}
+
+.lexicon-journal-modal .tab-item:hover:not(:disabled) .tab-icon {
+  color: var(--lx-forest);
+}
+
+.lexicon-journal-modal .tab-item.is-active {
+  color: var(--lx-ink-main) !important;
+  font-weight: 700;
+  background-color: var(--lx-paper-light);
+  border-color: var(--lx-border) var(--lx-border) transparent;
+  border-bottom: 2.5px solid var(--lx-forest) !important;
+  box-shadow: 0 -2px 6px rgba(59, 43, 28, 0.04);
+}
+
+.lexicon-journal-modal .tab-item.is-active .tab-icon {
+  color: var(--lx-forest);
+}
+
+.lexicon-journal-modal .tab-item.is-disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.lexicon-journal-modal .tab-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  background-color: var(--lx-paper-aged) !important;
+  color: var(--lx-ink-secondary) !important;
+  border: 1px solid var(--lx-border);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.lexicon-journal-modal .deck-terms-count {
+  font-family: var(--lx-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--lx-ink-main);
+  background-color: var(--lx-paper-aged);
+  border: 1px solid var(--lx-border);
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 244, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   6. VOCABULARY ENTRY CARDS — Individual Field-Note Entries
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .deck-cards-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: none !important;
+  overflow: visible !important;
+  padding-right: 0 !important;
+}
+
+.lexicon-journal-modal .card-editor-item {
+  position: relative;
+  background: linear-gradient(180deg, #FAF0DA 0%, #F4E7C9 100%) !important;
+  border: 1.5px solid var(--lx-border) !important;
+  border-left: 4px solid var(--lx-brass) !important;
+  border-radius: 10px !important;
+  padding: 15px 18px 14px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 253, 247, 0.8),
+    0 3px 10px rgba(59, 43, 28, 0.07) !important;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  animation: lxCardFadeIn 0.18s ease-out;
+}
+
+/* Subtle folded parchment corner detail on top-right of each entry card */
+.lexicon-journal-modal .card-editor-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(225deg, var(--lx-paper-aged) 50%, rgba(168, 120, 62, 0.25) 50%);
+  border-bottom-left-radius: 4px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.lexicon-journal-modal .card-editor-item:hover {
+  border-color: var(--lx-brass) !important;
+  border-left-color: var(--lx-forest) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 253, 247, 0.9),
+    0 5px 14px rgba(59, 43, 28, 0.11) !important;
+}
+
+@keyframes lxCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lexicon-journal-modal .card-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 11px;
+  padding-bottom: 7px;
+  border-bottom: 1px dashed rgba(185, 154, 106, 0.6);
+}
+
+.lexicon-journal-modal .card-number {
+  font-family: var(--lx-serif) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  color: var(--lx-ink-main) !important;
+  background-color: var(--lx-paper-aged) !important;
+  border: 1px solid var(--lx-brass);
+  padding: 2px 10px !important;
+  border-radius: 6px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 250, 240, 0.65);
+}
+
+.lexicon-journal-modal .card-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--lx-terracotta) !important;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.lexicon-journal-modal .card-remove-btn:hover {
+  color: #8F351E !important;
+  background-color: var(--lx-terracotta-bg) !important;
+  border-color: rgba(180, 83, 58, 0.35);
+  transform: scale(1.05);
+}
+
+/* Entry Card Input Rows & Spacing */
+.lexicon-journal-modal .card-editor-row-1,
+.lexicon-journal-modal .card-editor-row-2 {
+  display: flex;
+  gap: 14px;
+}
+
+.lexicon-journal-modal .card-editor-row-2 {
+  margin-top: 2px;
+}
+
+.lexicon-journal-modal .card-editor-row-3 {
+  margin-top: 2px;
+}
+
+.lexicon-journal-modal .card-editor-row-3 .form-group {
+  margin-bottom: 2px !important;
+}
+
+/* Inputs inside card use bright cream paper for high contrast */
+.lexicon-journal-modal .card-editor-item .form-input,
+.lexicon-journal-modal .card-editor-item .form-select {
+  background-color: #FFFDF7 !important;
+  border-color: var(--lx-border) !important;
+}
+
+.lexicon-journal-modal .card-editor-item .form-input:focus,
+.lexicon-journal-modal .card-editor-item .form-select:focus {
+  background-color: #FFFFFF !important;
+  border-color: var(--lx-forest) !important;
+}
+
+/* "+ Thêm thẻ từ mới" Button */
+.lexicon-journal-modal .add-card-button-wrapper {
+  margin-top: 14px;
+}
+
+.lexicon-journal-modal .journal-add-card-btn {
+  background: rgba(250, 240, 218, 0.78) !important;
+  border: 1.5px dashed var(--lx-brass) !important;
+  color: var(--lx-forest) !important;
+  font-family: var(--lx-serif) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 11px 18px !important;
+  border-radius: 10px !important;
+  transition: all 0.16s ease !important;
+}
+
+.lexicon-journal-modal .journal-add-card-btn:hover:not(:disabled) {
+  background: var(--lx-paper-light) !important;
+  border-style: solid !important;
+  border-color: var(--lx-forest) !important;
+  color: var(--lx-ink-main) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(59, 43, 28, 0.1);
+}
+
+.lexicon-journal-modal .journal-add-card-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+/* --------------------------------------------------------------------------
+   7. BULK IMPORT TAB HARMONIZATION (Inside Explorer Journal Modal)
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .bulk-guide-card {
+  background-color: var(--lx-paper-light) !important;
+  border: 1.5px solid var(--lx-border) !important;
+  color: var(--lx-ink-main) !important;
+  border-radius: 10px;
+}
+
+.lexicon-journal-modal .bulk-guide-title {
+  color: var(--lx-ink-main) !important;
+  font-family: var(--lx-serif);
+}
+
+.lexicon-journal-modal .bulk-guide-title code {
+  background-color: var(--lx-paper-aged) !important;
+  color: var(--lx-ink-main) !important;
+  border: 1px solid var(--lx-border);
+}
+
+.lexicon-journal-modal .bulk-sample-btn {
+  background-color: var(--lx-parchment) !important;
+  border: 1px solid var(--lx-brass) !important;
+  color: var(--lx-ink-main) !important;
+  font-weight: 600;
+}
+
+.lexicon-journal-modal .bulk-sample-btn:hover {
+  background-color: var(--lx-paper-aged) !important;
+  border-color: var(--lx-forest) !important;
+}
+
+.lexicon-journal-modal .bulk-format-spec {
+  background-color: #3B2B1C !important;
+  color: #FAF0DA !important;
+  border: 1px solid var(--lx-brass);
+}
+
+.lexicon-journal-modal .bulk-format-note,
+.lexicon-journal-modal .bulk-delimiter-indicator {
+  color: var(--lx-ink-secondary) !important;
+}
+
+.lexicon-journal-modal .bulk-input-label {
+  color: var(--lx-ink-main) !important;
+  font-family: var(--lx-serif);
+}
+
+.lexicon-journal-modal .bulk-clear-btn {
+  color: var(--lx-terracotta) !important;
+  font-weight: 600;
+}
+
+.lexicon-journal-modal .bulk-textarea {
+  background-color: var(--lx-paper-light) !important;
+  border: 1.5px solid var(--lx-border) !important;
+  color: var(--lx-ink-main) !important;
+  border-radius: 8px;
+}
+
+.lexicon-journal-modal .bulk-textarea:focus {
+  background-color: #FFFDF7 !important;
+  border-color: var(--lx-forest) !important;
+  box-shadow: 0 0 0 3px rgba(70, 88, 58, 0.16) !important;
+}
+
+.lexicon-journal-modal .bulk-summary-bar {
+  background-color: var(--lx-paper-light) !important;
+  border: 1.5px solid var(--lx-border) !important;
+}
+
+.lexicon-journal-modal .pill-total {
+  background-color: var(--lx-paper-aged) !important;
+  color: var(--lx-ink-main) !important;
+  border: 1px solid var(--lx-border);
+}
+
+.lexicon-journal-modal .pill-valid {
+  background-color: var(--lx-moss-light) !important;
+  color: var(--lx-forest) !important;
+  border: 1px solid var(--lx-forest);
+}
+
+.lexicon-journal-modal .bulk-table-container {
+  border: 1.5px solid var(--lx-border) !important;
+  background-color: var(--lx-paper-light);
+}
+
+.lexicon-journal-modal .bulk-preview-table {
+  background-color: var(--lx-paper-light) !important;
+  color: var(--lx-ink-main);
+}
+
+.lexicon-journal-modal .bulk-preview-table thead {
+  background-color: var(--lx-paper-aged) !important;
+  border-bottom: 1.5px solid var(--lx-border) !important;
+}
+
+.lexicon-journal-modal .bulk-preview-table th {
+  color: var(--lx-ink-main) !important;
+  font-family: var(--lx-serif);
+}
+
+.lexicon-journal-modal .bulk-preview-table td {
+  border-bottom: 1px solid rgba(185, 154, 106, 0.35) !important;
+}
+
+.lexicon-journal-modal .table-inline-input {
+  background-color: #FFFDF7;
+  border: 1px solid var(--lx-border);
+  border-radius: 5px;
+  padding: 4px 7px;
+  color: var(--lx-ink-main);
+  width: 100%;
+}
+
+.lexicon-journal-modal .table-inline-input:focus {
+  outline: none;
+  border-color: var(--lx-forest);
+}
+
+/* --------------------------------------------------------------------------
+   8. FOOTER & ACTION BUTTONS — Explorer Stamp & Parchment Controls
+   -------------------------------------------------------------------------- */
+.lexicon-journal-modal .modal-footer.journal-modal-footer {
+  flex-shrink: 0;
+  margin-top: 0 !important;
+  padding: 14px 26px !important;
+  background: linear-gradient(180deg, #EFE0BE 0%, #E8D3A8 100%) !important;
+  border-top: 1.5px solid var(--lx-border) !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  box-shadow: 0 -2px 10px rgba(59, 43, 28, 0.06);
+}
+
+.lexicon-journal-modal .btn-primary {
+  background-color: var(--lx-forest) !important;
+  border: 1.5px solid #35442B !important;
+  color: var(--lx-paper-light) !important;
+  font-family: var(--lx-serif) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.015em;
+  border-radius: 8px !important;
+  padding: 9px 20px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 3px 8px rgba(46, 58, 38, 0.24) !important;
+  transition: all 0.16s ease !important;
+}
+
+.lexicon-journal-modal .btn-primary:hover:not(:disabled) {
+  background-color: var(--lx-forest-hover) !important;
+  border-color: #2A3721 !important;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 5px 12px rgba(46, 58, 38, 0.32) !important;
+}
+
+.lexicon-journal-modal .btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.lexicon-journal-modal .btn-secondary,
+.lexicon-journal-modal .btn-ghost {
+  background-color: var(--lx-paper-light) !important;
+  border: 1.5px solid var(--lx-brass) !important;
+  color: var(--lx-ink-main) !important;
+  font-family: var(--lx-serif) !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  padding: 9px 18px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 3px rgba(59, 43, 28, 0.1);
+  transition: all 0.16s ease !important;
+}
+
+.lexicon-journal-modal .btn-secondary:hover:not(:disabled),
+.lexicon-journal-modal .btn-ghost:hover:not(:disabled) {
+  background-color: var(--lx-parchment) !important;
+  border-color: var(--lx-ink-secondary) !important;
+  transform: translateY(-1px);
+}
+
+.lexicon-journal-modal .btn-secondary:active:not(:disabled),
+.lexicon-journal-modal .btn-ghost:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+.lexicon-journal-modal .btn-sm {
+  padding: 6px 12px !important;
+  font-size: 12.5px !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. RESPONSIVE DESIGN (Tablet & Mobile) + REDUCED MOTION
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .lexicon-journal-backdrop {
+    padding: 12px;
+  }
+
+  .lexicon-journal-modal .modal-header {
+    padding: 14px 18px 13px !important;
+  }
+
+  .lexicon-journal-modal .deck-form-scroll-area {
+    padding: 16px 18px 18px;
+  }
+
+  .lexicon-journal-modal .deck-form-info-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .lexicon-journal-modal .card-editor-row-2 {
+    flex-wrap: wrap;
+  }
+
+  .lexicon-journal-modal .card-editor-row-2 > .form-group {
+    flex: 1 1 calc(50% - 7px);
+    min-width: 140px;
+  }
+
+  .lexicon-journal-modal .card-editor-row-2 > .form-group.flex-2 {
+    flex: 1 1 100%;
+  }
+
+  .lexicon-journal-modal .modal-footer.journal-modal-footer {
+    padding: 12px 18px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .lexicon-journal-backdrop {
+    padding: 8px;
+  }
+
+  .modal-container.lexicon-journal-modal {
+    max-height: 94vh;
+  }
+
+  .lexicon-journal-modal .modal-title {
+    font-size: 17.5px !important;
+  }
+
+  .lexicon-journal-modal .modal-subtitle {
+    font-size: 11.5px;
+  }
+
+  .lexicon-journal-modal .deck-terms-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .lexicon-journal-modal .tab-bar {
+    overflow-x: auto;
+    border-bottom: 1px solid var(--lx-border) !important;
+  }
+
+  .lexicon-journal-modal .deck-terms-count {
+    align-self: flex-end;
+  }
+
+  .lexicon-journal-modal .card-editor-item {
+    padding: 13px 14px 12px !important;
+  }
+
+  .lexicon-journal-modal .card-editor-row-1,
+  .lexicon-journal-modal .card-editor-row-2 {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .lexicon-journal-modal .card-editor-row-2 > .form-group {
+    flex: 1 1 100%;
+  }
+
+  .lexicon-journal-modal .modal-footer.journal-modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .lexicon-journal-modal .modal-footer.journal-modal-footer .btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-container.lexicon-journal-modal,
+  .lexicon-journal-modal .card-editor-item,
+  .lexicon-journal-modal .btn,
+  .lexicon-journal-modal .form-input,
+  .lexicon-journal-modal .form-select,
+  .lexicon-journal-modal .tab-item,
+  .lexicon-journal-modal .modal-close-btn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

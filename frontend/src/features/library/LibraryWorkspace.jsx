@@ -128,6 +128,7 @@ export default function LibraryWorkspace() {
   const [folderToDelete, setFolderToDelete] = useState(null);
 
   const [isDeckFormOpen, setIsDeckFormOpen] = useState(false);
+  const [isSavingDeck, setIsSavingDeck] = useState(false);
   const [deckToEdit, setDeckToEdit] = useState(null);
   const [deckToMove, setDeckToMove] = useState(null);
   const [deckToDelete, setDeckToDelete] = useState(null);
@@ -324,9 +325,8 @@ export default function LibraryWorkspace() {
       if (selectedFolderId === folderId) {
         setSearchParams({});
       }
-      await loadFolders();
+      await Promise.all([loadFolders(), loadDecks()]);
       outletContext.refreshFolders?.();
-      await loadDecks();
     } catch (err) {
       showToast(err.message || 'Lỗi khi xóa thư mục', 'error');
     }
@@ -349,6 +349,8 @@ export default function LibraryWorkspace() {
   };
 
   const handleSaveDeck = async (deckData) => {
+    if (isSavingDeck) return;
+    setIsSavingDeck(true);
     try {
       if (deckToEdit) {
         await deckService.updateDeck(deckToEdit.id, deckData);
@@ -359,10 +361,11 @@ export default function LibraryWorkspace() {
       }
       setIsDeckFormOpen(false);
       setDeckToEdit(null);
-      await loadFolders();
-      await loadDecks();
+      await Promise.all([loadFolders(), loadDecks()]);
     } catch (err) {
       showToast(err.message || 'Lỗi khi lưu bộ từ vựng', 'error');
+    } finally {
+      setIsSavingDeck(false);
     }
   };
 
@@ -371,8 +374,7 @@ export default function LibraryWorkspace() {
       await deckService.moveDeck(deckId, targetFolderId);
       showToast('Chuyển thư mục thành công');
       setDeckToMove(null);
-      await loadFolders();
-      await loadDecks();
+      await Promise.all([loadFolders(), loadDecks()]);
     } catch (err) {
       showToast(err.message || 'Lỗi khi chuyển thư mục', 'error');
     }
@@ -380,13 +382,19 @@ export default function LibraryWorkspace() {
 
   const handleDeleteDeckConfirm = async () => {
     if (!deckToDelete) return;
+    const targetDeck = deckToDelete;
+    const previousDecks = decks;
+
+    // Optimistic UI update: close modal and remove card immediately
+    setDeckToDelete(null);
+    setDecks((prev) => prev.filter((d) => d.id !== targetDeck.id));
+
     try {
-      await deckService.deleteDeck(deckToDelete.id);
+      await deckService.deleteDeck(targetDeck.id);
       showToast('Đã xóa bộ từ vựng');
-      setDeckToDelete(null);
-      await loadFolders();
-      await loadDecks();
+      await Promise.all([loadFolders(), loadDecks()]);
     } catch (err) {
+      setDecks(previousDecks);
       showToast(err.message || 'Lỗi khi xóa bộ từ vựng', 'error');
     }
   };
@@ -899,6 +907,7 @@ export default function LibraryWorkspace() {
         onCreateFolderQuick={handleQuickCreateFolder}
         currentFolderId={selectedFolderId}
         deckToEdit={deckToEdit}
+        loading={isSavingDeck}
       />
 
       <MoveDeckModal
