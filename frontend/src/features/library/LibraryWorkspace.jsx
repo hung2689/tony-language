@@ -810,6 +810,7 @@ export default function LibraryWorkspace() {
                           key={deck.id}
                           className="rpg-deck-card"
                           onClick={() => navigate(`/decks/${deck.id}`)}
+                          onMouseEnter={() => deckService.prefetchDeck(deck.id)}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {

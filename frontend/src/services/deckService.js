@@ -2,9 +2,16 @@ import { request } from './api';
 
 // In-memory client cache for decks to support Stale-While-Revalidate and instant tab transitions
 const deckCache = new Map();
+const deckDetailCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
 
-export const clearDeckCache = () => {
-  deckCache.clear();
+export const clearDeckCache = (deckId) => {
+  if (deckId) {
+    deckDetailCache.delete(Number(deckId));
+  } else {
+    deckCache.clear();
+    deckDetailCache.clear();
+  }
 };
 
 export const deckService = {
@@ -50,33 +57,73 @@ export const deckService = {
 
   clearCache() {
     deckCache.clear();
+    deckDetailCache.clear();
   },
 
-  getDeck(id) {
-    return request(`/decks/${id}`);
+  getCachedDeck(id) {
+    const key = Number(id);
+    const cached = deckDetailCache.get(key);
+    if (!cached) return null;
+    if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
+      deckDetailCache.delete(key);
+      return null;
+    }
+    return cached.data;
   },
 
-  createDeck(data) {
+  async getDeck(id, { skipCache = false } = {}) {
+    const key = Number(id);
+    if (!skipCache) {
+      const cached = this.getCachedDeck(key);
+      if (cached) return cached;
+    }
+
+    const data = await request(`/decks/${key}`);
+    deckDetailCache.set(key, { data, timestamp: Date.now() });
+    return data;
+  },
+
+  // Prefetch deck details (e.g. on hover) so clicking is instantaneous
+  prefetchDeck(id) {
+    const key = Number(id);
+    if (!key || this.getCachedDeck(key)) return;
+    request(`/decks/${key}`)
+      .then((data) => {
+        deckDetailCache.set(key, { data, timestamp: Date.now() });
+      })
+      .catch(() => {
+        // Silent fail for prefetch
+      });
+  },
+
+  async createDeck(data) {
+    this.clearCache();
     return request('/decks', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  updateDeck(id, data) {
+  async updateDeck(id, data) {
+    deckDetailCache.delete(Number(id));
+    deckCache.clear();
     return request(`/decks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   },
 
-  deleteDeck(id) {
+  async deleteDeck(id) {
+    deckDetailCache.delete(Number(id));
+    deckCache.clear();
     return request(`/decks/${id}`, {
       method: 'DELETE',
     });
   },
 
-  moveDeck(id, folderId) {
+  async moveDeck(id, folderId) {
+    deckDetailCache.delete(Number(id));
+    deckCache.clear();
     return request(`/decks/${id}/folder`, {
       method: 'PATCH',
       body: JSON.stringify({ folderId: folderId ?? null }),

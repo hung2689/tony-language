@@ -55,9 +55,9 @@ export default function DeckDetailPage() {
     }
   }, [deckId, location.pathname, navigate]);
 
-  const [deck, setDeck] = useState(null);
+  const [deck, setDeck] = useState(() => deckService.getCachedDeck(deckId));
   const [folders, setFolders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !deckService.getCachedDeck(deckId));
   const [errorStatus, setErrorStatus] = useState(null);
   const { refreshPlan } = useStudyPlan();
 
@@ -126,29 +126,40 @@ export default function DeckDetailPage() {
     loadFolders();
   }, [loadFolders]);
 
-  // Load deck details
-  const loadDeck = useCallback(async () => {
-    setLoading(true);
+  // Load deck details (with Stale-While-Revalidate support)
+  const loadDeck = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    }
     setErrorStatus(null);
     setErrorMessage('');
     try {
-      const data = await deckService.getDeck(deckId);
+      const data = await deckService.getDeck(deckId, { skipCache: isSilent });
       setDeck(data);
     } catch (err) {
-      if (err.status === 404 || err.message?.includes('404') || err.message?.includes('Không tìm thấy')) {
-        setErrorStatus(404);
-      } else {
-        setErrorStatus(err.status || 500);
+      if (!isSilent || !deckService.getCachedDeck(deckId)) {
+        if (err.status === 404 || err.message?.includes('404') || err.message?.includes('Không tìm thấy')) {
+          setErrorStatus(404);
+        } else {
+          setErrorStatus(err.status || 500);
+        }
+        setErrorMessage(err.message || 'Không thể tải bộ từ vựng.');
       }
-      setErrorMessage(err.message || 'Không thể tải bộ từ vựng.');
     } finally {
       setLoading(false);
     }
   }, [deckId]);
 
   useEffect(() => {
-    loadDeck();
-  }, [loadDeck]);
+    const cached = deckService.getCachedDeck(deckId);
+    if (cached) {
+      setDeck(cached);
+      setLoading(false);
+      loadDeck(true);
+    } else {
+      loadDeck(false);
+    }
+  }, [loadDeck, deckId]);
 
   const handleSaveDeck = async (deckData) => {
     try {
