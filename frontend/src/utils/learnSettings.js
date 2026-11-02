@@ -35,7 +35,7 @@ export function loadLearnSettings(storage = (typeof window !== 'undefined' ? win
       countMode: parsed.countMode === 'custom' ? 'custom' : 'all',
       customCount: Number.isInteger(parsed.customCount) && parsed.customCount > 0 ? parsed.customCount : 10,
       order: parsed.order === 'order' ? 'order' : 'random',
-      direction: ['VI_TO_EN', 'EN_TO_VI', 'RANDOM'].includes(parsed.direction) ? parsed.direction : 'VI_TO_EN',
+      direction: ['VI_TO_EN', 'EN_TO_VI', 'RANDOM', 'BOTH'].includes(parsed.direction) ? parsed.direction : 'VI_TO_EN',
       autoSpeak: typeof parsed.autoSpeak === 'boolean' ? parsed.autoSpeak : true,
       soundEffects: typeof parsed.soundEffects === 'boolean' ? parsed.soundEffects : true,
       ignoreDiacritics: typeof parsed.ignoreDiacritics === 'boolean' ? parsed.ignoreDiacritics : false,

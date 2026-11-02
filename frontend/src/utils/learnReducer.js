@@ -441,15 +441,41 @@ export function learnReducer(state, action) {
         };
       }
 
+      // If user selected BOTH / RANDOM direction, alternate or switch direction on retry/next encounter
+      const isRandomDirection =
+        state.options?.direction === 'RANDOM' ||
+        state.options?.direction === 'BOTH' ||
+        state.options?.direction === 'mixed';
+
+      let resolvedItem = nextItem;
+      if (isRandomDirection) {
+        // On subsequent encounters (especially after wrong/re-try), alternate direction with 60% probability
+        // or ensure it alternates from the predecessor turn to avoid consecutive same-direction monotony
+        const predecessorDirection = state.currentItem?.direction;
+        let chosenDirection = nextItem.direction;
+        if (predecessorDirection) {
+          chosenDirection = rng() < 0.65
+            ? (predecessorDirection === 'VI_TO_EN' ? 'EN_TO_VI' : 'VI_TO_EN')
+            : (rng() < 0.5 ? 'VI_TO_EN' : 'EN_TO_VI');
+        } else {
+          chosenDirection = rng() < 0.5 ? 'VI_TO_EN' : 'EN_TO_VI';
+        }
+
+        resolvedItem = {
+          ...nextItem,
+          direction: chosenDirection,
+        };
+      }
+
       const nextDistinct = Array.from(
-        new Set([...(state.distinctCardIdsShown || []), nextItem.cardId])
+        new Set([...(state.distinctCardIdsShown || []), resolvedItem.cardId])
       );
 
       return {
         ...state,
         status: 'question',
-        currentItem: nextItem,
-        currentQuestion: nextItem,
+        currentItem: resolvedItem,
+        currentQuestion: resolvedItem,
         currentTurn: (state.currentTurn || 1) + 1,
         distinctCardIdsShown: nextDistinct,
         lastFeedback: null,
