@@ -115,12 +115,13 @@ describe('LearnFeedback Redesign (Incorrect Answer UI)', () => {
       />
     );
 
-    // English hero term is prominent
+    // Vietnamese answer is rendered under "Đáp án:"
+    expect(html).toContain('vintage-correct-meaning-val');
+    expect(html).toContain('người giám sát');
+    // English term is rendered under "Từ tiếng Anh:"
+    expect(html).toContain('Từ tiếng Anh:');
     expect(html).toContain('vintage-english-term-hero');
     expect(html).toContain('supervisor');
-    // Vietnamese definition is rendered as hint badge
-    expect(html).toContain('vintage-vi-meaning-hint');
-    expect(html).toContain('người giám sát');
   });
 
   it('handles skipped answer (Tôi chưa biết) cleanly', () => {
@@ -151,10 +152,13 @@ describe('LearnFeedback Redesign (Incorrect Answer UI)', () => {
   it('generates standalone html file for visual inspection and screenshot', () => {
     const feedback = {
       result: 'wrong',
-      userAnswer: 'người làm việc',
-      correctAnswer: 'supervisor',
-      card: sampleCard,
-      direction: 'VI_TO_EN',
+      userAnswer: 'người yêu',
+      correctAnswer: 'giám sát viên',
+      card: {
+        ...sampleCard,
+        definition: 'giám sát viên',
+      },
+      direction: 'EN_TO_VI',
       override: false,
     };
 

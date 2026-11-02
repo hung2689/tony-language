@@ -994,7 +994,8 @@
   gap: 10px;
 }
 
-.vintage-english-term-hero {
+.vintage-english-term-hero,
+.vintage-correct-meaning-val {
   font-family: 'Lora', 'Merriweather', 'Playfair Display', Georgia, serif;
   font-size: clamp(1.45rem, 2.8vw, 1.95rem);
   font-weight: 800;
