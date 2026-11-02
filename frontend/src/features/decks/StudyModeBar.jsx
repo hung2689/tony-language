@@ -7,6 +7,7 @@ const MODE_ICON_MAP = {
   learn: '/assets/flashcard/icon-study.png',
   story: '/assets/flashcard/icon-context.png',
   sentence: '/assets/flashcard/icon-sentences.png',
+  synonym: '/assets/flashcard/icon-context.png',
   'test-game': '/assets/flashcard/icon-game.png',
   dictation: '/assets/flashcard/icon-dictation.png',
 };
@@ -16,6 +17,7 @@ const MODE_DISPLAY_LABEL = {
   learn: 'Học',
   story: 'Đoạn văn ngữ cảnh',
   sentence: 'Đặt câu (AI)',
+  synonym: 'Từ đồng nghĩa (AI)',
   'test-game': 'Test/Game',
   dictation: 'Nghe chép',
 };
