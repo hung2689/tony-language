@@ -3,17 +3,157 @@
    Syncing 1:1 with DeckDetailPage.css aesthetic
    ========================================================================== */
 
-.srs-vintage-shell {
-  width: 100%;
-  min-height: 100vh;
+/* 1. Ensure Body & Outer Shell are scrollable and properly bound */
+body.deck-vintage-active,
+body.deck-vintage-active #root {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.srs-vintage-shell.deck-page-shell {
+  width: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth;
   box-sizing: border-box;
 }
 
-.vintage-header-srs-btn.is-active {
+/* Custom Antique Parchment Scrollbar */
+.srs-vintage-shell::-webkit-scrollbar {
+  width: 8px;
+}
+.srs-vintage-shell::-webkit-scrollbar-track {
+  background: rgba(243, 230, 200, 0.45);
+}
+.srs-vintage-shell::-webkit-scrollbar-thumb {
+  background: #C4A77D;
+  border-radius: 999px;
+}
+.srs-vintage-shell::-webkit-scrollbar-thumb:hover {
+  background: #A88656;
+}
+
+/* 2. Compact Viewport Balancing: Keep header, modes, flashcard and rating buttons within viewport */
+.srs-vintage-shell .deck-page-main.lexicon-journal-main {
+  padding: 12px 20px 40px !important;
+}
+
+.srs-vintage-shell .vintage-deck-header-row {
+  margin-bottom: 12px !important;
+}
+
+.srs-vintage-shell .vintage-header-title-ribbon {
+  height: 38px !important;
+  padding: 0 16px !important;
+}
+
+.srs-vintage-shell .vintage-ribbon-text {
+  font-size: 15px !important;
+}
+
+.srs-vintage-shell .vintage-header-srs-btn.is-active {
   filter: drop-shadow(0 0 6px rgba(168, 120, 62, 0.65)) brightness(1.06);
 }
 
-/* Completion Card */
+/* 3. Compact Mode Cards in SRS */
+.srs-vintage-shell .vintage-study-mode-bar {
+  margin: 0 auto 14px !important;
+}
+
+.srs-vintage-shell .vintage-mode-grid {
+  gap: 8px 12px !important;
+}
+
+.srs-vintage-shell .vintage-mode-card {
+  min-height: 56px !important;
+  padding: 8px 16px 8px 14px !important;
+}
+
+.srs-vintage-shell .vintage-mode-card-icon {
+  width: 26px !important;
+  height: 26px !important;
+}
+
+.srs-vintage-shell .vintage-mode-card-title {
+  font-size: 14px !important;
+}
+
+.srs-vintage-shell .vintage-mode-card-sub {
+  font-size: 11.5px !important;
+}
+
+.srs-vintage-shell .vintage-flashcard-stage {
+  margin: 0 auto 8px !important;
+}
+
+/* 4. Compact Card Scene to ensure 100% visibility of card & rating buttons */
+.srs-vintage-shell .vintage-card-scene {
+  max-width: 660px !important;
+  height: clamp(310px, 39vh, 360px) !important;
+}
+
+.srs-vintage-shell .vintage-card-face {
+  padding: 42px 50px 44px !important;
+}
+
+.srs-vintage-shell .vintage-fc-compass {
+  width: 52px !important;
+  height: 52px !important;
+  top: 14px !important;
+  left: 18px !important;
+}
+
+.srs-vintage-shell .vintage-fc-sound-btn {
+  top: 14px !important;
+  right: 18px !important;
+  width: 42px !important;
+  height: 42px !important;
+}
+
+.srs-vintage-shell .vintage-fc-sound-img {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.srs-vintage-shell .vintage-fc-label-wrap {
+  top: 14px !important;
+  width: 94px !important;
+  height: 48px !important;
+}
+
+.srs-vintage-shell .vintage-fc-label-text {
+  font-size: 12px !important;
+}
+
+.srs-vintage-shell .vintage-fc-main-term {
+  font-size: clamp(26px, 3.4vw, 36px) !important;
+  margin: 0 0 6px !important;
+}
+
+.srs-vintage-shell .vintage-fc-meta {
+  font-size: 16px !important;
+}
+
+.srs-vintage-shell .vintage-fc-landscape {
+  width: 140px !important;
+  height: 82px !important;
+  bottom: 10px !important;
+  left: 16px !important;
+}
+
+.srs-vintage-shell .vintage-fc-ship {
+  width: 70px !important;
+  height: 100px !important;
+  bottom: 10px !important;
+  right: 18px !important;
+}
+
+/* 5. Completion Card */
 .vintage-srs-complete-card {
   width: 100%;
   max-width: 580px;
