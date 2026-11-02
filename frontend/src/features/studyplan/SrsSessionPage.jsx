@@ -32,7 +32,7 @@ export default function SrsSessionPage() {
 
   const sessionIdRef = useRef(null);
 
-  // Load queue data and initialize study session sequentially (BUG-06, BUG-14)
+  // Load queue data and initialize study session (unblocks UI as soon as cards arrive)
   useEffect(() => {
     let ignore = false;
     async function loadQueueAndSession() {
@@ -48,29 +48,28 @@ export default function SrsSessionPage() {
         if (ignore) return;
 
         setQueueData(res || {});
+        // Unblock UI immediately so user sees flashcards right away
+        setLoading(false);
 
         const cardsList = res?.cards || [];
         if (cardsList.length > 0) {
-          try {
-            const session = await studyService.createSession({
-              deckId: deckId ? parseInt(deckId, 10) : null,
-              direction: 'EN_TO_VI',
-              plannedCount: cardsList.length,
-              order: 'random',
-            });
+          // Initialize session in background without blocking the UI
+          studyService.createSession({
+            deckId: deckId ? parseInt(deckId, 10) : null,
+            direction: 'EN_TO_VI',
+            plannedCount: cardsList.length,
+            order: 'random',
+          }).then((session) => {
             if (!ignore && session?.id) {
               sessionIdRef.current = session.id;
             }
-          } catch {
+          }).catch(() => {
             // Safe fallback if session creation fails
-          }
+          });
         }
       } catch (err) {
         if (!ignore) {
           setError(err.message || 'Không thể tải danh sách từ cần ôn tập');
-        }
-      } finally {
-        if (!ignore) {
           setLoading(false);
         }
       }

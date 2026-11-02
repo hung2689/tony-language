@@ -394,12 +394,21 @@ public class StudyPlanService {
             }
         }
 
+        // Batch prefetch synonyms to avoid N+1 query overhead (1 query instead of 100+ individual queries)
+        List<Long> selectedIds = selected.stream().map(Vocabulary::getId).toList();
+        Map<Long, List<String>> synonymsMap = new HashMap<>();
+        if (!selectedIds.isEmpty()) {
+            List<VocabularySynonym> allSyns = vocabularySynonymRepository.findByVocabularyIdIn(selectedIds);
+            if (allSyns != null) {
+                for (VocabularySynonym s : allSyns) {
+                    synonymsMap.computeIfAbsent(s.getVocabularyId(), k -> new ArrayList<>()).add(s.getSynonym());
+                }
+            }
+        }
+
         // Map to TermCardDto
         List<TermCardDto> cardDtos = selected.stream().map(v -> {
-            List<String> syns = vocabularySynonymRepository.findByVocabularyId(v.getId())
-                    .stream()
-                    .map(VocabularySynonym::getSynonym)
-                    .collect(Collectors.toList());
+            List<String> syns = synonymsMap.getOrDefault(v.getId(), Collections.emptyList());
             return new TermCardDto(
                     v.getId(),
                     v.getWord(),
@@ -601,11 +610,20 @@ public class StudyPlanService {
             selected.addAll(vocabs);
         }
 
+        // Batch prefetch synonyms to avoid N+1 query overhead
+        List<Long> selectedDeckVocabIds = selected.stream().map(Vocabulary::getId).toList();
+        Map<Long, List<String>> deckSynonymsMap = new HashMap<>();
+        if (!selectedDeckVocabIds.isEmpty()) {
+            List<VocabularySynonym> allDeckSyns = vocabularySynonymRepository.findByVocabularyIdIn(selectedDeckVocabIds);
+            if (allDeckSyns != null) {
+                for (VocabularySynonym s : allDeckSyns) {
+                    deckSynonymsMap.computeIfAbsent(s.getVocabularyId(), k -> new ArrayList<>()).add(s.getSynonym());
+                }
+            }
+        }
+
         List<TermCardDto> cardDtos = selected.stream().map(v -> {
-            List<String> syns = vocabularySynonymRepository.findByVocabularyId(v.getId())
-                    .stream()
-                    .map(VocabularySynonym::getSynonym)
-                    .collect(Collectors.toList());
+            List<String> syns = deckSynonymsMap.getOrDefault(v.getId(), Collections.emptyList());
             StudyProgress sp = progressMap.get(v.getId());
             TermCardDto dto = new TermCardDto(
                     v.getId(),

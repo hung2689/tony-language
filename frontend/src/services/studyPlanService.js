@@ -1,3 +1,14 @@
+// Client in-memory cache for today's queue and deck queues to avoid repeated multi-second fetches
+let todayQueueCache = null;
+let todayQueueCacheTime = 0;
+const deckQueueCache = new Map();
+const QUEUE_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+export const clearStudyPlanQueueCache = () => {
+  todayQueueCache = null;
+  todayQueueCacheTime = 0;
+  deckQueueCache.clear();
+};
 import { request } from './api';
 
 export const studyPlanService = {
@@ -96,8 +107,15 @@ export const studyPlanService = {
   /**
    * Retrieves today's study queue for the active plan.
    */
-  getTodayQueue() {
-    return request('/study-plans/current/today');
+  getTodayQueue({ skipCache = false } = {}) {
+    if (!skipCache && todayQueueCache && (Date.now() - todayQueueCacheTime < QUEUE_CACHE_TTL)) {
+      return Promise.resolve(todayQueueCache);
+    }
+    return request('/study-plans/current/today').then((data) => {
+      todayQueueCache = data;
+      todayQueueCacheTime = Date.now();
+      return data;
+    });
   },
 
   /**
@@ -117,7 +135,15 @@ export const studyPlanService = {
   /**
    * Retrieves SRS queue for a specific deck.
    */
-  getDeckQueue(deckId) {
-    return request(`/decks/${deckId}/srs-queue`);
+  getDeckQueue(deckId, { skipCache = false } = {}) {
+    const key = Number(deckId);
+    const cached = deckQueueCache.get(key);
+    if (!skipCache && cached && (Date.now() - cached.timestamp < QUEUE_CACHE_TTL)) {
+      return Promise.resolve(cached.data);
+    }
+    return request(`/decks/${key}/srs-queue`).then((data) => {
+      deckQueueCache.set(key, { data, timestamp: Date.now() });
+      return data;
+    });
   },
 };
