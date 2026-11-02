@@ -211,7 +211,7 @@ export default function LearnSetup({
                     onChange={() => onOptionsChange({ direction: 'VI_TO_EN' })}
                   />
                   <span className="vintage-option-label">
-                    Việt → Anh (Xem nghĩa tiếng Việt, gõ từ tiếng Anh)
+                    Tiếng Việt → Tiếng Anh (Xem nghĩa tiếng Việt, gõ từ tiếng Anh)
                   </span>
                 </label>
 
@@ -225,7 +225,7 @@ export default function LearnSetup({
                     onChange={() => onOptionsChange({ direction: 'EN_TO_VI' })}
                   />
                   <span className="vintage-option-label">
-                    Anh → Việt (Xem từ tiếng Anh, gõ nghĩa tiếng Việt)
+                    Tiếng Anh → Tiếng Việt (Xem từ tiếng Anh, gõ nghĩa tiếng Việt)
                   </span>
                 </label>
 
@@ -235,11 +235,11 @@ export default function LearnSetup({
                     name="direction"
                     value="RANDOM"
                     className="vintage-radio-custom"
-                    checked={options.direction === 'RANDOM'}
+                    checked={options.direction === 'RANDOM' || options.direction === 'BOTH'}
                     onChange={() => onOptionsChange({ direction: 'RANDOM' })}
                   />
                   <span className="vintage-option-label">
-                    Trộn cả hai hướng ngẫu nhiên
+                    Cả hai hướng (Luân phiên ngẫu nhiên giữa Việt ↔ Anh)
                   </span>
                 </label>
               </div>

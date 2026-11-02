@@ -73,9 +73,14 @@ export function useLearnSession(deck, cards = []) {
             ? Math.min(state.options.customCount, cards.length)
             : cards.length;
 
+        const sessionDirection =
+          ['VI_TO_EN', 'EN_TO_VI', 'RANDOM'].includes(state.options.direction)
+            ? state.options.direction
+            : 'RANDOM';
+
         const sessionRes = await studyService.createSession({
           deckId: deck.id || null,
-          direction: state.options.direction,
+          direction: sessionDirection,
           plannedCount,
           order: state.options.order,
         });

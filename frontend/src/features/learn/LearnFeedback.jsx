@@ -15,10 +15,21 @@ export default function LearnFeedback({
   onOverride,
   onExit,
 }) {
-  const { result, userAnswer, correctAnswer, card, override, alsoCorrect, note } = feedback;
+  const { result, userAnswer, correctAnswer, card, override, alsoCorrect, note, direction } = feedback;
   const isAccepted = result === 'accepted';
   const isCorrect = result === 'correct' || isAccepted;
   const isSkipped = result === 'skipped';
+  const isViToEn = direction === 'VI_TO_EN';
+
+  // Normalize synonyms list from card (array or delimiter string)
+  let synonymsList = [];
+  if (Array.isArray(card?.synonyms)) {
+    synonymsList = card.synonyms.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+  } else if (typeof card?.synonyms === 'string') {
+    synonymsList = card.synonyms.split(/[;,]+/).map((s) => s.trim()).filter(Boolean);
+  } else if (typeof card?.rawSynonyms === 'string') {
+    synonymsList = card.rawSynonyms.split(/[;,]+/).map((s) => s.trim()).filter(Boolean);
+  }
   const autoAdvanceTimerRef = useRef(null);
   const canAdvanceRef = useRef(false);
   const onNextRef = useRef(onNextQuestion);
@@ -249,6 +260,7 @@ export default function LearnFeedback({
               </div>
             )}
 
+            {/* Primary Answer & Meaning representation appropriate for question direction */}
             <div className="vintage-feedback-row vintage-correct-ans-row">
               <span className="vintage-feedback-lbl">
                 {isCorrect ? 'Đáp án:' : 'Đáp án chính xác:'}
@@ -260,7 +272,7 @@ export default function LearnFeedback({
                     type="button"
                     className="vintage-sound-btn-inline"
                     onClick={handleSpeakTerm}
-                    title="Nghe lại phát âm"
+                    title="Nghe phát âm tiếng Anh"
                     aria-label="Nghe phát âm tiếng Anh"
                   >
                     <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
@@ -269,6 +281,22 @@ export default function LearnFeedback({
               </div>
             </div>
 
+            {/* If direction was VI -> EN (answering term), show the Vietnamese meaning as reference context */}
+            {isViToEn && card?.definition && (
+              <div className="vintage-feedback-row vintage-context-row">
+                <span className="vintage-feedback-lbl">Nghĩa tiếng Việt:</span>
+                <span className="vintage-feedback-val">{card.definition}</span>
+              </div>
+            )}
+
+            {/* If direction was EN -> VI (answering definition), show the original English term as reference context */}
+            {!isViToEn && card?.term && (
+              <div className="vintage-feedback-row vintage-context-row">
+                <span className="vintage-feedback-lbl">Thuật ngữ tiếng Anh:</span>
+                <span className="vintage-feedback-val is-english-term">{card.term}</span>
+              </div>
+            )}
+
             {alsoCorrect && (
               <div className="vintage-feedback-row vintage-also-correct-row">
                 <span className="vintage-feedback-lbl">Cũng đúng:</span>
@@ -276,20 +304,35 @@ export default function LearnFeedback({
               </div>
             )}
 
-            {/* Reinforcement Details: IPA, partOfSpeech, example */}
-            {(card?.pronunciation || card?.partOfSpeech || card?.example) && (
+            {/* Comprehensive Vocabulary Info: POS, IPA, Example, Synonyms */}
+            {(card?.pronunciation || card?.partOfSpeech || card?.example || synonymsList.length > 0) && (
               <div className="vintage-reinforcement-box">
                 <div className="vintage-reinforcement-meta">
-                  {card.partOfSpeech && <span className="vintage-pos-tag">{card.partOfSpeech}</span>}
-                  {card.pronunciation && (
+                  {card?.partOfSpeech && <span className="vintage-pos-tag">{card.partOfSpeech}</span>}
+                  {card?.pronunciation && (
                     <span className="vintage-ipa-text">/{card.pronunciation}/</span>
                   )}
                 </div>
-                {card.example && (
+
+                {card?.example && (
                   <div className="vintage-example-text">
                     <em>"{card.example}"</em>
                   </div>
                 )}
+
+                {/* Always display Synonyms if available, or informative notice */}
+                <div className="vintage-synonyms-row">
+                  <span className="vintage-synonyms-lbl">Từ đồng nghĩa:</span>
+                  {synonymsList.length > 0 ? (
+                    <span className="vintage-synonyms-val">
+                      {synonymsList.join('; ')}
+                    </span>
+                  ) : (
+                    <span className="vintage-synonyms-val is-empty">
+                      (Chưa có từ đồng nghĩa)
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>

@@ -1000,6 +1000,41 @@
   margin-top: 2px;
 }
 
+.vintage-context-row {
+  margin-top: 2px;
+}
+
+.vintage-feedback-val.is-english-term {
+  font-weight: 600;
+  color: #2E6B38;
+}
+
+.vintage-synonyms-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.93rem;
+  margin-top: 4px;
+}
+
+.vintage-synonyms-lbl {
+  font-weight: 700;
+  color: #796246;
+  white-space: nowrap;
+}
+
+.vintage-synonyms-val {
+  color: #3B2B1C;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.vintage-synonyms-val.is-empty {
+  color: #9C8974;
+  font-style: normal;
+  font-size: 0.88rem;
+}
+
 .vintage-readonly-input-box {
   max-width: 640px;
   width: 100%;

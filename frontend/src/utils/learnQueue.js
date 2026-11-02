@@ -131,7 +131,8 @@ export function buildSession(cards, options = {}, rng = Math.random) {
   }
 
   // 3. Direction assignment & item model initialization
-  const isRandomDirection = direction === 'RANDOM' || direction === 'mixed';
+  const isRandomDirection =
+    direction === 'RANDOM' || direction === 'BOTH' || direction === 'mixed';
 
   return workingCards.map((card) => {
     let cardDirection = direction;
