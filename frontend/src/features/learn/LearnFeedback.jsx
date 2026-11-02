@@ -210,7 +210,7 @@ export default function LearnFeedback({
       </div>
 
       {/* Main Feedback Parchment Scroll */}
-      <main className="vintage-question-scroll-wrapper" aria-live="polite">
+      <main className="vintage-question-scroll-wrapper vintage-feedback-scroll" aria-live="polite">
         {/* Antique Corner Illustrations */}
         <img
           src="/assets/flashcard/flashcard-compass.png"
@@ -225,52 +225,48 @@ export default function LearnFeedback({
           aria-hidden="true"
         />
 
-        {/* Result Wax Seal Stamp / Banner */}
-        <div className={`vintage-feedback-seal-banner ${isCorrect ? 'is-seal-correct' : 'is-seal-wrong'}`}>
-          <div className="vintage-seal-header">
+        {/* Result Card: Adventure / Vintage Parchment */}
+        <div className={`vintage-feedback-card ${isCorrect ? 'is-seal-correct' : 'is-seal-wrong'}`}>
+          {/* A. Trạng thái trả lời */}
+          <div className="vintage-feedback-status-row">
             {isCorrect ? (
-              <CheckCircle2 size={26} className="vintage-seal-icon" />
+              <>
+                <CheckCircle2 size={24} className="vintage-status-icon is-correct" />
+                <span className="vintage-status-title is-correct">
+                  {override ? 'Đã ghi nhận đúng!' : isAccepted ? 'Được chấp nhận!' : 'Chính xác!'}
+                </span>
+              </>
             ) : (
-              <XCircle size={26} className="vintage-seal-icon" />
+              <>
+                <XCircle size={24} className="vintage-status-icon is-wrong" />
+                <span className="vintage-status-title is-wrong">Chưa đúng</span>
+              </>
             )}
-            <span className="vintage-seal-title">
-              {isCorrect
-                ? override
-                  ? 'Đã ghi nhận đúng!'
-                  : isAccepted
-                  ? 'Được chấp nhận!'
-                  : 'Chính xác!'
-                : 'Chưa đúng, cần ghi nhớ lại'}
-            </span>
           </div>
 
-          {/* Details */}
-          <div className="vintage-feedback-details">
-            {note && (
-              <div className="vintage-feedback-row vintage-note-row">
-                <span className="vintage-feedback-lbl">Ghi chú:</span>
-                <span className="vintage-feedback-val">{note}</span>
+          {/* B, C, D: Phân cấp thông tin trực quan */}
+          <div className="vintage-feedback-rows">
+            {/* B. Bạn trả lời (gạch ngang màu đỏ nếu trả lời sai) */}
+            {!isCorrect && (
+              <div className="vintage-feedback-line vintage-user-answer-line">
+                <span className="vintage-line-label">Bạn trả lời:</span>
+                <span className="vintage-wrong-answer-strikethrough">
+                  {userAnswer ? userAnswer : '(Tôi chưa biết)'}
+                </span>
               </div>
             )}
 
-            {!isCorrect && !isSkipped && userAnswer && (
-              <div className="vintage-feedback-row vintage-user-ans-row">
-                <span className="vintage-feedback-lbl">Bạn đã trả lời:</span>
-                <span className="vintage-feedback-val is-strikethrough">{userAnswer}</span>
-              </div>
-            )}
-
-            {/* Primary Answer & Meaning representation appropriate for question direction */}
-            <div className="vintage-feedback-row vintage-correct-ans-row">
-              <span className="vintage-feedback-lbl">
-                {isCorrect ? 'Đáp án:' : 'Đáp án chính xác:'}
-              </span>
-              <div className="vintage-correct-ans-content">
-                <span className="vintage-feedback-val is-bold">{correctAnswer}</span>
+            {/* C. Đáp án chính xác: Từ tiếng Anh nổi bật nhất (size lớn nhất, font serif, xanh rêu đậm) + nút phát âm */}
+            <div className="vintage-feedback-line vintage-correct-answer-line">
+              <span className="vintage-line-label">Đáp án:</span>
+              <div className="vintage-answer-main-group">
+                <span className="vintage-english-term-hero">
+                  {card?.term || correctAnswer}
+                </span>
                 {card?.term && (
                   <button
                     type="button"
-                    className="vintage-sound-btn-inline"
+                    className="vintage-speaker-btn"
                     onClick={handleSpeakTerm}
                     title="Nghe phát âm tiếng Anh"
                     aria-label="Nghe phát âm tiếng Anh"
@@ -278,93 +274,43 @@ export default function LearnFeedback({
                     <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
                   </button>
                 )}
+                {/* Nếu học chiều Anh -> Việt (cần đoán nghĩa), hiển thị nghĩa tiếng Việt chuẩn bên cạnh */}
+                {!isViToEn && card?.definition && (
+                  <span className="vintage-vi-meaning-hint">
+                    · {card.definition}
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* If direction was VI -> EN (answering term), show the Vietnamese meaning as reference context */}
-            {isViToEn && card?.definition && (
-              <div className="vintage-feedback-row vintage-context-row">
-                <span className="vintage-feedback-lbl">Nghĩa tiếng Việt:</span>
-                <span className="vintage-feedback-val">{card.definition}</span>
-              </div>
-            )}
-
-            {/* If direction was EN -> VI (answering definition), show the original English term as reference context */}
-            {!isViToEn && card?.term && (
-              <div className="vintage-feedback-row vintage-context-row">
-                <span className="vintage-feedback-lbl">Thuật ngữ tiếng Anh:</span>
-                <span className="vintage-feedback-val is-english-term">{card.term}</span>
-              </div>
-            )}
-
-            {alsoCorrect && (
-              <div className="vintage-feedback-row vintage-also-correct-row">
-                <span className="vintage-feedback-lbl">Cũng đúng:</span>
-                <span className="vintage-feedback-val">{alsoCorrect}</span>
-              </div>
-            )}
-
-            {/* Comprehensive Vocabulary Info: POS, IPA, Example, Synonyms */}
-            {(card?.pronunciation || card?.partOfSpeech || card?.example || synonymsList.length > 0) && (
-              <div className="vintage-reinforcement-box">
-                <div className="vintage-reinforcement-meta">
-                  {card?.partOfSpeech && <span className="vintage-pos-tag">{card.partOfSpeech}</span>}
-                  {card?.pronunciation && (
-                    <span className="vintage-ipa-text">/{card.pronunciation}/</span>
-                  )}
-                </div>
-
-                {card?.example && (
-                  <div className="vintage-example-text">
-                    <em>"{card.example}"</em>
-                  </div>
-                )}
-
-                {/* Always display Synonyms if available, or informative notice */}
-                <div className="vintage-synonyms-row">
-                  <span className="vintage-synonyms-lbl">Từ đồng nghĩa:</span>
-                  {synonymsList.length > 0 ? (
-                    <span className="vintage-synonyms-val">
-                      {synonymsList.join('; ')}
-                    </span>
-                  ) : (
-                    <span className="vintage-synonyms-val is-empty">
-                      (Chưa có từ đồng nghĩa)
-                    </span>
-                  )}
-                </div>
+            {/* D. Từ đồng nghĩa: hiển thị trên cùng 1 dòng ngăn cách bằng ' · ' */}
+            {synonymsList.length > 0 && (
+              <div className="vintage-feedback-line vintage-synonyms-line">
+                <span className="vintage-line-label">Từ đồng nghĩa:</span>
+                <span className="vintage-synonyms-list">
+                  {synonymsList.join(' · ')}
+                </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Read-only User Input Ledger Box */}
-        <div className="vintage-readonly-input-box">
-          <input
-            type="text"
-            className="vintage-answer-input is-readonly"
-            value={userAnswer || (isSkipped ? '(Chưa biết)' : '')}
-            readOnly
-            tabIndex={-1}
-          />
-        </div>
-
-        {/* Action Controls */}
-        <div className="vintage-feedback-actions">
+        {/* E. Nút tiếp tục & Override */}
+        <div className="vintage-feedback-footer-actions">
           <button
             type="button"
-            className="vintage-continue-btn"
+            className="vintage-feedback-continue-btn"
             onClick={handleNext}
           >
-            <span>Tiếp tục hải trình</span>
-            <kbd className="vintage-key-badge">↵</kbd>
+            <span>Tiếp tục</span>
             <ArrowRight size={18} />
+            <kbd className="vintage-key-pill">↵</kbd>
           </button>
 
-          {!isCorrect && (
+          {!isCorrect && onOverride && (
             <button
               type="button"
-              className="vintage-override-link-btn"
+              className="vintage-override-text-btn"
               onClick={onOverride}
             >
               <span>✏ Câu trả lời của tôi lẽ ra nên được chấp nhận</span>
