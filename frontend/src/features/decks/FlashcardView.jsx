@@ -52,6 +52,18 @@ export default function FlashcardView({ cards = [], onToast }) {
   const settingsRef = useRef(null);
   const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
 
+  // Sync body class for Zen Mode overlay
+  useEffect(() => {
+    if (isZenMode) {
+      document.body.classList.add('flashcard-zen-active');
+    } else {
+      document.body.classList.remove('flashcard-zen-active');
+    }
+    return () => {
+      document.body.classList.remove('flashcard-zen-active');
+    };
+  }, [isZenMode]);
+
   // Sync activeCards when raw cards prop updates
   useEffect(() => {
     setActiveCards(cards);
@@ -218,6 +230,20 @@ export default function FlashcardView({ cards = [], onToast }) {
 
   return (
     <div className={`vintage-flashcard-experience ${isZenMode ? 'is-zen-mode' : ''}`}>
+      {/* Zen Mode Quick Exit Button */}
+      {isZenMode && (
+        <button
+          type="button"
+          className="vintage-fc-zen-exit-btn"
+          onClick={() => setIsZenMode(false)}
+          title="Thoát chế độ tập trung (Esc)"
+          aria-label="Thoát chế độ tập trung"
+        >
+          <Minimize2 size={16} />
+          <span>Thoát toàn màn hình (Esc)</span>
+        </button>
+      )}
+
       {/* 1. Main Flashcard Scene */}
       <div className="vintage-flashcard-stage">
         <div className="vintage-card-scene">
@@ -515,7 +541,7 @@ export default function FlashcardView({ cards = [], onToast }) {
           {/* Zen Mode Button inside Capsule */}
           <button
             type="button"
-            className={`vintage-fc-tool-btn is-active-moss ${isZenMode ? 'is-active' : ''}`}
+            className={`vintage-fc-tool-btn ${isZenMode ? 'is-active is-active-moss' : ''}`}
             onClick={() => setIsZenMode(!isZenMode)}
             title={isZenMode ? 'Thoát chế độ tập trung (Esc)' : 'Chế độ tập trung Zen Mode'}
             aria-label="Chế độ tập trung"
