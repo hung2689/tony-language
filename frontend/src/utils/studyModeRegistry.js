@@ -1,7 +1,8 @@
-import { Layers, GraduationCap, Gamepad2, Headphones, BookOpen, PenTool } from 'lucide-react';
+import { Layers, GraduationCap, Gamepad2, Headphones, BookOpen, PenTool, Sparkles } from 'lucide-react';
 import FlashcardView from '../features/decks/FlashcardView';
 import ContextStoryCloze from '../features/decks/ContextStoryCloze';
 import SentenceChallengeView from '../features/decks/SentenceChallengeView';
+import SynonymChallengeView from '../features/decks/SynonymChallengeView';
 
 /**
  * Study Mode Registry Configuration
@@ -52,6 +53,17 @@ export const STUDY_MODES = [
     status: 'available',
     component: SentenceChallengeView,
     description: 'Luyện dịch và đặt câu với từ vựng, AI phân tích & chấm điểm tức thì',
+  },
+  {
+    id: 'synonym',
+    label: 'Từ đồng nghĩa (AI)',
+    icon: Sparkles,
+    iconName: 'Sparkles',
+    subpath: 'synonym',
+    route: (deckId) => `/decks/${deckId}/synonym`,
+    status: 'available',
+    component: SynonymChallengeView,
+    description: 'Thử thách tìm từ đồng nghĩa tiếng Anh, AI phân tích ngữ nghĩa và gợi ý từ vựng TOEIC hữu ích',
   },
   {
     id: 'test-game',
