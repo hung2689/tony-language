@@ -12,6 +12,7 @@ import MapPage from './features/library/MapPage';
 import LibraryWorkspace from './features/library/LibraryWorkspace';
 import DeckDetailPage from './features/decks/DeckDetailPage';
 import LearnPage from './features/learn/LearnPage';
+import SynonymPage from './features/synonym/SynonymPage';
 import StudyPlanPage from './features/studyplan/StudyPlanPage';
 import TodayLearnPage from './features/studyplan/TodayLearnPage';
 import SrsSessionPage from './features/studyplan/SrsSessionPage';
@@ -84,6 +85,14 @@ export default function App() {
                     element={
                       <ProtectedRoute>
                         <LearnPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/decks/:deckId/synonym"
+                    element={
+                      <ProtectedRoute>
+                        <SynonymPage />
                       </ProtectedRoute>
                     }
                   />
