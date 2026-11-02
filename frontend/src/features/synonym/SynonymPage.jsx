@@ -666,8 +666,7 @@ export default function SynonymPage() {
                   title="Phát âm từ gốc"
                   aria-label={`Phát âm ${currentItem.term}`}
                 >
-                  <Volume2 size={22} />
-                  <Ripple />
+                  <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
                 </button>
               </div>
 
@@ -684,12 +683,7 @@ export default function SynonymPage() {
                 <p className="hero-vietnamese-meaning">{currentItem.meaning}</p>
               )}
 
-              <div className="hero-task-hint">
-                <HelpCircle size={15} />
-                <span>
-                  Hãy nhập càng nhiều từ đồng nghĩa của từ trên càng tốt. Nhập bằng phím Enter, dấu phẩy hoặc dán nhiều từ cùng lúc.
-                </span>
-              </div>
+              
             </section>
 
             {/* 2. CHIP INPUT AREA (Active when question is pending) */}
@@ -886,7 +880,7 @@ export default function SynonymPage() {
                                   onClick={() => speakEnglishTerm(syn.word)}
                                   title="Phát âm"
                                 >
-                                  <Volume2 size={15} />
+                                  <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
                                 </button>
                                 {syn.pos && <span className="missed-pos">{syn.pos}</span>}
                               </div>

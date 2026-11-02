@@ -92,6 +92,8 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  position: relative;
+  z-index: 100;
 }
 
 /* Left Back Button (Cutout PNG) */
@@ -241,6 +243,7 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
 
 .deck-page-shell .vintage-more-menu-wrapper {
   position: relative;
+  z-index: 101;
 }
 
 .deck-page-shell .vintage-dropdown-menu {
@@ -253,7 +256,7 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   border-radius: 10px;
   box-shadow: 0 10px 26px rgba(59, 43, 28, 0.26);
   padding: 6px;
-  z-index: 60;
+  z-index: 1000;
 }
 
 .deck-page-shell .deck-dropdown-item {
@@ -294,6 +297,8 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   width: 100%;
   max-width: 1080px;
   margin: 0 auto 22px;
+  position: relative;
+  z-index: 1;
 }
 
 .deck-page-shell .vintage-mode-grid {

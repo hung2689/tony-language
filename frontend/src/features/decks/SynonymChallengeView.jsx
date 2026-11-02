@@ -426,8 +426,7 @@ export default function SynonymChallengeView({
               title="Phát âm từ gốc"
               aria-label={`Phát âm ${currentItem.term}`}
             >
-              <Volume2 size={22} />
-              <Ripple />
+              <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
             </button>
           </div>
 
@@ -444,10 +443,7 @@ export default function SynonymChallengeView({
             <p className="hero-vietnamese-meaning">{currentItem.meaning}</p>
           )}
 
-          <div className="hero-task-hint">
-            <HelpCircle size={15} />
-            <span>Hãy gõ càng nhiều từ đồng nghĩa của từ trên càng tốt. Nhập bằng phím Enter, dấu phẩy hoặc dán nhiều từ cùng lúc.</span>
-          </div>
+          
         </section>
 
         {/* 2. CHIP INPUT AREA (Enabled before evaluation) */}
@@ -640,14 +636,14 @@ export default function SynonymChallengeView({
                           <div className="missed-card-word-row">
                             <span className="missed-word">{syn.word}</span>
                             <button
-                              type="button"
-                              className="vintage-speaker-mini-btn"
-                              onClick={() => speakEnglishTerm(syn.word)}
-                              title="Phát âm"
-                              aria-label={`Phát âm ${syn.word}`}
-                            >
-                              <Volume2 size={15} />
-                            </button>
+                                type="button"
+                                className="vintage-speaker-mini-btn"
+                                onClick={() => speakEnglishTerm(syn.word)}
+                                title="Phát âm"
+                                aria-label={`Phát âm ${syn.word}`}
+                              >
+                                <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
+                              </button>
                             {syn.pos && <span className="missed-pos">{syn.pos}</span>}
                           </div>
 
