@@ -256,32 +256,61 @@ export default function LearnFeedback({
               </div>
             )}
 
-            {/* C. Đáp án chính xác: Từ tiếng Anh nổi bật nhất (size lớn nhất, font serif, xanh rêu đậm) + nút phát âm */}
-            <div className="vintage-feedback-line vintage-correct-answer-line">
-              <span className="vintage-line-label">Đáp án:</span>
-              <div className="vintage-answer-main-group">
-                <span className="vintage-english-term-hero">
-                  {card?.term || correctAnswer}
-                </span>
-                {card?.term && (
-                  <button
-                    type="button"
-                    className="vintage-speaker-btn"
-                    onClick={handleSpeakTerm}
-                    title="Nghe phát âm tiếng Anh"
-                    aria-label="Nghe phát âm tiếng Anh"
-                  >
-                    <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
-                  </button>
-                )}
-                {/* Nếu học chiều Anh -> Việt (cần đoán nghĩa), hiển thị nghĩa tiếng Việt chuẩn bên cạnh */}
-                {!isViToEn && card?.definition && (
-                  <span className="vintage-vi-meaning-hint">
-                    · {card.definition}
+            {/* C. Đáp án chính xác theo chiều học */}
+            {isViToEn ? (
+              // Chiều Việt -> Anh: Đáp án đúng là từ tiếng Anh
+              <div className="vintage-feedback-line vintage-correct-answer-line">
+                <span className="vintage-line-label">Đáp án:</span>
+                <div className="vintage-answer-main-group">
+                  <span className="vintage-english-term-hero">
+                    {card?.term || correctAnswer}
                   </span>
-                )}
+                  {card?.term && (
+                    <button
+                      type="button"
+                      className="vintage-speaker-btn"
+                      onClick={handleSpeakTerm}
+                      title="Nghe phát âm tiếng Anh"
+                      aria-label="Nghe phát âm tiếng Anh"
+                    >
+                      <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              // Chiều Anh -> Việt: Đáp án đúng là nghĩa tiếng Việt, sau đó hiển thị từ tiếng Anh kèm loa
+              <>
+                <div className="vintage-feedback-line vintage-correct-answer-line">
+                  <span className="vintage-line-label">Đáp án:</span>
+                  <div className="vintage-answer-main-group">
+                    <span className="vintage-correct-meaning-val">
+                      {correctAnswer || card?.definition}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="vintage-feedback-line vintage-english-term-line">
+                  <span className="vintage-line-label">Từ tiếng Anh:</span>
+                  <div className="vintage-answer-main-group">
+                    <span className="vintage-english-term-hero">
+                      {card?.term}
+                    </span>
+                    {card?.term && (
+                      <button
+                        type="button"
+                        className="vintage-speaker-btn"
+                        onClick={handleSpeakTerm}
+                        title="Nghe phát âm tiếng Anh"
+                        aria-label="Nghe phát âm tiếng Anh"
+                      >
+                        <img src="/assets/flashcard/flashcard-sound.png" alt="Phát âm" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* D. Từ đồng nghĩa: hiển thị trên cùng 1 dòng ngăn cách bằng ' · ' */}
             {synonymsList.length > 0 && (
