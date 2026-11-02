@@ -89,11 +89,6 @@ public class SynonymChallengeService {
         }
 
         // 3. Sort/Prioritize
-        // Priority weight calculation:
-        // - High priority: weak words (incorrectCount > correctCount)
-        // - Medium priority: unreviewed words (no progress record)
-        // - Bonus weight: has synonyms in DB (already rich learning material)
-        // - Low priority: mastered words
         List<Vocabulary> sorted = new ArrayList<>(vocabularies);
         sorted.sort((v1, v2) -> {
             int score1 = calculatePriorityScore(v1.getId(), progressMap.get(v1.getId()), synonymCountMap.getOrDefault(v1.getId(), 0));
@@ -130,13 +125,13 @@ public class SynonymChallengeService {
                 score += 10;
             }
         }
-        // Boost words that already have synonym entries
         score += Math.min(synCount * 5, 25);
         return score;
     }
 
     /**
      * Evaluates learner's submitted synonyms using Dual-layer check (DB + Gemini AI).
+     * Distinguishes 3 states: EXACT_SYNONYM, CONTEXTUAL_SYNONYM, and NOT_SYNONYM.
      * Fallbacks safely to DB lookup if Gemini AI is unavailable or times out.
      */
     @Transactional
@@ -151,7 +146,7 @@ public class SynonymChallengeService {
                 ? request.getRootWord().trim()
                 : vocab.getWord();
 
-        // Normalize user answers (preserve distinct lowercase)
+        // Normalize user answers (preserve distinct order, lowercase trimming)
         List<String> rawAnswers = request.getUserAnswers() != null ? request.getUserAnswers() : Collections.emptyList();
         Set<String> seenAnswers = new LinkedHashSet<>();
         for (String ans : rawAnswers) {
@@ -166,6 +161,9 @@ public class SynonymChallengeService {
         Set<String> dbSynonymSet = dbSynonymEntities.stream()
                 .map(s -> s.getSynonym().trim().toLowerCase())
                 .collect(Collectors.toSet());
+
+        log.info("Synonym Challenge evaluate request: rootWord='{}', deckId={}, vocabId={}, userAnswers={}",
+                rootWord, request.getDeckId(), vocab.getId(), uniqueUserAnswers);
 
         // Check cards in current deck to know if missed synonyms are already in deck
         Set<String> deckWordsLower = new HashSet<>();
@@ -198,9 +196,13 @@ public class SynonymChallengeService {
             response = buildFallbackResponse(rootWord, vocab, uniqueUserAnswers, dbSynonymEntities, dbSynonymSet, deckWordsLower);
         }
 
-        // Calculate summary counts
+        // Calculate summary counts strictly using 3-state logic
         int totalSubmitted = response.getEvaluatedWords().size();
-        int validCount = (int) response.getEvaluatedWords().stream().filter(EvaluatedWordDto::isValid).count();
+        int validCount = (int) response.getEvaluatedWords().stream()
+                .filter(ew -> "EXACT_SYNONYM".equalsIgnoreCase(ew.getStatus())
+                        || "CONTEXTUAL_SYNONYM".equalsIgnoreCase(ew.getStatus())
+                        || ew.isValid())
+                .count();
         int invalidCount = totalSubmitted - validCount;
 
         response.setTotalSubmitted(totalSubmitted);
@@ -210,11 +212,17 @@ public class SynonymChallengeService {
         // Calculate new discovered count (valid answers that weren't originally in deck)
         int newDiscovered = 0;
         for (EvaluatedWordDto ew : response.getEvaluatedWords()) {
-            if (ew.isValid() && !deckWordsLower.contains(ew.getWord().toLowerCase())) {
+            boolean isValidAnswer = "EXACT_SYNONYM".equalsIgnoreCase(ew.getStatus())
+                    || "CONTEXTUAL_SYNONYM".equalsIgnoreCase(ew.getStatus())
+                    || ew.isValid();
+            if (isValidAnswer && !deckWordsLower.contains(ew.getWord().toLowerCase())) {
                 newDiscovered++;
             }
         }
         response.setNewDiscoveredCount(newDiscovered);
+
+        log.info("Synonym Challenge final response: rootWord='{}', mode={}, total={}, valid={}, invalid={}, discovered={}",
+                rootWord, response.getEvaluationMode(), totalSubmitted, validCount, invalidCount, newDiscovered);
 
         // Save history record
         try {
@@ -252,7 +260,10 @@ public class SynonymChallengeService {
             String customApiKey
     ) throws Exception {
         String prompt = buildGeminiPrompt(rootWord, vocab, userAnswers, dbSynonymSet);
+        log.info("Calling Gemini API for synonym evaluation of root '{}'...", rootWord);
         String rawJson = geminiSentenceService.generateContent(prompt, customApiKey);
+
+        log.info("Gemini raw response for root '{}': {}", rootWord, rawJson);
 
         if (rawJson == null || rawJson.isBlank()) {
             return null;
@@ -265,19 +276,43 @@ public class SynonymChallengeService {
         List<EvaluatedWordDto> evaluatedList = new ArrayList<>();
         if (evalNode != null && evalNode.isArray()) {
             for (JsonNode n : evalNode) {
-                String word = n.path("word").asText("");
-                boolean isValid = n.path("isValid").asBoolean(false);
-                String meaning = n.path("meaning").asText("");
-                String explanation = n.path("explanation").asText("");
+                String word = n.path("word").asText("").trim();
+                String rawStatus = n.path("status").asText("").trim().toUpperCase();
+                boolean isValidFromJson = n.path("isValid").asBoolean(false);
+                String meaning = n.path("meaning").asText("").trim();
+                String explanation = n.path("explanation").asText("").trim();
 
-                // Layer 1 Override: If user answer exists in DB synonyms, always mark valid!
-                String source = "AI";
-                if (dbSynonymSet.contains(word.trim().toLowerCase())) {
+                // Classify into EXACT_SYNONYM, CONTEXTUAL_SYNONYM, or NOT_SYNONYM
+                String status;
+                boolean isValid;
+                if ("EXACT_SYNONYM".equalsIgnoreCase(rawStatus)) {
+                    status = "EXACT_SYNONYM";
                     isValid = true;
-                    source = "DATABASE";
+                } else if ("CONTEXTUAL_SYNONYM".equalsIgnoreCase(rawStatus)) {
+                    status = "CONTEXTUAL_SYNONYM";
+                    isValid = true;
+                } else if ("NOT_SYNONYM".equalsIgnoreCase(rawStatus)) {
+                    status = "NOT_SYNONYM";
+                    isValid = false;
+                } else {
+                    isValid = isValidFromJson;
+                    status = isValid ? "EXACT_SYNONYM" : "NOT_SYNONYM";
                 }
 
-                evaluatedList.add(new EvaluatedWordDto(word, isValid, source, meaning, explanation));
+                String source = "AI";
+                // Layer 1 Override: If user answer exists in DB synonyms, always mark valid!
+                if (dbSynonymSet.contains(word.toLowerCase())) {
+                    source = "DATABASE";
+                    if (!isValid) {
+                        isValid = true;
+                        status = "EXACT_SYNONYM";
+                        if (explanation.isBlank()) {
+                            explanation = "Khớp chính xác với từ đồng nghĩa đã lưu trong bộ từ.";
+                        }
+                    }
+                }
+
+                evaluatedList.add(new EvaluatedWordDto(word, status, isValid, source, meaning, explanation));
             }
         }
 
@@ -288,10 +323,11 @@ public class SynonymChallengeService {
                 boolean inDb = dbSynonymSet.contains(ans.toLowerCase());
                 evaluatedList.add(new EvaluatedWordDto(
                         ans,
+                        inDb ? "EXACT_SYNONYM" : "NOT_SYNONYM",
                         inDb,
                         inDb ? "DATABASE" : "AI",
                         inDb ? "(Từ đồng nghĩa có sẵn)" : "",
-                        inDb ? "Khớp với dữ liệu từ đồng nghĩa đã lưu." : "AI chưa phân tích được từ này."
+                        inDb ? "Khớp với dữ liệu từ đồng nghĩa đã lưu trong bộ từ." : "AI chưa phân tích được từ này."
                 ));
             }
         }
@@ -306,11 +342,11 @@ public class SynonymChallengeService {
                     continue;
                 }
                 seenMissedLower.add(word.toLowerCase());
-                String ipa = m.path("ipa").asText("");
-                String pos = m.path("pos").asText("");
-                String meaning = m.path("meaning").asText("");
-                String example = m.path("example").asText("");
-                String exampleVi = m.path("exampleVi").asText("");
+                String ipa = m.path("ipa").asText("").trim();
+                String pos = m.path("pos").asText("").trim();
+                String meaning = m.path("meaning").asText("").trim();
+                String example = m.path("example").asText("").trim();
+                String exampleVi = m.path("exampleVi").asText("").trim();
                 boolean alreadyInDeck = deckWordsLower.contains(word.toLowerCase());
 
                 missedList.add(new MissedSynonymDto(word, ipa, pos, meaning, example, exampleVi, alreadyInDeck));
@@ -334,6 +370,8 @@ public class SynonymChallengeService {
             }
         }
 
+        log.info("Parsed evaluation for root '{}': evaluatedCount={}, missedCount={}", rootWord, evaluatedList.size(), missedList.size());
+
         return new SynonymEvaluateResponse(
                 "AI_GEMINI",
                 evaluatedList,
@@ -354,6 +392,7 @@ public class SynonymChallengeService {
             Set<String> dbSynonymSet,
             Set<String> deckWordsLower
     ) {
+        log.info("Building fallback evaluation for root '{}' across {} answers", rootWord, userAnswers.size());
         List<EvaluatedWordDto> evaluatedList = new ArrayList<>();
         Set<String> userSubmittedLower = new HashSet<>();
 
@@ -363,11 +402,12 @@ public class SynonymChallengeService {
             boolean inDb = dbSynonymSet.contains(lower);
             evaluatedList.add(new EvaluatedWordDto(
                     ans,
+                    inDb ? "EXACT_SYNONYM" : "NOT_SYNONYM",
                     inDb,
                     inDb ? "DATABASE" : "FALLBACK",
                     inDb ? "(Từ đồng nghĩa có sẵn)" : "",
                     inDb ? "Khớp chính xác với danh sách từ đồng nghĩa lưu trong hệ thống."
-                         : "Không tìm thấy trong cơ sở dữ liệu có sẵn. (Gemini AI hiện không khả dụng để phân tích)"
+                         : "Không tìm thấy trong cơ sở dữ liệu có sẵn. (Gemini AI hiện không khả dụng để phân tích chuyên sâu)"
             ));
         }
 
@@ -420,30 +460,45 @@ public class SynonymChallengeService {
         Pre-existing Synonyms in DB: %s
         Learner Submitted Answers: %s
         
-        CRITICAL EVALUATION RULES:
-        1. Evaluate each item in "Learner Submitted Answers":
-           - Set "isValid": true ONLY IF the word is a genuine synonym that shares the same part of speech and can replace the root word in context. Close near-synonyms with overlapping semantics are acceptable.
-           - Set "isValid": false if the word is merely topically associated (e.g. root "doctor" -> "hospital", "medicine", "nurse" are NOT synonyms and MUST be rejected; root "car" -> "road", "engine" MUST be rejected).
-           - Set "isValid": false if part of speech fundamentally clashes.
-           - In "meaning": provide the Vietnamese meaning of the submitted word.
-           - In "explanation": provide a brief Vietnamese explanation (1-2 sentences). If rejected, state clearly why it is not a true synonym.
+        EVALUATION CLASSIFICATION:
+        For each submitted answer, classify it into EXACTLY ONE of three statuses:
+        1. "EXACT_SYNONYM":
+           - A direct, genuine synonym that shares the same part of speech and can replace the root word across most standard contexts.
+           - Examples: item -> product; customer -> client; important -> significant; important -> crucial.
+           - "isValid": true
         
-        2. Supply "missedSynonyms":
-           - Provide 3 to 6 common, high-yield synonyms (useful for TOEIC 500-900 / CEFR A2-C1, practical everyday English) that the learner DID NOT provide.
-           - DO NOT supply rare, archaic, or obscure terms.
-           - For each missed synonym include:
-             * "word": the English synonym
-             * "ipa": IPA pronunciation (e.g. /.../)
-             * "pos": part of speech (noun, verb, adjective, adverb)
-             * "meaning": Vietnamese meaning
-             * "example": an English sentence illustrating usage
-             * "exampleVi": Vietnamese translation of the example sentence
+        2. "CONTEXTUAL_SYNONYM":
+           - A word that can substitute for the root word in specific contexts, but has nuance differences or narrower/broader scope.
+           - Examples:
+             * item -> object (valid in general physical object contexts, but not equivalent in commercial item/sku contexts)
+             * customer -> consumer (valid in economics/end-user contexts, but consumer is specifically the end user, not necessarily the direct buyer/client)
+           - In "explanation", you MUST clearly state the specific contexts where it works and the nuance differences.
+           - "isValid": true
+        
+        3. "NOT_SYNONYM":
+           - NOT a synonym.
+           - Includes words that are merely topically related (e.g., doctor -> hospital; customer -> employee; item -> employee; car -> road).
+           - Includes words with conflicting parts of speech or antonyms.
+           - In "explanation", you MUST clearly explain why it is NOT a synonym.
+           - "isValid": false
+        
+        CRITICAL RULES:
+        - Both "EXACT_SYNONYM" and "CONTEXTUAL_SYNONYM" MUST have "isValid": true.
+        - Only "NOT_SYNONYM" MUST have "isValid": false.
+        - "meaning": Natural Vietnamese meaning of the submitted word.
+        - "explanation": Clear, concise Vietnamese explanation (1-2 sentences).
+        
+        SUPPLY "missedSynonyms":
+        - 3 to 6 common, high-yield synonyms (essential for TOEIC 500-900 / CEFR A2-C1, practical everyday English) that the learner did not submit.
+        - DO NOT supply obscure or rare archaic terms.
+        - Include "word", "ipa", "pos", "meaning", "example", "exampleVi".
         
         OUTPUT ONLY JSON in this exact structure:
         {
           "evaluatedWords": [
             {
               "word": "string",
+              "status": "EXACT_SYNONYM" | "CONTEXTUAL_SYNONYM" | "NOT_SYNONYM",
               "isValid": true,
               "meaning": "string",
               "explanation": "string"
