@@ -22,7 +22,7 @@ const MODE_DISPLAY_LABEL = {
   dictation: 'Nghe chép',
 };
 
-export default function StudyModeBar({ deckId, activeModeId = 'flashcard', cardCount = 0 }) {
+export default function StudyModeBar({ deckId, activeModeId = 'flashcard', cardCount = 0, onSelectMode }) {
   const navigate = useNavigate();
 
   return (
@@ -36,8 +36,16 @@ export default function StudyModeBar({ deckId, activeModeId = 'flashcard', cardC
 
           const handleClick = () => {
             if (!isAvailable) return;
-            const targetRoute = getModeRoute(deckId, mode.id);
-            navigate(targetRoute);
+            if (onSelectMode) {
+              onSelectMode(mode.id);
+              return;
+            }
+            if (deckId) {
+              const targetRoute = getModeRoute(deckId, mode.id);
+              navigate(targetRoute);
+            } else if (mode.id === 'learn') {
+              navigate('/study-plan/learn');
+            }
           };
 
           return (

@@ -1,20 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Layers,
-  GraduationCap,
-  FileText,
-  Headphones,
-  Mic,
-  MessageSquare,
-  BookOpen,
-  CheckCircle2,
-} from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { studyPlanService } from '../../services/studyPlanService';
 import { studyService } from '../../services/studyService';
+import { getModeRoute } from '../../utils/studyModeRegistry';
+import StudyModeBar from '../decks/StudyModeBar';
 import SrsFlashcardReview from './SrsFlashcardReview';
 import Ripple from '../../components/common/Ripple';
+import '../decks/DeckDetailPage.css';
 import './SrsSessionPage.css';
 
 export default function SrsSessionPage() {
@@ -27,10 +20,19 @@ export default function SrsSessionPage() {
   const [queueData, setQueueData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeMode, setActiveMode] = useState('flashcard');
   const [isCompleted, setIsCompleted] = useState(false);
 
   const sessionIdRef = useRef(null);
+
+  // Scoped class on body for vintage pirate parchment theme
+  useEffect(() => {
+    document.body.classList.add('rpg-library-active');
+    document.body.classList.add('deck-vintage-active');
+    return () => {
+      document.body.classList.remove('rpg-library-active');
+      document.body.classList.remove('deck-vintage-active');
+    };
+  }, []);
 
   // Load queue data and initialize study session (unblocks UI as soon as cards arrive)
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function SrsSessionPage() {
     };
   }, [deckId]);
 
-  // Handle rating card (BUG-03: direct array payload)
+  // Handle rating card
   const handleRateCard = useCallback(
     async (vocabularyId, rating) => {
       const isCorrect = rating !== 'AGAIN';
@@ -102,7 +104,7 @@ export default function SrsSessionPage() {
             },
           ]);
         } catch {
-          // Keep session progressing smoothly even if offline/lag
+          // Keep session progressing smoothly even if network lags
         }
       }
     },
@@ -123,136 +125,157 @@ export default function SrsSessionPage() {
   }, []);
 
   const cards = queueData?.cards || [];
-  const deckTitle = queueData?.planName || queueData?.name || (deckId ? 'Bộ từ vựng' : 'Lộ trình ôn tập');
-  const totalCount = cards.length;
-  const dueCount = queueData?.dueWords ?? queueData?.dueCount ?? totalCount;
+  const rawTitle = queueData?.name || queueData?.deckName || queueData?.planName;
+  const titleText = rawTitle
+    ? rawTitle.toUpperCase()
+    : (deckId ? `BỘ TỪ #${deckId}` : 'LẶP LẠI NGẮT QUÃNG — LỘ TRÌNH ÔN TẬP');
 
-  const modeTabs = [
-    { id: 'flashcard', label: 'Flashcard', icon: Layers, available: true },
-    { id: 'learn', label: 'Học', icon: GraduationCap, available: true },
-    { id: 'test', label: 'Kiểm tra', icon: FileText, available: false },
-    { id: 'dictation', label: 'Nghe Chép', icon: Headphones, available: false },
-    { id: 'speaking', label: 'Speaking', icon: Mic, available: false },
-    { id: 'conversation', label: 'Hội thoại', icon: MessageSquare, available: false },
-    { id: 'grammar', label: 'Ngữ pháp', icon: BookOpen, available: false },
-  ];
+  const backUrl = deckId ? `/decks/${deckId}` : '/decks';
 
   return (
-    <div className="srs-session-page">
-      {/* Top Header */}
-      <header className="srs-session-top-header">
-        <div className="srs-session-header-left">
+    <div className="deck-page-shell lexicon-journal-shell srs-vintage-shell">
+      <div className="deck-page-main lexicon-journal-main">
+        {/* Top Header Row with Vintage Pirate Navigation */}
+        <header className="vintage-deck-header-row">
+          {/* Left: Vintage Back Button */}
           <button
             type="button"
-            className="srs-session-back-btn"
-            onClick={() => navigate(deckId ? `/decks/${deckId}` : '/study-plan')}
+            className="vintage-header-back-btn"
+            onClick={() => navigate(backUrl)}
+            title="Quay lại"
             aria-label="Quay lại"
           >
-            <ArrowLeft size={18} />
+            <img src="/assets/flashcard/button-back.png" alt="Quay lại" />
           </button>
 
-          <div className="srs-session-title-box">
-            <h1 className="srs-session-title">Lặp lại ngắt quãng - {deckTitle}</h1>
-            <p className="srs-session-subtitle">
-              {totalCount} từ · Cần ôn tập: {dueCount}
-            </p>
+          {/* Center: Classic Ornamental Book Title */}
+          <div className="vintage-header-title-ribbon" title={titleText}>
+            <span className="vintage-title-flourish is-left" aria-hidden="true">
+              <span className="flourish-line" />
+              <span className="flourish-diamond">◆</span>
+              <span className="flourish-dot">•</span>
+            </span>
+            <div className="vintage-ribbon-content">
+              <img
+                src="/assets/decor_icon/decor_vocabulary_book.png"
+                alt=""
+                className="vintage-title-book-icon"
+              />
+              <h1 className="vintage-ribbon-text">{titleText}</h1>
+            </div>
+            <span className="vintage-title-flourish is-right" aria-hidden="true">
+              <span className="flourish-dot">•</span>
+              <span className="flourish-diamond">◆</span>
+              <span className="flourish-line" />
+            </span>
           </div>
-        </div>
-      </header>
 
-      {/* Study Mode Selector Bar */}
-      <nav className="srs-mode-bar-container" aria-label="Chế độ học">
-        <div className="srs-mode-bar-grid">
-          {modeTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeMode === tab.id;
+          {/* Right: SRS Quick Button */}
+          <div className="vintage-header-right-actions">
+            <button
+              type="button"
+              className="vintage-header-srs-btn is-active"
+              title="Chế độ lặp lại ngắt quãng (SM-2)"
+              aria-label="Lặp lại ngắt quãng"
+            >
+              <img src="/assets/flashcard/button-srs.png" alt="Lặp lại ngắt quãng" />
+            </button>
+          </div>
+        </header>
 
-            return (
+        {/* 3x2 Vintage Categories Grid */}
+        <StudyModeBar
+          deckId={deckId}
+          activeModeId="flashcard"
+          cardCount={cards.length}
+          onSelectMode={(modeId) => {
+            if (modeId === 'learn') {
+              navigate(deckId ? `/decks/${deckId}/learn` : '/study-plan/learn');
+            } else if (modeId === 'flashcard') {
+              if (deckId) navigate(`/decks/${deckId}`);
+            } else if (deckId) {
+              navigate(getModeRoute(deckId, modeId));
+            } else {
+              navigate('/decks');
+            }
+          }}
+        />
+
+        {/* Main Content Area */}
+        <main className="deck-detail-content" style={{ width: '100%' }}>
+          {loading ? (
+            <div className="deck-detail-state-screen">
+              <Ripple size={48} color="#8A7152" />
+              <p style={{ marginTop: '14px', color: '#5C4F3E', fontSize: '14px', fontFamily: 'Georgia, serif' }}>
+                Đang lật mở trang nhật ký từ vựng...
+              </p>
+            </div>
+          ) : error ? (
+            <div className="deck-detail-state-screen">
+              <div className="deck-state-icon-box warning">
+                <AlertTriangle size={36} />
+              </div>
+              <h2 className="deck-state-title">Đã xảy ra lỗi</h2>
+              <p className="deck-state-desc">{error}</p>
               <button
-                key={tab.id}
                 type="button"
-                className={`srs-mode-tab-btn ${isActive ? 'is-active' : ''} ${
-                  !tab.available ? 'is-disabled' : ''
-                }`}
-                onClick={() => {
-                  if (tab.available) {
-                    if (tab.id === 'learn') {
-                      navigate(deckId ? `/decks/${deckId}/learn` : '/study-plan/learn');
-                      return;
-                    }
-                    setActiveMode(tab.id);
-                  }
-                }}
+                className="monochrome-btn-primary"
+                onClick={() => navigate(backUrl)}
               >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-                {!tab.available && <span className="srs-mode-soon-tag">Sớm</span>}
+                <span>Quay lại</span>
               </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Main Body */}
-      <main className="srs-session-body">
-        {loading ? (
-          <div className="srs-complete-card">
-            <Ripple size={56} color="#3b82f6" style={{ margin: '0 auto 16px auto' }} />
-            <p>Đang chuẩn bị phiên ôn tập lặp lại ngắt quãng...</p>
-          </div>
-        ) : error ? (
-          <div className="srs-complete-card">
-            <p style={{ color: '#ef4444' }}>{error}</p>
-            <button
-              type="button"
-              className="srs-complete-btn"
-              onClick={() => navigate('/')}
-            >
-              Về thư viện
-            </button>
-          </div>
-        ) : isCompleted ? (
-          <div className="srs-complete-card">
-            <div className="srs-complete-icon">
-              <CheckCircle2 size={36} />
             </div>
-            <h2 className="srs-complete-title">Hoàn thành phiên ôn tập!</h2>
-            <p className="srs-complete-msg">
-              Tất cả các từ đến hạn đã được cập nhật lại theo chu kỳ lặp lại ngắt quãng (SM-2). Trí nhớ của bạn đang được củng cố vững chắc.
-            </p>
-            <button
-              type="button"
-              className="srs-complete-btn"
-              onClick={() => navigate(deckId ? `/decks/${deckId}` : '/study-plan')}
-            >
-              Tiếp tục học
-            </button>
-          </div>
-        ) : cards.length === 0 ? (
-          <div className="srs-complete-card">
-            <div className="srs-complete-icon">
-              <CheckCircle2 size={36} />
+          ) : isCompleted ? (
+            <div className="vintage-srs-complete-card">
+              <div className="vintage-srs-complete-icon-box">
+                <img
+                  src="/assets/decor_icon/decor_vocabulary_book.png"
+                  alt=""
+                  className="vintage-srs-complete-book"
+                />
+              </div>
+              <h2 className="vintage-srs-complete-title">Hoàn thành phiên ôn tập!</h2>
+              <p className="vintage-srs-complete-desc">
+                Tất cả các từ đến hạn đã được cập nhật lại theo chu kỳ lặp lại ngắt quãng (SM-2). Trí nhớ của bạn đang được củng cố vững chắc.
+              </p>
+              <button
+                type="button"
+                className="monochrome-btn-primary"
+                onClick={() => navigate(backUrl)}
+              >
+                <span>Tiếp tục hành trình</span>
+              </button>
             </div>
-            <h2 className="srs-complete-title">Không có từ nào đến hạn</h2>
-            <p className="srs-complete-msg">
-              Tuyệt vời! Bạn đã hoàn thành tất cả các từ cần ôn tập trong thời điểm hiện tại.
-            </p>
-            <button
-              type="button"
-              className="srs-complete-btn"
-              onClick={() => navigate('/')}
-            >
-              Về thư viện
-            </button>
-          </div>
-        ) : activeMode === 'flashcard' ? (
-          <SrsFlashcardReview
-            cards={cards}
-            onRateCard={handleRateCard}
-            onComplete={handleComplete}
-          />
-        ) : null}
-      </main>
+          ) : cards.length === 0 ? (
+            <div className="vintage-srs-complete-card">
+              <div className="vintage-srs-complete-icon-box">
+                <img
+                  src="/assets/decor_icon/decor_vocabulary_book.png"
+                  alt=""
+                  className="vintage-srs-complete-book"
+                />
+              </div>
+              <h2 className="vintage-srs-complete-title">Không có từ nào đến hạn</h2>
+              <p className="vintage-srs-complete-desc">
+                Tuyệt vời! Bạn đã hoàn thành tất cả các từ cần ôn tập trong thời điểm hiện tại.
+              </p>
+              <button
+                type="button"
+                className="monochrome-btn-primary"
+                onClick={() => navigate(backUrl)}
+              >
+                <span>Về thư viện</span>
+              </button>
+            </div>
+          ) : (
+            <SrsFlashcardReview
+              cards={cards}
+              onRateCard={handleRateCard}
+              onComplete={handleComplete}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
