@@ -62,7 +62,7 @@ export const STUDY_MODES = [
     subpath: 'synonym',
     route: (deckId) => `/decks/${deckId}/synonym`,
     status: 'available',
-    component: SynonymChallengeView,
+    component: null,
     description: 'Thử thách tìm từ đồng nghĩa tiếng Anh, AI phân tích ngữ nghĩa và gợi ý từ vựng TOEIC hữu ích',
   },
   {
