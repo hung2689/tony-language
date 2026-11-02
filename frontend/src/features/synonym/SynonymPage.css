@@ -1,42 +1,136 @@
 /* ==========================================================================
-   Dedicated Synonym Challenge Page Styles (Voyage Distraction-free)
+   Dedicated Synonym Challenge Page Styles (Crisp Vector Parchment Frame)
+   No blurry stretched image background. Fits screen comfortably.
    ========================================================================== */
+
+/* 1. Scoped Page Container */
+.synonym-dedicated-shell {
+  padding: 8px 14px 16px !important;
+}
+
+.synonym-dedicated-container {
+  max-width: 860px !important;
+  gap: 8px !important;
+}
+
+/* 2. Compact Header */
+.synonym-compact-header {
+  padding: 0 0 2px 0 !important;
+  gap: 10px !important;
+}
+
+.synonym-compact-header .vintage-header-back-btn img {
+  height: 38px !important;
+}
+
+.synonym-compact-header .vintage-ribbon-text {
+  font-size: 1.12rem !important;
+  max-width: 500px !important;
+}
+
+.synonym-compact-header .vintage-header-settings-btn {
+  padding: 5px 14px !important;
+  font-size: 12.5px !important;
+}
+
+/* 3. Compact Voyage Progress Bar */
+.synonym-compact-voyage {
+  padding: 8px 18px 6px !important;
+  gap: 4px !important;
+  border-radius: 12px !important;
+}
+
+.synonym-compact-voyage .voyage-landmark {
+  font-size: 12.5px !important;
+  gap: 5px !important;
+}
+
+.synonym-compact-voyage .voyage-landmark .landmark-icon {
+  font-size: 1.1rem !important;
+}
+
+.synonym-compact-voyage .voyage-sea-line {
+  height: 6px !important;
+}
+
+.synonym-compact-voyage .voyage-ship-marker {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.synonym-compact-voyage .voyage-progress-counter {
+  font-size: 12px !important;
+}
+
+/* 4. Crisp Parchment Frame (Replaces blurry flashcard-page.png) */
+.synonym-parchment-frame {
+  position: relative !important;
+  background-color: #FAF0DA !important;
+  background-image: radial-gradient(circle at 50% 0%, #FFF9EC 0%, #FAF0D8 65%, #F4E5C4 100%) !important;
+  border: 1.5px solid #8C6237 !important;
+  border-radius: 14px !important;
+  box-shadow: 
+    0 8px 24px rgba(44, 26, 14, 0.12),
+    inset 0 0 35px rgba(184, 143, 94, 0.1) !important;
+  padding: 20px 24px 18px !important;
+  min-height: auto !important;
+  filter: none !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* Corner Brass Rivets */
+.parchment-rivet {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #D8C39F, #7C5329 80%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.rivet-tl { top: 8px; left: 8px; }
+.rivet-tr { top: 8px; right: 8px; }
+.rivet-bl { bottom: 8px; left: 8px; }
+.rivet-br { bottom: 8px; right: 8px; }
 
 .vintage-synonym-inner-card {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   position: relative;
   z-index: 2;
 }
 
-/* Question Hero */
+/* 5. Question Hero - Compact & Proportionate */
 .vintage-synonym-inner-card .vintage-question-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 1.5px dashed #C4AC89;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .vintage-synonym-inner-card .hero-word-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
 .vintage-synonym-inner-card .hero-english-word {
-  font-size: 38px;
+  font-size: 26px !important;
   font-weight: 800;
   color: #24180E;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.5px;
   margin: 0;
   text-transform: uppercase;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);
 }
 
 .vintage-synonym-inner-card .vintage-speaker-btn {
@@ -44,15 +138,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px !important;
+  height: 32px !important;
   border-radius: 50%;
   background: #EFE0C2;
-  border: 1.5px solid #A68D6C;
+  border: 1px solid #A68D6C;
   color: #2E6B38;
   cursor: pointer;
   transition: all 0.16s ease;
-  box-shadow: 0 2px 5px rgba(59, 43, 28, 0.12);
+  box-shadow: 0 1px 3px rgba(59, 43, 28, 0.1);
   overflow: hidden;
 }
 
@@ -64,69 +158,71 @@
 .vintage-synonym-inner-card .hero-meta-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .vintage-synonym-inner-card .hero-ipa {
   font-family: 'Times New Roman', serif;
-  font-size: 17px;
+  font-size: 14.5px !important;
   color: #6B5539;
   font-style: italic;
 }
 
 .vintage-synonym-inner-card .hero-pos-badge {
   display: inline-block;
-  padding: 3px 10px;
+  padding: 2px 7px !important;
   background: #E8D8BA;
   border: 1px solid #B89F7D;
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: 10px;
+  font-size: 11px !important;
   font-weight: 700;
   color: #4C3C2A;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .vintage-synonym-inner-card .hero-vietnamese-meaning {
-  font-size: 21px;
+  font-size: 16.5px !important;
   font-weight: 700;
   color: #2E6B38;
-  margin: 4px 0 12px;
+  margin: 2px 0 8px !important;
 }
 
 .vintage-synonym-inner-card .hero-task-hint {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 6px 12px !important;
   background: rgba(239, 224, 194, 0.55);
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 12px !important;
   color: #6B5539;
-  max-width: 640px;
-  line-height: 1.45;
+  max-width: 580px;
+  line-height: 1.35;
   margin: 0 auto;
 }
 
-/* Chip Input Area */
+/* 6. Chip Input Area - Compact & Responsive */
 .vintage-chip-input-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .vintage-chip-input-container {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  min-height: 104px;
-  padding: 12px 16px;
+  gap: 6px;
+  min-height: 58px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 8px 12px;
   background: #FFFDF8;
-  border: 2px solid #A68D6C;
-  border-radius: 12px;
-  box-shadow: inset 0 2px 6px rgba(59, 43, 28, 0.08);
+  border: 1.5px solid #A68D6C;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 4px rgba(59, 43, 28, 0.06);
   cursor: text;
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
@@ -134,8 +230,8 @@
 .vintage-chip-input-container:focus-within {
   border-color: #2E6B38;
   box-shadow: 
-    inset 0 2px 6px rgba(59, 43, 28, 0.08),
-    0 0 0 3px rgba(46, 107, 56, 0.18);
+    inset 0 1px 4px rgba(59, 43, 28, 0.06),
+    0 0 0 2px rgba(46, 107, 56, 0.18);
 }
 
 .vintage-chip-input-container.is-disabled {
@@ -146,15 +242,15 @@
 .vintage-input-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 4px 10px;
   background: #EFE0C2;
-  border: 1.5px solid #C4AC89;
-  border-radius: 20px;
-  font-size: 14px;
+  border: 1px solid #C4AC89;
+  border-radius: 16px;
+  font-size: 13px;
   font-weight: 700;
   color: #24180E;
-  box-shadow: 0 1px 3px rgba(59, 43, 28, 0.1);
+  box-shadow: 0 1px 2px rgba(59, 43, 28, 0.08);
   transition: all 0.15s ease;
 }
 
@@ -171,14 +267,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   padding: 0;
   background: transparent;
   border: none;
   border-radius: 50%;
   color: #7C5329;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
@@ -190,45 +286,94 @@
 
 .vintage-chip-field {
   flex: 1;
-  min-width: 180px;
+  min-width: 150px;
   background: transparent;
   border: none;
   outline: none;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 13.5px;
   color: #24180E;
-  padding: 6px 4px;
+  padding: 4px;
 }
 
 .vintage-chip-field::placeholder {
   color: #9C8262;
   font-style: italic;
+  font-size: 13px;
 }
 
 .vintage-input-actions-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .chip-count-hint {
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: #6B5539;
 }
 
-/* Results Section */
+.vintage-launch-voyage-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 9px 24px !important;
+  background: #2E6B38 !important;
+  border: 1.5px solid #1E4624 !important;
+  border-radius: 20px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #FAF0DA !important;
+  cursor: pointer !important;
+  box-shadow: 0 3px 8px rgba(46, 107, 56, 0.25) !important;
+  transition: all 0.16s ease !important;
+}
+
+.vintage-launch-voyage-btn:hover:not(:disabled) {
+  background: #23552C !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(46, 107, 56, 0.35) !important;
+}
+
+.vintage-launch-voyage-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+.vintage-outline-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 8px 20px !important;
+  background: #EFE0C2 !important;
+  border: 1.5px solid #A68D6C !important;
+  border-radius: 20px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #4C3C2A !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+}
+
+.vintage-outline-btn:hover {
+  background: #E5CE9E !important;
+  color: #24180E !important;
+}
+
+/* 7. Results Section - Compact & Neat */
 .vintage-results-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  animation: resultsSlideUp 0.3s ease-out;
+  gap: 16px;
+  animation: resultsSlideUp 0.25s ease-out;
 }
 
 @keyframes resultsSlideUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -236,44 +381,42 @@
   }
 }
 
-/* Fallback Warning Banner */
 .vintage-fallback-banner {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 10px;
+  padding: 10px 14px;
   background: #FFF2D6;
   border: 1.5px solid #D97706;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(217, 119, 6, 0.1);
 }
 
 .fallback-warning-icon {
   color: #D97706;
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .fallback-warning-title {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #8C4700;
   margin-bottom: 2px;
 }
 
 .fallback-warning-desc {
-  font-size: 13px;
+  font-size: 12px;
   color: #733E04;
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
-/* Result Groups */
 .vintage-result-group {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .vintage-result-group .group-header {
@@ -281,13 +424,13 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
-  padding-bottom: 8px;
+  gap: 6px;
+  padding-bottom: 6px;
   border-bottom: 1.5px solid #D8C39F;
 }
 
 .vintage-result-group .group-title {
-  font-size: 18px;
+  font-size: 14.5px;
   font-weight: 800;
   color: #24180E;
   margin: 0;
@@ -296,33 +439,25 @@
 .vintage-result-group .group-score-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 5px;
+  padding: 2px 8px;
   background: #EFE0C2;
   border: 1px solid #C4AC89;
-  border-radius: 16px;
-  font-size: 13px;
+  border-radius: 12px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
-.vintage-result-group .score-valid {
-  color: #2E6B38;
-}
-
-.vintage-result-group .score-invalid {
-  color: #992B2B;
-}
-
-.vintage-result-group .score-sep {
-  color: #A68D6C;
-}
+.vintage-result-group .score-valid { color: #2E6B38; }
+.vintage-result-group .score-invalid { color: #992B2B; }
+.vintage-result-group .score-sep { color: #A68D6C; }
 
 .vintage-result-group .group-sub-badge {
-  font-size: 12px;
+  font-size: 11px;
   color: #7C5329;
   background: #EFE0C2;
-  padding: 3px 10px;
-  border-radius: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
   border: 1px solid #D8C39F;
   font-weight: 600;
 }
@@ -331,23 +466,28 @@
 .vintage-answers-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .vintage-answer-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 16px;
+  gap: 4px;
+  padding: 8px 12px;
   background: #FFFDF8;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1.5px solid #D8C39F;
-  box-shadow: 0 1px 4px rgba(59, 43, 28, 0.05);
+  box-shadow: 0 1px 3px rgba(59, 43, 28, 0.04);
 }
 
 .vintage-answer-item.is-valid {
   border-color: #2E6B38;
   background: #F4F9F4;
+}
+
+.vintage-answer-item.is-contextual {
+  border-color: #B27715;
+  background: #FFFDF0;
 }
 
 .vintage-answer-item.is-invalid {
@@ -359,18 +499,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .vintage-answer-item .answer-term-group {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .vintage-answer-item .icon-valid {
   color: #2E6B38;
+  flex-shrink: 0;
+}
+
+.vintage-answer-item .icon-contextual {
+  color: #B27715;
   flex-shrink: 0;
 }
 
@@ -380,7 +524,7 @@
 }
 
 .vintage-answer-item .answer-word {
-  font-size: 16.5px;
+  font-size: 14.5px;
   font-weight: 800;
   color: #24180E;
 }
@@ -391,15 +535,15 @@
 }
 
 .vintage-answer-item .answer-meaning {
-  font-size: 14px;
+  font-size: 13px;
   color: #5C4328;
 }
 
 .vintage-answer-item .answer-source-badge {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
 }
 
 .vintage-answer-item .answer-source-badge.is-db {
@@ -414,46 +558,87 @@
   border: 1px solid #BFDBFE;
 }
 
-.vintage-answer-item .answer-explanation {
-  font-size: 13px;
-  color: #5C4328;
-  margin: 0;
-  line-height: 1.45;
+.vintage-answer-item .answer-source-badge.is-fallback {
+  background: #FFF3CD;
+  color: #856404;
+  border: 1px solid #FFEEBA;
 }
 
-/* Missed Grid */
+.vintage-answer-item .answer-badge-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vintage-answer-item .answer-status-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.02em;
+}
+
+.vintage-answer-item .answer-status-pill.status-exact {
+  background: #E8F5E9;
+  color: #2E6B38;
+  border: 1px solid #A5D6A7;
+}
+
+.vintage-answer-item .answer-status-pill.status-contextual {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.vintage-answer-item .answer-status-pill.status-invalid {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
+}
+
+.vintage-answer-item .answer-explanation {
+  font-size: 12px;
+  color: #5C4328;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Missed Synonyms Grid */
 .vintage-missed-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 10px;
 }
 
 .vintage-missed-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
+  gap: 6px;
+  padding: 10px 12px;
   background: #FFFDF8;
   border: 1.5px solid #C4AC89;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(59, 43, 28, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(59, 43, 28, 0.04);
 }
 
 .vintage-missed-card .missed-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .vintage-missed-card .missed-card-word-row {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .vintage-missed-card .missed-word {
-  font-size: 17px;
+  font-size: 14.5px;
   font-weight: 800;
   color: #2E6B38;
 }
@@ -462,8 +647,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #EFE0C2;
   border: 1px solid #A68D6C;
@@ -477,24 +662,24 @@
 }
 
 .vintage-missed-card .missed-pos {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #7C5329;
   text-transform: uppercase;
   background: #EFE0C2;
-  padding: 2px 6px;
-  border-radius: 8px;
+  padding: 1px 5px;
+  border-radius: 6px;
 }
 
 .vintage-missed-card .vintage-quick-add-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
+  gap: 3px;
+  padding: 3px 8px;
   background: #EFE0C2;
   border: 1px solid #A68D6C;
-  border-radius: 16px;
-  font-size: 12px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #4C3C2A;
   cursor: pointer;
@@ -516,24 +701,24 @@
 
 .vintage-missed-card .missed-ipa {
   font-family: 'Times New Roman', serif;
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: #7C5329;
   font-style: italic;
 }
 
 .vintage-missed-card .missed-meaning {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #24180E;
 }
 
 .vintage-missed-card .missed-example-box {
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: #F7EEDB;
-  border-left: 3px solid #7C5329;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1.4;
+  border-left: 2.5px solid #7C5329;
+  border-radius: 3px;
+  font-size: 11.5px;
+  line-height: 1.35;
 }
 
 .vintage-missed-card .example-en {
@@ -550,7 +735,7 @@
 .vintage-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   width: 100%;
 }
 
@@ -559,15 +744,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 14px 10px;
+  padding: 8px 6px;
   background: #FFFDF8;
   border: 1.5px solid #C4AC89;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: center;
 }
 
 .vintage-summary-card .summary-number {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
   color: #24180E;
 }
@@ -577,10 +762,10 @@
 .vintage-summary-card.is-highlight .summary-number { color: #D97706; }
 
 .vintage-summary-card .summary-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #6B5539;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* Actions */
@@ -588,32 +773,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding-top: 10px;
+  gap: 12px;
+  padding-top: 8px;
   border-top: 1.5px dashed #C4AC89;
 }
 
-/* Session Completion Box */
+/* Completion Box */
 .vintage-complete-banner-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 24px 16px 12px;
+  padding: 16px 12px;
   width: 100%;
 }
 
 .vintage-complete-trophy-wrap {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: #FAF0DA;
   border: 2px solid #A8783E;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(59, 43, 28, 0.2);
+  margin-bottom: 12px;
+  box-shadow: 0 3px 8px rgba(59, 43, 28, 0.15);
 }
 
 .trophy-gold-svg {
@@ -621,18 +806,18 @@
 }
 
 .vintage-complete-heading {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 800;
   color: #24180E;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
 }
 
 .vintage-complete-lead {
-  font-size: 15px;
+  font-size: 13.5px;
   color: #6E5336;
-  max-width: 520px;
-  margin: 0 0 24px 0;
-  line-height: 1.5;
+  max-width: 480px;
+  margin: 0 0 16px 0;
+  line-height: 1.45;
 }
 
 .vintage-complete-cta-row {
@@ -640,14 +825,30 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Footer Stats */
+.vintage-voyage-footer-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 11.5px;
+  color: #796246;
+  font-weight: 600;
+}
+
+.footer-dot {
+  color: #A8783E;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .vintage-synonym-inner-card .hero-english-word {
-    font-size: 28px;
+    font-size: 22px !important;
   }
 
   .vintage-missed-grid {

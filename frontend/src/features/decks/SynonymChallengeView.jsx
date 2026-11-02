@@ -19,6 +19,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { synonymChallengeService } from '../../services/synonymChallengeService';
+import { isAnswerValid, isAnswerContextual, calculateEvaluationCounts } from '../synonym/synonymEvaluationUtils';
 import { speakEnglishTerm } from '../../utils/speechUtils';
 import { hasGeminiApiKey } from '../../utils/aiKeyStorage';
 import GeminiKeyModal from '../../components/common/GeminiKeyModal';
@@ -547,49 +548,75 @@ export default function SynonymChallengeView({
             )}
 
             {/* A. YOUR ANSWERS */}
-            <div className="vintage-result-group">
-              <div className="group-header">
-                <h2 className="group-title">A. Câu trả lời của bạn ({evaluation.totalSubmitted})</h2>
-                <div className="group-score-pill">
-                  <span className="score-valid">Đúng: {evaluation.validCount}</span>
-                  <span className="score-sep">/</span>
-                  <span className="score-invalid">Chưa đúng: {evaluation.invalidCount}</span>
-                </div>
-              </div>
+            {(() => {
+              const evaluatedWords = evaluation.evaluatedWords || [];
+              const counts = calculateEvaluationCounts(evaluatedWords);
 
-              <div className="vintage-answers-list">
-                {evaluation.evaluatedWords.map((item, idx) => (
-                  <div
-                    key={`${item.word}-${idx}`}
-                    className={`vintage-answer-item ${item.isValid ? 'is-valid' : 'is-invalid'}`}
-                  >
-                    <div className="answer-item-header">
-                      <div className="answer-term-group">
-                        {item.isValid ? (
-                          <CheckCircle2 size={18} className="icon-valid" />
-                        ) : (
-                          <XCircle size={18} className="icon-invalid" />
-                        )}
-                        <span className={`answer-word ${!item.isValid ? 'is-struck' : ''}`}>
-                          {item.word}
-                        </span>
-                        {item.meaning && (
-                          <span className="answer-meaning">({item.meaning})</span>
-                        )}
-                      </div>
-
-                      <span className={`answer-source-badge ${item.source === 'DATABASE' ? 'is-db' : 'is-ai'}`}>
-                        {item.source === 'DATABASE' ? 'Cơ sở dữ liệu' : 'AI thẩm định'}
-                      </span>
+              return (
+                <div className="vintage-result-group">
+                  <div className="group-header">
+                    <h2 className="group-title">A. Câu trả lời của bạn ({counts.total})</h2>
+                    <div className="group-score-pill">
+                      <span className="score-valid">Hợp lệ: {counts.valid}</span>
+                      <span className="score-sep">/</span>
+                      <span className="score-invalid">Chưa đúng: {counts.invalid}</span>
                     </div>
-
-                    {item.explanation && (
-                      <p className="answer-explanation">{item.explanation}</p>
-                    )}
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  <div className="vintage-answers-list">
+                    {evaluatedWords.map((item, idx) => {
+                      const valid = isAnswerValid(item);
+                      const contextual = isAnswerContextual(item);
+
+                      return (
+                        <div
+                          key={`${item.word}-${idx}`}
+                          className={`vintage-answer-item ${valid ? (contextual ? 'is-valid is-contextual' : 'is-valid') : 'is-invalid'}`}
+                        >
+                          <div className="answer-item-header">
+                            <div className="answer-term-group">
+                              {valid ? (
+                                contextual ? (
+                                  <HelpCircle size={18} className="icon-contextual" />
+                                ) : (
+                                  <CheckCircle2 size={18} className="icon-valid" />
+                                )
+                              ) : (
+                                <XCircle size={18} className="icon-invalid" />
+                              )}
+                              <span className={`answer-word ${!valid ? 'is-struck' : ''}`}>
+                                {item.word}
+                              </span>
+                              {item.meaning && (
+                                <span className="answer-meaning">({item.meaning})</span>
+                              )}
+                            </div>
+
+                            <div className="answer-badge-group">
+                              {contextual ? (
+                                <span className="answer-status-pill status-contextual">Ngữ cảnh phù hợp</span>
+                              ) : valid ? (
+                                <span className="answer-status-pill status-exact">Đồng nghĩa chính xác</span>
+                              ) : (
+                                <span className="answer-status-pill status-invalid">Chưa chính xác</span>
+                              )}
+
+                              <span className={`answer-source-badge ${item.source === 'DATABASE' ? 'is-db' : item.source === 'FALLBACK' ? 'is-fallback' : 'is-ai'}`}>
+                                {item.source === 'DATABASE' ? 'Cơ sở dữ liệu' : item.source === 'FALLBACK' ? 'Đối chiếu nội bộ' : 'AI thẩm định'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {item.explanation && (
+                            <p className="answer-explanation">{item.explanation}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* B. MISSED SYNONYMS */}
             {evaluation.missedSynonyms && evaluation.missedSynonyms.length > 0 && (

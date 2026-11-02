@@ -47,7 +47,7 @@ server.listen(PORT, async () => {
   try {
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({
-      viewport: { width: 1200, height: 1300 },
+      viewport: { width: 1200, height: 1350 },
       deviceScaleFactor: 2,
     });
 
@@ -69,27 +69,32 @@ server.listen(PORT, async () => {
     server.close();
 
     // Send Telegram Notification & Photo
-    const message = `✨ <b>CHẾ ĐỘ HỌC ĐỘC LẬP: TRANG SYNONYM CHALLENGE (/decks/:deckId/synonym)</b>
+    const message = `🎯 <b>FIX LỖI: ĐÁNH GIÁ TỪ ĐỒNG NGHĨA & HỆ THỐNG 3 TRẠNG THÁI (SYNONYM CHALLENGE)</b>
 
-🧭 <b>Trải nghiệm học tập tập trung (Distraction-free) tương đồng với /learn:</b>
-1. <b>Trang riêng biệt:</b> Toàn màn hình với hình nền hải đồ vintage, thanh Header với nút [Quay lại], tên bộ từ và [Cài đặt].
-2. <b>Thanh Hải trình (Voyage Progress Bar):</b>
-   • Con thuyền thám hiểm nhích dần từ <b>⚓ Bến Cảng (0%)</b> đến <b>🏝 Kho Báu (100%)</b> theo thời gian thực.
-   • Hiển thị: <code>Tiến độ: 6 / 10 từ thử thách (60%)</code>.
-3. <b>Quy tắc kết thúc phiên (Điểm dừng):</b>
-   • Mặc định mỗi phiên gồm <b>10 từ</b> (có thể chọn 5, 10, 20 hoặc Tất cả trong Cài đặt).
-   • Sau khi hoàn thành đủ số từ (vd: 10/10 từ), thuyền cập bến Kho Báu và chuyển sang <b>Màn hình Tổng kết</b>:
-     - 🏆 Tổng số từ hoàn thành & đáp án đúng.
-     - 🌟 Số từ vựng TOEIC mới đã lưu vào bộ từ.
-     - 🎯 Tỷ lệ chính xác & nút <b>"Vòng tiếp theo"</b> / <b>"Quay lại bộ từ"</b>.
-4. <b>Khung giấy da cổ (Parchment Scroll):</b>
-   • Họa tiết la bàn cổ + phong cảnh núi non viễn chinh ở các góc.
-   • Đầy đủ tính năng chip input linh hoạt, đánh giá 2 lớp (Database + Gemini AI) & gợi ý từ TOEIC.`;
+🔍 <b>Nguyên nhân gốc rễ (Root Cause):</b>
+1. <b>Lệch tên trường Boolean của Jackson:</b> Getter Java <code>isValid()</code> mặc định được Jackson serialize thành JSON key <code>"valid"</code> thay vì <code>"isValid"</code>. Frontend đọc <code>item.isValid</code> nhận <code>undefined</code> (falsy) nên hiển thị toàn bộ icon X đỏ và gạch ngang từ dù <code>validCount = 1</code>!
+2. <b>Thiếu phân loại sắc thái nghĩa:</b> Hệ thống cũ chỉ có nhị phân (true/false), chưa phân biệt giữa từ đồng nghĩa trực tiếp, từ đồng nghĩa theo ngữ cảnh và từ chỉ liên quan chủ đề.
 
-    console.log('📤 Đang gửi ảnh Trang Synonym Challenge sang Telegram...');
+🛠 <b>Các giải pháp đã triển khai:</b>
+1. <b>Hệ thống 3 trạng thái chuẩn (TASK 2):</b>
+   • <code>EXACT_SYNONYM</code>: Đồng nghĩa chính xác (Hợp lệ - Icon ✓ Xanh lá - Không gạch ngang).
+   • <code>CONTEXTUAL_SYNONYM</code>: Đồng nghĩa theo ngữ cảnh (Hợp lệ - Icon ? Vàng hổ phách - Có giải thích ngữ cảnh chi tiết).
+   • <code>NOT_SYNONYM</code>: Không phải đồng nghĩa (Chưa đúng - Icon ✗ Đỏ - Gạch ngang từ).
+2. <b>Jackson Annotation (@JsonProperty):</b>
+   • Serialize đầy đủ cả <code>isValid</code>, <code>valid</code> và <code>status</code>.
+3. <b>Thống nhất ánh xạ Frontend (TASK 3):</b>
+   • Sử dụng duy nhất module <code>synonymEvaluationUtils.js</code> để tính toán số lượng hợp lệ/chưa đúng trên Header, Session Stats và hiển thị từng thẻ từ.
+4. <b>Logging đầy đủ (TASK 5):</b>
+   • Ghi log chi tiết Original word, User submitted words, Raw Gemini response, Parsed evaluation và Final API response (bảo mật tuyệt đối, không log API key).
+5. <b>Bảo đảm test bao phủ 8 test cases bắt buộc (TASK 4):</b>
+   • ITEM -> Product (Valid) | Object (Contextual) | Employee (Invalid)
+   • CUSTOMER -> Client (Valid) | Consumer (Contextual) | Employee (Invalid)
+   • IMPORTANT -> Significant (Valid) | Crucial (Valid)`;
+
+    console.log('📤 Đang gửi ảnh cập nhật đánh giá sang Telegram...');
     await sendTelegramPhoto(
       screenshotPath,
-      '📸 Giao diện Trang riêng độc lập: Synonym Challenge (Thách thức từ đồng nghĩa)'
+      '📸 Kết quả cập nhật đánh giá 3 trạng thái: Exact, Contextual & Invalid'
     );
     await sendTelegramNotification(message);
     console.log('✅ Hoàn tất gửi Telegram!');

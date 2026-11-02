@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { deckService } from '../../services/deckService';
 import { synonymChallengeService } from '../../services/synonymChallengeService';
+import { isAnswerValid, isAnswerContextual, calculateEvaluationCounts } from './synonymEvaluationUtils';
 import { speakEnglishTerm } from '../../utils/speechUtils';
 import { hasGeminiApiKey } from '../../utils/aiKeyStorage';
 import GeminiKeyModal from '../../components/common/GeminiKeyModal';
@@ -265,12 +266,15 @@ export default function SynonymPage() {
 
       setEvaluation(result);
 
-      // Accumulate session metrics
+      const evaluatedList = result?.evaluatedWords || [];
+      const counts = calculateEvaluationCounts(evaluatedList);
+
+      // Accumulate session metrics strictly from unified evaluation counts
       setSessionStats((prev) => ({
         ...prev,
-        totalSubmitted: prev.totalSubmitted + (result.totalSubmitted || 0),
-        totalValid: prev.totalValid + (result.validCount || 0),
-        totalInvalid: prev.totalInvalid + (result.invalidCount || 0),
+        totalSubmitted: prev.totalSubmitted + counts.total,
+        totalValid: prev.totalValid + counts.valid,
+        totalInvalid: prev.totalInvalid + counts.invalid,
         newDiscovered: prev.newDiscovered + (result.newDiscoveredCount || 0),
       }));
     } catch (err) {
@@ -369,7 +373,7 @@ export default function SynonymPage() {
   // 1. Loading State
   if (loading) {
     return (
-      <div className="learn-distraction-free-container vintage-learn-shell">
+      <div className="learn-distraction-free-container vintage-learn-shell synonym-dedicated-shell">
         <div className="vintage-learn-parchment-box">
           <Ripple size={56} color="#A8783E" style={{ margin: '0 auto 16px auto' }} />
           <h2 className="vintage-state-title">Đang chuẩn bị Hải trình Từ đồng nghĩa...</h2>
@@ -382,7 +386,7 @@ export default function SynonymPage() {
   // 2. 404 / Error State
   if (errorStatus === 404 || !deck) {
     return (
-      <div className="learn-distraction-free-container vintage-learn-shell">
+      <div className="learn-distraction-free-container vintage-learn-shell synonym-dedicated-shell">
         <div className="vintage-learn-parchment-box">
           <FolderX size={56} style={{ color: '#796246' }} />
           <h2 className="vintage-state-title">Không tìm thấy Bộ từ vựng</h2>
@@ -401,7 +405,7 @@ export default function SynonymPage() {
   // 3. Empty Deck State
   if (queue.length === 0) {
     return (
-      <div className="learn-distraction-free-container vintage-learn-shell">
+      <div className="learn-distraction-free-container vintage-learn-shell synonym-dedicated-shell">
         <div className="vintage-learn-parchment-box">
           <Layers size={56} style={{ color: '#796246' }} />
           <h2 className="vintage-state-title">Bộ từ chưa có thẻ nào</h2>
@@ -429,10 +433,10 @@ export default function SynonymPage() {
         : 0;
 
     return (
-      <div className="learn-distraction-free-container vintage-learn-shell">
-        <div className="vintage-learn-container">
+      <div className="learn-distraction-free-container vintage-learn-shell synonym-dedicated-shell">
+        <div className="vintage-learn-container synonym-dedicated-container">
           {/* Top Header */}
-          <header className="vintage-deck-header-row learn-vintage-header">
+          <header className="vintage-deck-header-row learn-vintage-header synonym-compact-header">
             <button
               type="button"
               className="vintage-header-back-btn"
@@ -461,7 +465,7 @@ export default function SynonymPage() {
           </header>
 
           {/* Voyage Bar Completed at 100% */}
-          <div className="vintage-voyage-progress-container" role="progressbar">
+          <div className="vintage-voyage-progress-container synonym-compact-voyage" role="progressbar">
             <div className="vintage-voyage-track">
               <div className="voyage-landmark start-harbor">
                 <span className="landmark-icon">⚓</span>
@@ -488,19 +492,11 @@ export default function SynonymPage() {
           </div>
 
           {/* Main Results Scroll */}
-          <main className="vintage-question-scroll-wrapper vintage-feedback-scroll">
-            <img
-              src="/assets/flashcard/flashcard-compass.png"
-              alt=""
-              className="vintage-corner-compass"
-              aria-hidden="true"
-            />
-            <img
-              src="/assets/flashcard/flashcard-landscape.png"
-              alt=""
-              className="vintage-corner-landscape"
-              aria-hidden="true"
-            />
+          <main className="synonym-parchment-frame">
+            <div className="parchment-rivet rivet-tl" />
+            <div className="parchment-rivet rivet-tr" />
+            <div className="parchment-rivet rivet-bl" />
+            <div className="parchment-rivet rivet-br" />
 
             <div className="vintage-complete-banner-box">
               <div className="vintage-complete-trophy-wrap">
@@ -567,10 +563,10 @@ export default function SynonymPage() {
 
   // 5. Active Session: Question / Evaluation View
   return (
-    <div className="learn-distraction-free-container vintage-learn-shell">
-      <div className="vintage-learn-container">
+    <div className="learn-distraction-free-container vintage-learn-shell synonym-dedicated-shell">
+      <div className="vintage-learn-container synonym-dedicated-container">
         {/* A. TOP HEADER ROW */}
-        <header className="vintage-deck-header-row learn-vintage-header">
+        <header className="vintage-deck-header-row learn-vintage-header synonym-compact-header">
           <button
             type="button"
             className="vintage-header-back-btn"
@@ -608,7 +604,7 @@ export default function SynonymPage() {
 
         {/* B. VOYAGE NAUTICAL PROGRESS BAR */}
         <div
-          className="vintage-voyage-progress-container"
+          className="vintage-voyage-progress-container synonym-compact-voyage"
           role="progressbar"
           aria-valuenow={progressPercent}
           aria-valuemin={0}
@@ -652,19 +648,11 @@ export default function SynonymPage() {
         </div>
 
         {/* C. MAIN PARCHMENT SCROLL WRAPPER */}
-        <main className="vintage-question-scroll-wrapper vintage-feedback-scroll" aria-live="polite">
-          <img
-            src="/assets/flashcard/flashcard-compass.png"
-            alt=""
-            className="vintage-corner-compass"
-            aria-hidden="true"
-          />
-          <img
-            src="/assets/flashcard/flashcard-landscape.png"
-            alt=""
-            className="vintage-corner-landscape"
-            aria-hidden="true"
-          />
+        <main className="synonym-parchment-frame" aria-live="polite">
+          <div className="parchment-rivet rivet-tl" />
+          <div className="parchment-rivet rivet-tr" />
+          <div className="parchment-rivet rivet-bl" />
+          <div className="parchment-rivet rivet-br" />
 
           <div className="vintage-synonym-inner-card">
             {/* 1. HERO QUESTION DISPLAY */}
@@ -801,49 +789,75 @@ export default function SynonymPage() {
                 )}
 
                 {/* A. YOUR ANSWERS */}
-                <div className="vintage-result-group">
-                  <div className="group-header">
-                    <h3 className="group-title">A. Câu trả lời của bạn ({evaluation.totalSubmitted} từ)</h3>
-                    <div className="group-score-pill">
-                      <span className="score-valid">Hợp lệ: {evaluation.validCount}</span>
-                      <span className="score-sep">/</span>
-                      <span className="score-invalid">Chưa đúng: {evaluation.invalidCount}</span>
-                    </div>
-                  </div>
+                {(() => {
+                  const evaluatedWords = evaluation.evaluatedWords || [];
+                  const counts = calculateEvaluationCounts(evaluatedWords);
 
-                  <div className="vintage-answers-list">
-                    {evaluation.evaluatedWords.map((item, idx) => (
-                      <div
-                        key={`${item.word}-${idx}`}
-                        className={`vintage-answer-item ${item.isValid ? 'is-valid' : 'is-invalid'}`}
-                      >
-                        <div className="answer-item-header">
-                          <div className="answer-term-group">
-                            {item.isValid ? (
-                              <CheckCircle2 size={18} className="icon-valid" />
-                            ) : (
-                              <XCircle size={18} className="icon-invalid" />
-                            )}
-                            <span className={`answer-word ${!item.isValid ? 'is-struck' : ''}`}>
-                              {item.word}
-                            </span>
-                            {item.meaning && (
-                              <span className="answer-meaning">({item.meaning})</span>
-                            )}
-                          </div>
-
-                          <span className={`answer-source-badge ${item.source === 'DATABASE' ? 'is-db' : 'is-ai'}`}>
-                            {item.source === 'DATABASE' ? 'Cơ sở dữ liệu' : 'AI thẩm định'}
-                          </span>
+                  return (
+                    <div className="vintage-result-group">
+                      <div className="group-header">
+                        <h3 className="group-title">A. Câu trả lời của bạn ({counts.total} từ)</h3>
+                        <div className="group-score-pill">
+                          <span className="score-valid">Hợp lệ: {counts.valid}</span>
+                          <span className="score-sep">/</span>
+                          <span className="score-invalid">Chưa đúng: {counts.invalid}</span>
                         </div>
-
-                        {item.explanation && (
-                          <p className="answer-explanation">{item.explanation}</p>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
+
+                      <div className="vintage-answers-list">
+                        {evaluatedWords.map((item, idx) => {
+                          const valid = isAnswerValid(item);
+                          const contextual = isAnswerContextual(item);
+
+                          return (
+                            <div
+                              key={`${item.word}-${idx}`}
+                              className={`vintage-answer-item ${valid ? (contextual ? 'is-valid is-contextual' : 'is-valid') : 'is-invalid'}`}
+                            >
+                              <div className="answer-item-header">
+                                <div className="answer-term-group">
+                                  {valid ? (
+                                    contextual ? (
+                                      <HelpCircle size={18} className="icon-contextual" />
+                                    ) : (
+                                      <CheckCircle2 size={18} className="icon-valid" />
+                                    )
+                                  ) : (
+                                    <XCircle size={18} className="icon-invalid" />
+                                  )}
+                                  <span className={`answer-word ${!valid ? 'is-struck' : ''}`}>
+                                    {item.word}
+                                  </span>
+                                  {item.meaning && (
+                                    <span className="answer-meaning">({item.meaning})</span>
+                                  )}
+                                </div>
+
+                                <div className="answer-badge-group">
+                                  {contextual ? (
+                                    <span className="answer-status-pill status-contextual">Ngữ cảnh phù hợp</span>
+                                  ) : valid ? (
+                                    <span className="answer-status-pill status-exact">Đồng nghĩa chính xác</span>
+                                  ) : (
+                                    <span className="answer-status-pill status-invalid">Chưa chính xác</span>
+                                  )}
+
+                                  <span className={`answer-source-badge ${item.source === 'DATABASE' ? 'is-db' : item.source === 'FALLBACK' ? 'is-fallback' : 'is-ai'}`}>
+                                    {item.source === 'DATABASE' ? 'Cơ sở dữ liệu' : item.source === 'FALLBACK' ? 'Đối chiếu nội bộ' : 'AI thẩm định'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {item.explanation && (
+                                <p className="answer-explanation">{item.explanation}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* B. MISSED SYNONYMS (TOEIC VALUABLE) */}
                 {evaluation.missedSynonyms && evaluation.missedSynonyms.length > 0 && (

@@ -573,6 +573,11 @@
   background: #F4F9F4;
 }
 
+.vintage-answer-item.is-contextual {
+  border-color: #B27715;
+  background: #FFFDF0;
+}
+
 .vintage-answer-item.is-invalid {
   border-color: #992B2B;
   background: #FDF4F4;
@@ -594,6 +599,11 @@
 
 .icon-valid {
   color: #2E6B38;
+  flex-shrink: 0;
+}
+
+.icon-contextual {
+  color: #B27715;
   flex-shrink: 0;
 }
 
@@ -635,6 +645,47 @@
   background: #E8F0FE;
   color: #1A56DB;
   border: 1px solid #BFDBFE;
+}
+
+.answer-source-badge.is-fallback {
+  background: #FFF3CD;
+  color: #856404;
+  border: 1px solid #FFEEBA;
+}
+
+.answer-badge-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.answer-status-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.02em;
+}
+
+.answer-status-pill.status-exact {
+  background: #E8F5E9;
+  color: #2E6B38;
+  border: 1px solid #A5D6A7;
+}
+
+.answer-status-pill.status-contextual {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.answer-status-pill.status-invalid {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FCA5A5;
 }
 
 .answer-explanation {
