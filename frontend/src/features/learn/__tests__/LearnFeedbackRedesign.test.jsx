@@ -213,5 +213,55 @@ describe('LearnFeedback Redesign (Incorrect Answer UI)', () => {
     }
     fs.writeFileSync(path.join(outDir, 'incorrect_answer_preview.html'), fullHtml, 'utf8');
     expect(fs.existsSync(path.join(outDir, 'incorrect_answer_preview.html'))).toBe(true);
+
+    // Also generate correct answer preview HTML
+    const correctFeedback = {
+      result: 'correct',
+      userAnswer: 'supervisor',
+      correctAnswer: 'supervisor',
+      card: sampleCard,
+      direction: 'VI_TO_EN',
+      override: false,
+    };
+    const correctHtml = renderToStaticMarkup(
+      <LearnFeedback
+        deck={{ name: 'GROUP 1 — BUSINESS, MANAGEMENT & STRATEGY' }}
+        feedback={correctFeedback}
+        sessionStats={{ totalWords: 48, masteredWords: 16 }}
+        distinctCardCount={16}
+        options={{ autoSpeak: false }}
+        onNextQuestion={() => {}}
+      />
+    );
+    const fullCorrectHtml = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Preview Learn Correct Answer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    ${css}
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+      background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.jpg') no-repeat center top / cover fixed;
+      font-family: 'Merriweather', 'Lora', serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  ${correctHtml}
+</body>
+</html>`;
+    fs.writeFileSync(path.join(outDir, 'correct_answer_preview.html'), fullCorrectHtml, 'utf8');
+    expect(fs.existsSync(path.join(outDir, 'correct_answer_preview.html'))).toBe(true);
   });
 });
