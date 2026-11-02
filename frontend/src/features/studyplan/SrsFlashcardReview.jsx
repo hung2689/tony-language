@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Volume2, Mic, RotateCcw } from 'lucide-react';
 import { speakEnglishTerm } from '../../utils/speechUtils';
 import './SrsFlashcardReview.css';
 
@@ -19,7 +18,6 @@ export default function SrsFlashcardReview({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [showIpa, setShowIpa] = useState(true);
   const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
 
   const currentCard = cards[currentIndex] || null;
@@ -27,6 +25,23 @@ export default function SrsFlashcardReview({
   const timeBadge = useMemo(() => {
     return formatDaysAgo(currentCard?.lastReviewedAt);
   }, [currentCard?.lastReviewedAt]);
+
+  const wordTerm = currentCard?.term || currentCard?.word || '';
+  const wordDefinition = currentCard?.definition || currentCard?.meaning || '';
+  const pos = currentCard?.partOfSpeech || currentCard?.wordType || '';
+  const rawIpa = currentCard?.pronunciation || '';
+  const ipaText = rawIpa ? `/${rawIpa.replace(/^\/+|\/+$/g, '')}/` : '';
+  const example = currentCard?.example || currentCard?.exampleSentence || '';
+
+  let synonymsList = [];
+  if (Array.isArray(currentCard?.synonyms)) {
+    synonymsList = currentCard.synonyms;
+  } else if (typeof currentCard?.synonyms === 'string') {
+    synonymsList = currentCard.synonyms
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
 
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
@@ -59,12 +74,16 @@ export default function SrsFlashcardReview({
     }
   };
 
-  const handleSpeak = useCallback((e) => {
-    e?.stopPropagation();
-    if (currentCard?.term || currentCard?.word) {
-      speakEnglishTerm(currentCard.term || currentCard.word);
-    }
-  }, [currentCard]);
+  const handleSpeak = useCallback(
+    (e, text) => {
+      e?.stopPropagation();
+      const textToSpeak = text || wordTerm;
+      if (textToSpeak) {
+        speakEnglishTerm(textToSpeak);
+      }
+    },
+    [wordTerm]
+  );
 
   const handleRate = useCallback(
     (rating) => {
@@ -112,183 +131,226 @@ export default function SrsFlashcardReview({
 
   if (!currentCard) {
     return (
-      <div className="srs-flashcard-container">
-        <p>Không có từ vựng nào để hiển thị.</p>
+      <div className="deck-empty-cards-box" style={{ background: '#FAF1DE', border: '1.5px dashed #A68D6C', borderRadius: '12px', padding: '36px', textAlign: 'center' }}>
+        <p style={{ color: '#5C4F3E', fontFamily: 'Georgia, serif' }}>Không có thẻ từ vựng nào cần hiển thị.</p>
       </div>
     );
   }
 
-  const wordTerm = currentCard.term || currentCard.word || '';
-  const wordDefinition = currentCard.definition || currentCard.meaning || '';
-  const pos = currentCard.partOfSpeech || currentCard.wordType || '';
-  const pronunciation = currentCard.pronunciation || '';
-  const example = currentCard.example || currentCard.exampleSentence || '';
-
   return (
-    <div className="srs-flashcard-container">
-      {/* 3D Flashcard */}
-      <div
-        className="srs-flashcard-card-wrapper"
-        onClick={handleFlip}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        role="button"
-        tabIndex={0}
-        aria-label="Lật thẻ từ vựng"
-      >
-        <div className={`srs-flashcard-card-inner ${isFlipped ? 'is-flipped' : ''}`}>
-          {/* Front Face */}
-          <div className="srs-flashcard-face srs-flashcard-face--front">
-            <div className="srs-card-top-row">
-              <div className="srs-card-badges">
-                <span className={`srs-badge ${isStudied ? 'srs-badge--studied' : 'srs-badge--new'}`}>
-                  {isStudied ? 'Đã học' : 'Từ mới'}
+    <div className="vintage-flashcard-experience srs-vintage-experience">
+      {/* 1. Main Vintage 3D Flashcard Scene */}
+      <div className="vintage-flashcard-stage">
+        <div className="vintage-card-scene">
+          <div
+            className={`vintage-card-box ${isFlipped ? 'is-flipped' : ''}`}
+            onClick={handleFlip}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            role="button"
+            tabIndex={0}
+            aria-label={isFlipped ? 'Mặt sau thẻ' : 'Mặt trước thẻ'}
+          >
+            {/* FRONT FACE */}
+            <div className="vintage-card-face vintage-card-front">
+              {/* Top-Left: Compass Rose */}
+              <img
+                src="/assets/flashcard/flashcard-compass.png"
+                alt=""
+                className="vintage-fc-compass"
+              />
+
+              {/* Top-Center: Label Ribbon */}
+              <div className="vintage-fc-label-wrap">
+                <img
+                  src="/assets/flashcard/flashcard-label.png"
+                  alt=""
+                  className="vintage-fc-label-img"
+                />
+                <span className="vintage-fc-label-text">
+                  {isStudied ? 'Ôn tập' : 'Mặt trước'}
                 </span>
-                {isStudied && (
-                  <span className="srs-badge srs-badge--time">{timeBadge}</span>
-                )}
               </div>
 
-              <span className="srs-card-counter">
-                {currentIndex + 1} / {cards.length}
-              </span>
-            </div>
-
-            <div className="srs-card-center-content">
-              <h2 className="srs-card-main-term">{wordTerm}</h2>
-
-              {(pos || pronunciation) && (
-                <div className="srs-card-meta-line">
-                  {pos && <span className="srs-card-pos">{pos}</span>}
-                  {pos && pronunciation && <span>·</span>}
-                  {pronunciation && showIpa && <span>/{pronunciation}/</span>}
-                </div>
-              )}
-            </div>
-
-            <div className="srs-card-bottom-row">
-              <div className="srs-audio-pill-box">
-                <button
-                  type="button"
-                  className="srs-card-icon-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Mic toggle
-                  }}
-                  title="Luyện nói"
-                  aria-label="Luyện nói"
-                >
-                  <Mic size={17} />
-                </button>
-
-                <button
-                  type="button"
-                  className={`srs-card-icon-btn ${showIpa ? 'is-active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowIpa((prev) => !prev);
-                  }}
-                  title="Bật/tắt phiên âm"
-                  aria-label="Bật/tắt phiên âm"
-                >
-                  <span style={{ fontSize: '11px', fontWeight: 700 }}>IPA</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="srs-card-icon-btn"
-                  onClick={handleSpeak}
-                  title="Nghe phát âm"
-                  aria-label="Nghe phát âm"
-                >
-                  <Volume2 size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Back Face */}
-          <div className="srs-flashcard-face srs-flashcard-face--back">
-            <div className="srs-card-top-row">
-              <div className="srs-card-badges">
-                <span className={`srs-badge ${isStudied ? 'srs-badge--studied' : 'srs-badge--new'}`}>
-                  {isStudied ? 'Đã học' : 'Từ mới'}
-                </span>
-                {isStudied && (
-                  <span className="srs-badge srs-badge--time">{timeBadge}</span>
-                )}
-              </div>
-
-              <span className="srs-card-counter">
-                {currentIndex + 1} / {cards.length}
-              </span>
-            </div>
-
-            <div className="srs-card-center-content">
-              <p className="srs-card-meaning">{wordDefinition}</p>
-              {example && <p className="srs-card-example">"{example}"</p>}
-            </div>
-
-            <div className="srs-card-bottom-row">
+              {/* Top-Right: Sound Trigger */}
               <button
                 type="button"
-                className="srs-card-icon-btn"
-                onClick={handleSpeak}
-                title="Nghe lại phát âm"
+                className="vintage-fc-sound-btn"
+                onClick={(e) => handleSpeak(e, wordTerm)}
+                title="Phát âm tiếng Anh (en-US)"
+                aria-label="Phát âm từ vựng"
               >
-                <Volume2 size={18} />
+                <img
+                  src="/assets/flashcard/flashcard-sound.png"
+                  alt="Phát âm"
+                  className="vintage-fc-sound-img"
+                />
               </button>
+
+              {/* Center Content */}
+              <div className="vintage-fc-center">
+                <h2 className="vintage-fc-main-term">{wordTerm}</h2>
+                {(pos || ipaText) && (
+                  <p className="vintage-fc-meta">
+                    {ipaText && <span className="vintage-fc-ipa">{ipaText}</span>}
+                    {pos && ipaText && <span className="vintage-fc-meta-sep"> · </span>}
+                    {pos && <span className="vintage-fc-pos">{pos}</span>}
+                  </p>
+                )}
+              </div>
+
+              {/* Bottom-Left: Mountains */}
+              <img
+                src="/assets/flashcard/flashcard-landscape.png"
+                alt=""
+                className="vintage-fc-landscape"
+              />
+
+              {/* Bottom-Right: Galleon Ship */}
+              <img
+                src="/assets/flashcard/flashcard-ship.png"
+                alt=""
+                className="vintage-fc-ship"
+              />
+            </div>
+
+            {/* BACK FACE */}
+            <div className="vintage-card-face vintage-card-back">
+              {/* Top-Left: Compass Rose */}
+              <img
+                src="/assets/flashcard/flashcard-compass.png"
+                alt=""
+                className="vintage-fc-compass"
+              />
+
+              {/* Top-Center: Label Ribbon */}
+              <div className="vintage-fc-label-wrap">
+                <img
+                  src="/assets/flashcard/flashcard-label.png"
+                  alt=""
+                  className="vintage-fc-label-img"
+                />
+                <span className="vintage-fc-label-text">Mặt sau</span>
+              </div>
+
+              {/* Top-Right: Sound Trigger */}
+              <button
+                type="button"
+                className="vintage-fc-sound-btn"
+                onClick={(e) => handleSpeak(e, wordTerm)}
+                title="Phát âm tiếng Anh (en-US)"
+                aria-label="Phát âm từ vựng"
+              >
+                <img
+                  src="/assets/flashcard/flashcard-sound.png"
+                  alt="Phát âm"
+                  className="vintage-fc-sound-img"
+                />
+              </button>
+
+              {/* Center Content */}
+              <div className="vintage-fc-center">
+                <h2 className="vintage-fc-main-def">{wordDefinition}</h2>
+
+                {example && (
+                  <blockquote className="vintage-fc-example">
+                    “{example}”
+                  </blockquote>
+                )}
+
+                {synonymsList.length > 0 && (
+                  <div className="vintage-fc-synonyms">
+                    <span className="vintage-fc-syn-label">Từ đồng nghĩa: </span>
+                    <span className="vintage-fc-syn-values">{synonymsList.join(' · ')}</span>
+                  </div>
+                )}
+
+                <div className="vintage-fc-reminder">
+                  <span className="vintage-fc-reminder-word">{wordTerm}</span>
+                  {ipaText && <span className="vintage-fc-reminder-ipa"> ({ipaText})</span>}
+                </div>
+              </div>
+
+              {/* Bottom-Left: Mountains */}
+              <img
+                src="/assets/flashcard/flashcard-landscape.png"
+                alt=""
+                className="vintage-fc-landscape"
+              />
+
+              {/* Bottom-Right: Galleon Ship */}
+              <img
+                src="/assets/flashcard/flashcard-ship.png"
+                alt=""
+                className="vintage-fc-ship"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4-Level Rating Bar */}
-      <div className="srs-rating-section">
-        <div className="srs-rating-header-row">
-          <span className="srs-rating-heading">Đánh giá độ nhớ</span>
-          <span className="srs-rating-hint-text">Vuốt trái: Quên · Vuốt phải: Tốt</span>
-        </div>
+      {/* 2. Vintage Central Progress Capsule */}
+      <div className="vintage-fc-controls-bar srs-vintage-controls-bar">
+        <span className="vintage-fc-capsule-ornament" aria-hidden="true">◆</span>
 
-        <div className="srs-rating-buttons-grid">
+        <span className="vintage-fc-counter" title="Tiến độ hàng đợi ôn tập">
+          {currentIndex + 1} / {cards.length}
+        </span>
+
+        <span className="vintage-fc-bar-sep" aria-hidden="true" />
+
+        <span className="vintage-srs-status-badge">
+          {isStudied ? `Ôn tập (${timeBadge})` : 'Từ mới'}
+        </span>
+
+        <span className="vintage-fc-capsule-ornament" aria-hidden="true">◆</span>
+      </div>
+
+      {/* 3. Vintage 4-Level SRS Rating Buttons */}
+      <div className="vintage-srs-rating-container">
+        <p className="vintage-srs-rating-hint">
+          Nhấn <kbd className="vintage-srs-kbd-inline">Space</kbd> để lật thẻ · Phím <kbd className="vintage-srs-kbd-inline">1</kbd>–<kbd className="vintage-srs-kbd-inline">4</kbd> để đánh giá độ nhớ · Vuốt trái / phải trên điện thoại
+        </p>
+
+        <div className="vintage-srs-rating-grid">
           <button
             type="button"
-            className="srs-rating-btn srs-rating-btn--again"
+            className="vintage-srs-rating-btn is-again"
             onClick={() => handleRate('AGAIN')}
-            title="Quên từ (Phím 1)"
+            title="Quên từ (Phím 1 hoặc Vuốt trái)"
           >
-            <span className="srs-rating-label">Quên</span>
-            <kbd className="srs-kbd">1</kbd>
+            <span className="vintage-srs-btn-label">Quên</span>
+            <kbd className="vintage-srs-kbd">1</kbd>
           </button>
 
           <button
             type="button"
-            className="srs-rating-btn srs-rating-btn--hard"
+            className="vintage-srs-rating-btn is-hard"
             onClick={() => handleRate('HARD')}
             title="Khó nhớ (Phím 2)"
           >
-            <span className="srs-rating-label">Khó</span>
-            <kbd className="srs-kbd">2</kbd>
+            <span className="vintage-srs-btn-label">Khó</span>
+            <kbd className="vintage-srs-kbd">2</kbd>
           </button>
 
           <button
             type="button"
-            className="srs-rating-btn srs-rating-btn--good"
+            className="vintage-srs-rating-btn is-good"
             onClick={() => handleRate('GOOD')}
-            title="Nhớ tốt (Phím 3)"
+            title="Nhớ tốt (Phím 3 hoặc Vuốt phải)"
           >
-            <span className="srs-rating-label">Tốt</span>
-            <kbd className="srs-kbd">3</kbd>
+            <span className="vintage-srs-btn-label">Tốt</span>
+            <kbd className="vintage-srs-kbd">3</kbd>
           </button>
 
           <button
             type="button"
-            className="srs-rating-btn srs-rating-btn--easy"
+            className="vintage-srs-rating-btn is-easy"
             onClick={() => handleRate('EASY')}
             title="Rất dễ (Phím 4)"
           >
-            <span className="srs-rating-label">Dễ</span>
-            <kbd className="srs-kbd">4</kbd>
+            <span className="vintage-srs-btn-label">Dễ</span>
+            <kbd className="vintage-srs-kbd">4</kbd>
           </button>
         </div>
       </div>
