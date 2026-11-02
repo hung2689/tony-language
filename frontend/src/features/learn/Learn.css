@@ -885,8 +885,265 @@
 }
 
 /* ==========================================================================
-   Phản hồi Đúng / Sai (Learn Feedback — Wax Seals & Ledger)
+   Phản hồi Đúng / Sai (Redesigned Learn Feedback — Adventure Parchment UI)
    ========================================================================== */
+.vintage-feedback-scroll {
+  justify-content: center !important;
+  gap: 16px !important;
+}
+
+.vintage-feedback-card {
+  border-radius: 14px;
+  padding: 24px 30px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 16px rgba(59, 43, 28, 0.12);
+  transition: all 0.2s ease;
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.vintage-feedback-card.is-seal-correct {
+  background: rgba(246, 250, 245, 0.95);
+  border: 2px solid #2E6B38;
+}
+
+.vintage-feedback-card.is-seal-wrong {
+  background: rgba(254, 247, 246, 0.96);
+  border: 2px solid #992B2B;
+}
+
+/* A. Trạng thái trả lời */
+.vintage-feedback-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(168, 120, 62, 0.25);
+}
+
+.vintage-status-icon.is-correct {
+  color: #2E6B38;
+  flex-shrink: 0;
+}
+
+.vintage-status-icon.is-wrong {
+  color: #992B2B;
+  flex-shrink: 0;
+}
+
+.vintage-status-title {
+  font-family: 'Lora', 'Merriweather', 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.vintage-status-title.is-correct {
+  color: #2E6B38;
+}
+
+.vintage-status-title.is-wrong {
+  color: #992B2B;
+}
+
+/* B, C, D: Rows container */
+.vintage-feedback-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 1rem;
+}
+
+.vintage-feedback-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vintage-line-label {
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #796246;
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+/* B. Bạn trả lời (gạch ngang màu đỏ) */
+.vintage-wrong-answer-strikethrough {
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #8F2626;
+  text-decoration: line-through;
+  text-decoration-color: #B52B2B;
+  text-decoration-thickness: 2px;
+  word-break: break-word;
+}
+
+/* C. Đáp án chính xác */
+.vintage-answer-main-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vintage-english-term-hero {
+  font-family: 'Lora', 'Merriweather', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.45rem, 2.8vw, 1.95rem);
+  font-weight: 800;
+  color: #234E2B;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.vintage-speaker-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.vintage-speaker-btn img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(59, 43, 28, 0.2));
+}
+
+.vintage-speaker-btn:hover {
+  transform: scale(1.15);
+}
+
+.vintage-vi-meaning-hint {
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: #5A442E;
+  font-style: italic;
+}
+
+/* D. Từ đồng nghĩa */
+.vintage-synonyms-list {
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: #3B2B1C;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* E. Nút tiếp tục & Override */
+.vintage-feedback-footer-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+.vintage-feedback-continue-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #2E6B38;
+  color: #FAF0DA;
+  border: 1.5px solid #A8783E;
+  border-radius: 999px;
+  padding: 12px 38px;
+  font-family: 'Lora', 'Merriweather', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(46, 107, 56, 0.25), 0 2px 6px rgba(59, 43, 28, 0.15);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vintage-feedback-continue-btn:hover {
+  background: #24552C;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(46, 107, 56, 0.35);
+}
+
+.vintage-feedback-continue-btn:active {
+  transform: translateY(1px);
+}
+
+.vintage-key-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  margin-left: 4px;
+  font-family: 'Merriweather', 'Times New Roman', serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #3B2B1C;
+  background: #FAF0DA;
+  border: 1px solid #A68658;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 #8C6D44;
+}
+
+.vintage-override-text-btn {
+  background: transparent;
+  border: none;
+  color: #796246;
+  font-family: inherit;
+  font-size: 0.88rem;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  padding: 4px 8px;
+}
+
+.vintage-override-text-btn:hover {
+  color: #3B2B1C;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .vintage-feedback-card {
+    padding: 18px 18px;
+  }
+
+  .vintage-feedback-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .vintage-line-label {
+    min-width: unset;
+  }
+
+  .vintage-english-term-hero {
+    font-size: 1.45rem;
+  }
+
+  .vintage-feedback-continue-btn {
+    width: 100%;
+    max-width: 300px;
+    padding: 11px 24px;
+  }
+}
+
+/* Backward-compatible aliases for legacy classes */
 .vintage-feedback-seal-banner {
   border-radius: 12px;
   padding: 18px 24px;
@@ -906,152 +1163,6 @@
   border: 2px solid #992B2B;
 }
 
-.vintage-seal-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.vintage-feedback-seal-banner.is-seal-correct .vintage-seal-header {
-  color: #2E6B38;
-}
-
-.vintage-feedback-seal-banner.is-seal-wrong .vintage-seal-header {
-  color: #992B2B;
-}
-
-.vintage-seal-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
-.vintage-feedback-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 1rem;
-}
-
-.vintage-feedback-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.vintage-feedback-lbl {
-  font-size: 0.92rem;
-  color: #796246;
-  font-weight: 600;
-  min-width: 120px;
-}
-
-.vintage-feedback-val {
-  color: #3B2B1C;
-}
-
-.vintage-feedback-val.is-strikethrough {
-  text-decoration: line-through;
-  color: #992B2B;
-  opacity: 0.85;
-}
-
-.vintage-feedback-val.is-bold {
-  font-weight: 700;
-  font-size: 1.2rem;
-  color: #2E6B38;
-}
-
-.vintage-feedback-seal-banner.is-seal-wrong .vintage-feedback-val.is-bold {
-  color: #3B2B1C;
-}
-
-.vintage-correct-ans-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.vintage-reinforcement-box {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(168, 120, 62, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.vintage-reinforcement-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.vintage-ipa-text {
-  color: #796246;
-  font-style: italic;
-  font-size: 0.92rem;
-}
-
-.vintage-example-text {
-  font-size: 0.95rem;
-  color: #5A442E;
-  margin-top: 2px;
-}
-
-.vintage-context-row {
-  margin-top: 2px;
-}
-
-.vintage-feedback-val.is-english-term {
-  font-weight: 600;
-  color: #2E6B38;
-}
-
-.vintage-synonyms-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 0.93rem;
-  margin-top: 4px;
-}
-
-.vintage-synonyms-lbl {
-  font-weight: 700;
-  color: #796246;
-  white-space: nowrap;
-}
-
-.vintage-synonyms-val {
-  color: #3B2B1C;
-  font-style: italic;
-  line-height: 1.4;
-}
-
-.vintage-synonyms-val.is-empty {
-  color: #9C8974;
-  font-style: normal;
-  font-size: 0.88rem;
-}
-
-.vintage-readonly-input-box {
-  max-width: 640px;
-  width: 100%;
-  margin: 0 auto 16px auto;
-  position: relative;
-  z-index: 2;
-}
-
-.vintage-feedback-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  position: relative;
-  z-index: 2;
-}
-
 .vintage-continue-btn {
   display: inline-flex;
   align-items: center;
@@ -1067,12 +1178,6 @@
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(59, 43, 28, 0.25);
   transition: all 0.18s ease;
-}
-
-.vintage-continue-btn:hover {
-  background: #3B4B31;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(59, 43, 28, 0.35);
 }
 
 .vintage-override-link-btn {
