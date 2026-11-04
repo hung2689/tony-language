@@ -166,8 +166,7 @@ public class AnalyticsService {
 
         int totalCards = 0;
         if (!deckIds.isEmpty()) {
-            List<Vocabulary> allCards = vocabularyRepository.findByDeckIdIn(deckIds);
-            totalCards = allCards.size();
+            totalCards = (int) vocabularyRepository.countByDeckIdIn(deckIds);
         }
 
         List<StudyProgress> progressList = studyProgressRepository.findByUserId(userId);

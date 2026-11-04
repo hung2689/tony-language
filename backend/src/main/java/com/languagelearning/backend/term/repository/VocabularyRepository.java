@@ -16,4 +16,7 @@ public interface VocabularyRepository extends JpaRepository<Vocabulary, Long> {
 
     @Query("SELECT DISTINCT v FROM Vocabulary v JOIN VocabularySetItem vsi ON v.id = vsi.id.vocabularyId WHERE vsi.id.vocabularySetId IN :deckIds ORDER BY v.id ASC")
     List<Vocabulary> findByDeckIdIn(@Param("deckIds") java.util.Collection<Long> deckIds);
+
+    @Query("SELECT COUNT(DISTINCT v.id) FROM Vocabulary v JOIN VocabularySetItem vsi ON v.id = vsi.id.vocabularyId WHERE vsi.id.vocabularySetId IN :deckIds")
+    long countByDeckIdIn(@Param("deckIds") java.util.Collection<Long> deckIds);
 }

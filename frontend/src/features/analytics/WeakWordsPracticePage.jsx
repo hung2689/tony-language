@@ -55,10 +55,10 @@ export default function WeakWordsPracticePage() {
     }
   };
 
-  const handleConfirmExit = async () => {
+  const handleConfirmExit = () => {
     setIsExitConfirmOpen(false);
-    await flushOnExit();
     navigate('/analytics');
+    flushOnExit().catch(() => {});
   };
 
   if (cards.length === 0) {

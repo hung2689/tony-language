@@ -112,10 +112,10 @@ export default function LearnPage() {
     }
   };
 
-  const handleConfirmExit = async () => {
+  const handleConfirmExit = () => {
     setIsExitConfirmOpen(false);
-    await flushOnExit();
     navigate(`/decks/${deckId}`);
+    flushOnExit().catch(() => {});
   };
 
   // 1. Loading State

@@ -80,11 +80,10 @@ export default function TodayLearnPage() {
     }
   };
 
-  const handleConfirmExit = async () => {
+  const handleConfirmExit = () => {
     setIsExitConfirmOpen(false);
-    await flushOnExit();
-    await refreshPlan();
     navigate('/');
+    flushOnExit().then(() => refreshPlan?.()).catch(() => {});
   };
 
   // When session completes, refresh plan data
