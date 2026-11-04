@@ -28,23 +28,32 @@ import './Analytics.css';
 export default function AnalyticsPage() {
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
-  const [overview, setOverview] = useState(null);
-  const [heatmapData, setHeatmapData] = useState(null);
-  const [retentionData, setRetentionData] = useState(null);
-  const [weakWords, setWeakWords] = useState([]);
+
+  const cachedOverview = analyticsService.getCachedOverview();
+  const cachedHeatmap = analyticsService.getCachedHeatmap(currentYear);
+  const cachedRetention = analyticsService.getCachedRetention();
+  const cachedWeakWords = analyticsService.getCachedWeakWords(10);
+  const hasCachedData = Boolean(cachedOverview || cachedHeatmap || cachedRetention);
+
+  const [loading, setLoading] = useState(() => !hasCachedData);
+  const [overview, setOverview] = useState(() => cachedOverview);
+  const [heatmapData, setHeatmapData] = useState(() => cachedHeatmap);
+  const [retentionData, setRetentionData] = useState(() => cachedRetention);
+  const [weakWords, setWeakWords] = useState(() => cachedWeakWords || []);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const loadData = useCallback(async (year) => {
-    setLoading(true);
+  const loadData = useCallback(async (year, isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    }
     setErrorMsg('');
     try {
       const [overviewRes, heatmapRes, retentionRes, weakRes] = await Promise.all([
-        analyticsService.getOverview(),
-        analyticsService.getHeatmap({ year }),
-        analyticsService.getRetention(),
-        analyticsService.getWeakWords(10),
+        analyticsService.getOverview(undefined, { skipCache: isSilent }),
+        analyticsService.getHeatmap({ year }, { skipCache: isSilent }),
+        analyticsService.getRetention({ skipCache: isSilent }),
+        analyticsService.getWeakWords(10, { skipCache: isSilent }),
       ]);
 
       setOverview(overviewRes || null);
@@ -52,15 +61,22 @@ export default function AnalyticsPage() {
       setRetentionData(retentionRes || null);
       setWeakWords(weakRes || []);
     } catch (err) {
-      setErrorMsg(err.message || 'Không thể tải dữ liệu thống kê');
+      if (!isSilent) {
+        setErrorMsg(err.message || 'Không thể tải dữ liệu thống kê');
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData(currentYear);
-  }, [loadData, currentYear]);
+    if (hasCachedData) {
+      setLoading(false);
+      loadData(currentYear, true);
+    } else {
+      loadData(currentYear, false);
+    }
+  }, [loadData, currentYear, hasCachedData]);
 
   const handleYearChange = (newYear) => {
     setCurrentYear(newYear);

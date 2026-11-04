@@ -715,8 +715,8 @@
 }
 
 .vintage-sound-btn img {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(59, 43, 28, 0.2));
 }
@@ -726,8 +726,8 @@
 }
 
 .vintage-sound-btn-inline img {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   object-fit: contain;
 }
 
@@ -1019,8 +1019,8 @@
 }
 
 .vintage-speaker-btn img {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(59, 43, 28, 0.2));
 }

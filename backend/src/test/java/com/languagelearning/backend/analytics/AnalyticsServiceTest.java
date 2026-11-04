@@ -146,7 +146,7 @@ class AnalyticsServiceTest {
         v3.setId(3L);
         Vocabulary v4 = new Vocabulary("word4", "nghia 4", null, null, null);
         v4.setId(4L);
-        when(vocabularyRepository.findByDeckIdIn(List.of(10L))).thenReturn(List.of(v1, v2, v3, v4));
+        when(vocabularyRepository.countByDeckIdIn(List.of(10L))).thenReturn(4L);
 
         StudyProgress spMastered = new StudyProgress(userId, 1L);
         spMastered.setIntervalDays(25);

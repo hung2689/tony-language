@@ -111,13 +111,13 @@ body.deck-vintage-active #root {
 .srs-vintage-shell .vintage-fc-sound-btn {
   top: 14px !important;
   right: 18px !important;
-  width: 42px !important;
-  height: 42px !important;
+  width: 32px !important;
+  height: 32px !important;
 }
 
 .srs-vintage-shell .vintage-fc-sound-img {
-  width: 40px !important;
-  height: 40px !important;
+  width: 26px !important;
+  height: 26px !important;
 }
 
 .srs-vintage-shell .vintage-fc-label-wrap {
