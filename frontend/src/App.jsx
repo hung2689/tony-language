@@ -22,6 +22,7 @@ import ProfilePage from './features/profile/ProfilePage';
 import CreateStudyPlanModal from './features/studyplan/CreateStudyPlanModal';
 import AddDecksPreviewModal from './features/studyplan/AddDecksPreviewModal';
 import DailyGateReminder from './features/studyplan/DailyGateReminder';
+import StudyPlanUndoToast from './features/studyplan/StudyPlanUndoToast';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import './App.css';
 
@@ -48,6 +49,7 @@ function StudyPlanModals() {
         onClose={closeAddDecksModal}
         targetDeckIds={addDecksTargetDeckIds}
       />
+      <StudyPlanUndoToast />
     </>
   );
 }

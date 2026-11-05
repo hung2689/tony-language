@@ -17,7 +17,7 @@ import './StudyPlan.css';
 
 export default function TodayLearnPage() {
   const navigate = useNavigate();
-  const { activePlan, refreshPlan } = useStudyPlan();
+  const { activePlan, refreshPlan, todayQueueVersion } = useStudyPlan();
 
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function TodayLearnPage() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [todayQueueVersion]);
 
   const deckDescriptor = useMemo(() => ({
     id: activePlan?.id || null,

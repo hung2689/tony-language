@@ -86,6 +86,21 @@ describe('studyPlanService Unit Tests', () => {
     );
   });
 
+  it('removeDecksFromPlan calls /study-plans/current/decks/remove with POST and deckIds array', async () => {
+    const requestSpy = vi.spyOn(api, 'request').mockResolvedValueOnce({ data: { id: 1, revision: 2 } });
+
+    const res = await studyPlanService.removeDecksFromPlan(['10', 20]);
+
+    expect(requestSpy).toHaveBeenCalledWith(
+      '/study-plans/current/decks/remove',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ deckIds: [10, 20] }),
+      })
+    );
+    expect(res).toEqual({ id: 1, revision: 2 });
+  });
+
   it('updatePlan calls /study-plans/current with PATCH', async () => {
     const requestSpy = vi.spyOn(api, 'request').mockResolvedValueOnce({ data: { id: 1 } });
 

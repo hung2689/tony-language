@@ -4941,13 +4941,17 @@ button.btn-danger {
 }
 
 @media (max-width: 768px) {
+  :root {
+    --mobile-bottom-nav-height: 62px;
+  }
+
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 62px;
+    height: var(--mobile-bottom-nav-height, 62px);
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);

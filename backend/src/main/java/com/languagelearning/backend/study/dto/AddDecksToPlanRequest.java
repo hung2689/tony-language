@@ -9,5 +9,17 @@ public record AddDecksToPlanRequest(
         List<Long> deckIds,
         String overloadStrategy, // KEEP_DEADLINE, EXTEND_DEADLINE, INCREASE_CAP
         LocalDate newTargetDate,
-        Integer newMaxNewWordsPerDay
-) {}
+        Integer newMaxNewWordsPerDay,
+        List<DeckPosition> deckPositions
+) {
+    public AddDecksToPlanRequest(
+            List<Long> deckIds,
+            String overloadStrategy,
+            LocalDate newTargetDate,
+            Integer newMaxNewWordsPerDay
+    ) {
+        this(deckIds, overloadStrategy, newTargetDate, newMaxNewWordsPerDay, null);
+    }
+
+    public record DeckPosition(Long deckId, Integer sortOrder) {}
+}

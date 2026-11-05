@@ -1376,3 +1376,327 @@ body.study-plan-vintage-active .app-content-body {
   background-color: #334155;
   color: #f1f5f9;
 }
+
+
+/* ==========================================================================
+   BULK SELECTION, FLOATING ACTION BAR & APP-LEVEL UNDO TOAST
+   ========================================================================== */
+
+.section-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-select-decks-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #FAF0DA;
+  color: #4A3623;
+  border: 1.5px solid #C4A97D;
+  border-radius: 18px;
+  padding: 0.42rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-select-decks-mode:hover {
+  background: #F4E4C1;
+  border-color: #A8783E;
+  color: #2C1D11;
+}
+
+.btn-select-decks-mode.is-active {
+  background: #3B2B1C;
+  color: #FAF0DA;
+  border-color: #3B2B1C;
+}
+
+.mobile-deck-actions-menu-wrap {
+  display: none;
+  position: relative;
+}
+
+.btn-mobile-deck-menu {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid #C4A97D;
+  background: #FAF0DA;
+  color: #4A3623;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-deck-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 155px;
+  background: #FDF8ED;
+  border: 1.5px solid #A8783E;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(36, 24, 12, 0.25);
+  z-index: 40;
+  padding: 4px;
+}
+
+.mobile-deck-dropdown button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: #2C1D11;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mobile-deck-dropdown button:hover {
+  background: rgba(168, 120, 62, 0.14);
+}
+
+@media (max-width: 640px) {
+  .desktop-select-btn {
+    display: none;
+  }
+
+  .mobile-deck-actions-menu-wrap {
+    display: inline-flex;
+  }
+}
+
+.col-deck-checkbox {
+  width: 40px;
+  text-align: center !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.25rem !important;
+}
+
+.study-plan-deck-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: #46583A;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.enrolled-decks-table tr.is-selectable-row {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.12s ease;
+}
+
+.enrolled-decks-table tr.is-selectable-row:hover {
+  background-color: rgba(196, 169, 125, 0.16);
+}
+
+.enrolled-decks-table tr.is-row-selected {
+  background-color: rgba(70, 88, 58, 0.13);
+}
+
+.is-syncing-stats {
+  opacity: 0.68;
+  transition: opacity 0.18s ease;
+}
+
+/* Floating Action Bar (Bulk Delete) */
+.study-plan-bulk-fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--mobile-bottom-nav-height, 0px) + 14px + env(safe-area-inset-bottom, 0px));
+  z-index: 810;
+  background: linear-gradient(180deg, #2F2216 0%, #21170E 100%);
+  color: #FAF0DA;
+  border: 1.5px solid #A8783E;
+  border-radius: 999px;
+  padding: 0.55rem 0.75rem 0.55rem 1.15rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 14px 34px rgba(15, 10, 5, 0.45);
+  max-width: calc(100vw - 24px);
+}
+
+.study-plan-bulk-fab-info {
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.study-plan-bulk-fab-sub {
+  color: #D8C29D;
+  font-weight: 500;
+}
+
+.study-plan-bulk-fab-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.btn-fab-cancel {
+  background: rgba(250, 240, 218, 0.1);
+  color: #E8D7B9;
+  border: 1px solid rgba(196, 169, 125, 0.4);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-fab-cancel:hover {
+  background: rgba(250, 240, 218, 0.18);
+}
+
+.btn-fab-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: linear-gradient(180deg, #B93838 0%, #8F2424 100%);
+  color: #FAF0DA;
+  border: 1px solid #E07A7A;
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-fab-delete:hover {
+  background: linear-gradient(180deg, #CC4343 0%, #9E2A2A 100%);
+}
+
+/* App-Level Undo / Status Toast */
+.study-plan-app-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--mobile-bottom-nav-height, 0px) + 16px + env(safe-area-inset-bottom, 0px));
+  z-index: 820;
+  background: #24190F;
+  color: #FAF0DA;
+  border: 1.5px solid #A8783E;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 14px 32px rgba(15, 10, 5, 0.42);
+  max-width: min(560px, calc(100vw - 24px));
+}
+
+.study-plan-app-toast.is-error {
+  border-color: #D96B6B;
+  background: #3B1818;
+}
+
+.study-plan-app-toast.is-info {
+  border-color: #6B9E78;
+}
+
+.study-plan-app-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.study-plan-app-toast-icon {
+  flex-shrink: 0;
+  color: #E2B870;
+}
+
+.study-plan-app-toast-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.study-plan-app-toast-undo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #46583A;
+  color: #FAF0DA;
+  border: 1px solid #84A96C;
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.study-plan-app-toast-undo-btn:hover {
+  background: #556B47;
+}
+
+.study-plan-app-toast-close-btn {
+  background: transparent;
+  border: none;
+  color: #C4A97D;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.study-plan-app-toast-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FAF0DA;
+}
+
+/* Dark Mode Overrides for Bulk Selection & Toast */
+[data-theme='dark'] .btn-select-decks-mode {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .btn-select-decks-mode.is-active {
+  background: #60a5fa;
+  color: #0f172a;
+  border-color: #60a5fa;
+}
+
+[data-theme='dark'] .btn-mobile-deck-menu {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .mobile-deck-dropdown {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .mobile-deck-dropdown button {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .enrolled-decks-table tr.is-selectable-row:hover {
+  background-color: rgba(51, 65, 85, 0.45);
+}
+
+[data-theme='dark'] .enrolled-decks-table tr.is-row-selected {
+  background-color: rgba(96, 165, 250, 0.16);
+}
+
+[data-theme='dark'] .study-plan-deck-checkbox {
+  accent-color: #60a5fa;
+}

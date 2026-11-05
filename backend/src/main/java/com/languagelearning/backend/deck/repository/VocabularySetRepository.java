@@ -20,6 +20,10 @@ public interface VocabularySetRepository extends JpaRepository<VocabularySet, Lo
 
     Optional<VocabularySet> findByIdAndUserId(Long id, Long userId);
 
+    @Query("SELECT v.id FROM VocabularySet v WHERE v.userId = :userId AND v.id IN :deckIds")
+    List<Long> findOwnedDeckIdsByUserIdAndIdIn(@Param("userId") Long userId,
+                                               @Param("deckIds") java.util.Collection<Long> deckIds);
+
     long countByFolderId(Long folderId);
 
     @Query("SELECT v.folderId, COUNT(v) FROM VocabularySet v WHERE v.userId = :userId AND v.folderId IS NOT NULL GROUP BY v.folderId")

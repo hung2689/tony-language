@@ -7,7 +7,7 @@ import { useStudyPlan } from './StudyPlanContext';
 import './StudyPlan.css';
 
 export default function AddDecksPreviewModal({ isOpen, onClose, targetDeckIds = [] }) {
-  const { activePlan, refreshPlan } = useStudyPlan();
+  const { activePlan, addDecksToPlan } = useStudyPlan();
 
   const [availableDecks, setAvailableDecks] = useState([]);
   const [selectedDeckIds, setSelectedDeckIds] = useState([]);
@@ -113,14 +113,13 @@ export default function AddDecksPreviewModal({ isOpen, onClose, targetDeckIds = 
         newMaxNewWordsPerDay = previewData.avgWordsPerDay;
       }
 
-      await studyPlanService.addDecksToActivePlan({
+      await addDecksToPlan({
         deckIds: selectedDeckIds,
         overloadStrategy: strategy,
         newTargetDate,
         newMaxNewWordsPerDay,
       });
 
-      await refreshPlan();
       onClose();
     } catch (err) {
       setErrorMsg(err.message || 'Không thể thêm bộ từ vào lộ trình.');
