@@ -8,6 +8,9 @@ import com.languagelearning.backend.study.dto.*;
 import com.languagelearning.backend.study.entity.StudyPlan;
 import com.languagelearning.backend.study.entity.StudyPlanDeck;
 import com.languagelearning.backend.study.entity.StudyProgress;
+import com.languagelearning.backend.study.repository.DeckStatProjection;
+import com.languagelearning.backend.study.repository.PlanAggregateProjection;
+import com.languagelearning.backend.study.repository.Sm2SqlConstants;
 import com.languagelearning.backend.study.repository.StudyPlanDeckRepository;
 import com.languagelearning.backend.study.repository.StudyPlanRepository;
 import com.languagelearning.backend.study.repository.StudyProgressRepository;
@@ -20,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -65,7 +67,7 @@ public class StudyPlanService {
         if (activePlanOpt.isEmpty()) {
             return null;
         }
-        return buildPlanResponse(userId, activePlanOpt.get());
+        return buildPlanResponse(userId, activePlanOpt.get().getId(), null);
     }
 
     /**
@@ -111,15 +113,29 @@ public class StudyPlanService {
 
         StudyPlan savedPlan = studyPlanRepository.save(plan);
 
-        // Associate selected decks (verifying ownership)
-        for (Long deckId : request.deckIds()) {
-            boolean ownsDeck = vocabularySetRepository.findByIdAndUserId(deckId, userId).isPresent();
-            if (ownsDeck) {
-                studyPlanDeckRepository.save(new StudyPlanDeck(savedPlan.getId(), deckId));
+        // Associate selected decks in a single batch query verifying ownership
+        List<Long> uniqueRequestedIds = request.deckIds().stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (!uniqueRequestedIds.isEmpty()) {
+            Set<Long> ownedIds = new HashSet<>(
+                    vocabularySetRepository.findOwnedDeckIdsByUserIdAndIdIn(userId, uniqueRequestedIds)
+            );
+            List<StudyPlanDeck> toSave = new ArrayList<>();
+            int sortOrder = 0;
+            for (Long deckId : uniqueRequestedIds) {
+                if (ownedIds.contains(deckId)) {
+                    toSave.add(new StudyPlanDeck(savedPlan.getId(), deckId, ++sortOrder));
+                }
+            }
+            if (!toSave.isEmpty()) {
+                studyPlanDeckRepository.saveAll(toSave);
+                studyPlanDeckRepository.flush();
             }
         }
 
-        return buildPlanResponse(userId, savedPlan);
+        return buildPlanResponse(userId, savedPlan.getId(), null);
     }
 
     /**
@@ -199,7 +215,7 @@ public class StudyPlanService {
     }
 
     /**
-     * Add decks to the currently active study plan with optional overload strategy.
+     * Add decks to the currently active study plan with optional overload strategy and preserved sortOrder.
      */
     @Transactional
     public StudyPlanResponse addDecksToActivePlan(Long userId, AddDecksToPlanRequest request) {
@@ -210,35 +226,98 @@ public class StudyPlanService {
             throw new ValidationException("Vui lòng chọn ít nhất một bộ từ vựng.");
         }
 
+        Long planId = activePlan.getId();
+
         // Apply overload resolution strategy if requested
         if ("EXTEND_DEADLINE".equalsIgnoreCase(request.overloadStrategy()) && request.newTargetDate() != null) {
             activePlan.setTargetDate(request.newTargetDate());
+            studyPlanRepository.saveAndFlush(activePlan);
         } else if ("INCREASE_CAP".equalsIgnoreCase(request.overloadStrategy()) && request.newMaxNewWordsPerDay() != null) {
             activePlan.setMaxNewWordsPerDay(request.newMaxNewWordsPerDay());
+            studyPlanRepository.saveAndFlush(activePlan);
         }
-        studyPlanRepository.save(activePlan);
 
-        // Add decks
-        for (Long deckId : request.deckIds()) {
-            boolean ownsDeck = vocabularySetRepository.findByIdAndUserId(deckId, userId).isPresent();
-            if (ownsDeck && !studyPlanDeckRepository.existsByStudyPlanIdAndDeckId(activePlan.getId(), deckId)) {
-                studyPlanDeckRepository.save(new StudyPlanDeck(activePlan.getId(), deckId));
+        List<Long> uniqueRequestedIds = request.deckIds().stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, Integer> requestedPositions = new HashMap<>();
+        if (request.deckPositions() != null) {
+            for (AddDecksToPlanRequest.DeckPosition pos : request.deckPositions()) {
+                if (pos != null && pos.deckId() != null && pos.sortOrder() != null) {
+                    requestedPositions.putIfAbsent(pos.deckId(), pos.sortOrder());
+                }
             }
         }
 
-        return buildPlanResponse(userId, activePlan);
+        int restoredCount = 0;
+        if (!uniqueRequestedIds.isEmpty()) {
+            Set<Long> ownedIds = new HashSet<>(
+                    vocabularySetRepository.findOwnedDeckIdsByUserIdAndIdIn(userId, uniqueRequestedIds)
+            );
+            Set<Long> existingDeckIds = studyPlanDeckRepository.findByStudyPlanId(planId).stream()
+                    .map(StudyPlanDeck::getDeckId)
+                    .collect(Collectors.toSet());
+
+            int maxSortOrder = studyPlanDeckRepository.findMaxSortOrderByPlanId(planId);
+            List<StudyPlanDeck> toSave = new ArrayList<>();
+
+            for (Long deckId : uniqueRequestedIds) {
+                if (ownedIds.contains(deckId) && !existingDeckIds.contains(deckId)) {
+                    int sortOrder = requestedPositions.containsKey(deckId)
+                            ? requestedPositions.get(deckId)
+                            : (++maxSortOrder);
+                    toSave.add(new StudyPlanDeck(planId, deckId, sortOrder));
+                }
+            }
+
+            if (!toSave.isEmpty()) {
+                studyPlanDeckRepository.saveAll(toSave);
+                studyPlanDeckRepository.flush();
+                if (!requestedPositions.isEmpty()) {
+                    studyPlanDeckRepository.normalizeSortOrder(planId);
+                }
+                restoredCount = toSave.size();
+            }
+        }
+
+        studyPlanRepository.bumpRevision(planId);
+        return buildPlanResponse(userId, planId, restoredCount);
     }
 
     /**
-     * Remove a deck from the currently active plan.
+     * Remove multiple decks from the currently active plan in a single SQL statement.
      */
     @Transactional
-    public StudyPlanResponse removeDeckFromPlan(Long userId, Long deckId) {
+    public StudyPlanResponse removeDecksFromPlan(Long userId, List<Long> deckIds) {
         StudyPlan activePlan = studyPlanRepository.findByUserIdAndStatus(userId, StudyPlan.Status.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lộ trình ôn tập đang hoạt động."));
 
-        studyPlanDeckRepository.deleteByStudyPlanIdAndDeckId(activePlan.getId(), deckId);
-        return buildPlanResponse(userId, activePlan);
+        if (deckIds == null || deckIds.isEmpty()) {
+            throw new ValidationException("Danh sách bộ từ cần xóa không được để trống.");
+        }
+
+        Long planId = activePlan.getId();
+        List<Long> uniqueIds = deckIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (!uniqueIds.isEmpty()) {
+            studyPlanDeckRepository.deleteByPlanIdAndDeckIds(planId, uniqueIds);
+            studyPlanRepository.bumpRevision(planId);
+        }
+
+        return buildPlanResponse(userId, planId, null);
+    }
+
+    /**
+     * Remove a single deck from the currently active plan (delegates to batch removal).
+     */
+    @Transactional
+    public StudyPlanResponse removeDeckFromPlan(Long userId, Long deckId) {
+        return removeDecksFromPlan(userId, List.of(deckId));
     }
 
     /**
@@ -271,8 +350,10 @@ public class StudyPlanService {
             activePlan.setStatus(request.status());
         }
 
-        StudyPlan saved = studyPlanRepository.save(activePlan);
-        return buildPlanResponse(userId, saved);
+        Long planId = activePlan.getId();
+        studyPlanRepository.saveAndFlush(activePlan);
+        studyPlanRepository.bumpRevision(planId);
+        return buildPlanResponse(userId, planId, null);
     }
 
     /**
@@ -344,7 +425,7 @@ public class StudyPlanService {
                 newList.add(v);
             } else if (sp.getNextReviewAt() != null && sp.getNextReviewAt().isBefore(endOfStudyDay)) {
                 dueList.add(v);
-            } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < 70.0)) {
+            } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < Sm2SqlConstants.WEAK_MAX_ACCURACY)) {
                 weakList.add(v);
             } else {
                 otherList.add(v);
@@ -591,7 +672,7 @@ public class StudyPlanService {
                 newList.add(v);
             } else if (sp.getNextReviewAt() != null && sp.getNextReviewAt().isBefore(endOfStudyDay)) {
                 dueList.add(v);
-            } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < 70.0)) {
+            } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < Sm2SqlConstants.WEAK_MAX_ACCURACY)) {
                 weakList.add(v);
             }
         }
@@ -734,82 +815,76 @@ public class StudyPlanService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Internal Helper Methods
+    // Internal Helper Methods (O(1) SQL Aggregate & Legacy Reference)
     // ─────────────────────────────────────────────────────────────
 
-    private StudyPlanResponse buildPlanResponse(Long userId, StudyPlan plan) {
-        List<StudyPlanDeck> planDecks = studyPlanDeckRepository.findByStudyPlanId(plan.getId());
-        List<Long> deckIds = planDecks.stream().map(StudyPlanDeck::getDeckId).toList();
+    public StudyPlanResponse buildPlanResponse(Long userId, Long planId, Integer restoredCount) {
+        StudyPlan plan = studyPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lộ trình ôn tập."));
 
-        List<StudyPlanResponse.DeckInfo> deckInfos = new ArrayList<>();
-        Set<String> uniqueWords = new HashSet<>();
+        List<DeckStatProjection> deckStats = studyPlanDeckRepository.findDeckStatsByPlanId(userId, planId);
+        List<StudyPlanResponse.DeckInfo> deckInfos = deckStats.stream()
+                .map(stat -> new StudyPlanResponse.DeckInfo(
+                        stat.getDeckId(),
+                        stat.getName() != null ? stat.getName() : ("Bộ thẻ #" + stat.getDeckId()),
+                        stat.getCardCount() != null ? stat.getCardCount() : 0,
+                        stat.getMasteredCount() != null ? stat.getMasteredCount() : 0,
+                        stat.getSortOrder() != null ? stat.getSortOrder() : 0
+                ))
+                .toList();
 
-        if (!deckIds.isEmpty()) {
-            Map<Long, String> deckNames = vocabularySetRepository.findAllById(deckIds).stream()
-                    .collect(Collectors.toMap(VocabularySet::getId, VocabularySet::getName));
+        LocalDate today = LocalDate.now();
+        long daysRemaining = Math.max(1, ChronoUnit.DAYS.between(today, plan.getTargetDate()) + 1);
 
-            for (Long deckId : deckIds) {
-                List<Vocabulary> vocabs = vocabularyRepository.findByDeckId(deckId);
-                deckInfos.add(new StudyPlanResponse.DeckInfo(
-                        deckId,
-                        deckNames.getOrDefault(deckId, "Bộ thẻ #" + deckId),
-                        vocabs.size()
-                ));
-                vocabs.forEach(v -> {
-                    if (v.getWord() != null) uniqueWords.add(normalizeWord(v.getWord()));
-                });
-            }
+        if (deckInfos.isEmpty()) {
+            StudyPlanResponse.TodayStats emptyTodayStats = new StudyPlanResponse.TodayStats(0, 0, 0, 0, false);
+            return new StudyPlanResponse(
+                    plan.getId(),
+                    plan.getName(),
+                    plan.getTargetDate(),
+                    plan.getMaxNewWordsPerDay(),
+                    plan.getMinWordsPerDay(),
+                    plan.getTimezone(),
+                    plan.isHardGateEnabled(),
+                    plan.getStatus(),
+                    deckInfos,
+                    0,
+                    0,
+                    0,
+                    0,
+                    daysRemaining,
+                    0.0,
+                    false,
+                    emptyTodayStats,
+                    plan.getRevision(),
+                    restoredCount,
+                    plan.getCreatedAt(),
+                    plan.getUpdatedAt()
+            );
         }
-
-        List<Vocabulary> allPlanVocabs = deckIds.isEmpty() ? Collections.emptyList() : vocabularyRepository.findByDeckIdIn(deckIds);
-        Map<String, Vocabulary> dedupedPlanMap = new LinkedHashMap<>();
-        for (Vocabulary v : allPlanVocabs) {
-            if (v.getWord() != null) {
-                dedupedPlanMap.putIfAbsent(normalizeWord(v.getWord()), v);
-            }
-        }
-        List<Vocabulary> uniquePlanVocabs = new ArrayList<>(dedupedPlanMap.values());
-        List<Long> vocabIds = uniquePlanVocabs.stream().map(Vocabulary::getId).toList();
-        Map<Long, StudyProgress> progressMap = vocabIds.isEmpty() ? Collections.emptyMap() :
-                studyProgressRepository.findByUserIdAndVocabularyIdIn(userId, vocabIds)
-                        .stream().collect(Collectors.toMap(StudyProgress::getVocabularyId, p -> p));
 
         ZoneId zoneId = parseZoneId(plan.getTimezone());
         LocalDate currentStudyDate = getStudyDay(zoneId);
         Instant endOfStudyDay = currentStudyDate.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
 
-        int masteredWords = 0;
-        int dueCount = 0;
-        int weakCount = 0;
-        int unstudiedNewWords = 0;
+        PlanAggregateProjection agg = studyPlanDeckRepository.calculatePlanAggregate(userId, planId, endOfStudyDay);
 
-        for (Vocabulary v : uniquePlanVocabs) {
-            StudyProgress sp = progressMap.get(v.getId());
-            if (sp == null || (sp.getCorrectCount() == 0 && sp.getWrongCount() == 0)) {
-                unstudiedNewWords++;
-            } else {
-                if (sp.getAccuracy() != null && sp.getAccuracy().doubleValue() >= 80.0 && sp.getRepetitions() >= 2) {
-                    masteredWords++;
-                }
-                if (sp.getNextReviewAt() != null && sp.getNextReviewAt().isBefore(endOfStudyDay)) {
-                    dueCount++;
-                } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < 70.0)) {
-                    weakCount++;
-                }
-            }
-        }
+        int totalWords = agg != null && agg.getTotalWords() != null ? agg.getTotalWords() : 0;
+        int masteredWords = agg != null && agg.getMasteredWords() != null ? agg.getMasteredWords() : 0;
+        int learningWords = agg != null && agg.getLearningWords() != null ? agg.getLearningWords() : 0;
+        int unstudiedNewWords = agg != null && agg.getUnstudiedNewWords() != null ? agg.getUnstudiedNewWords() : 0;
+        int dueCount = agg != null && agg.getDueCount() != null ? agg.getDueCount() : 0;
+        int weakCount = agg != null && agg.getWeakCount() != null ? agg.getWeakCount() : 0;
 
-        int totalWords = uniquePlanVocabs.size();
         int remainingWords = Math.max(0, totalWords - masteredWords);
-
-        LocalDate today = LocalDate.now();
-        long daysRemaining = Math.max(1, ChronoUnit.DAYS.between(today, plan.getTargetDate()) + 1);
-        double avgWordsPerDay = Math.round(((double) remainingWords / daysRemaining) * 10.0) / 10.0;
+        double avgWordsPerDay = totalWords == 0
+                ? 0.0
+                : Math.round(((double) remainingWords / daysRemaining) * 10.0) / 10.0;
         boolean isOverloaded = avgWordsPerDay > plan.getMaxNewWordsPerDay();
 
         int newCount = Math.min(plan.getMaxNewWordsPerDay(), unstudiedNewWords);
         int totalToday = dueCount + weakCount + newCount;
-        boolean completedToday = totalToday == 0;
+        boolean completedToday = totalWords > 0 && totalToday == 0;
 
         StudyPlanResponse.TodayStats todayStats = new StudyPlanResponse.TodayStats(
                 dueCount,
@@ -831,14 +906,155 @@ public class StudyPlanService {
                 deckInfos,
                 totalWords,
                 masteredWords,
+                learningWords,
                 remainingWords,
                 daysRemaining,
                 avgWordsPerDay,
                 isOverloaded,
                 todayStats,
+                plan.getRevision(),
+                restoredCount,
                 plan.getCreatedAt(),
                 plan.getUpdatedAt()
         );
+    }
+
+    /**
+     * Legacy Java in-memory calculation preserved exclusively as the Golden Reference for Parity Tests.
+     */
+    @Transactional(readOnly = true)
+    public StudyPlanResponse buildPlanResponseLegacyForParity(Long userId, Long planId) {
+        StudyPlan plan = studyPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lộ trình ôn tập."));
+
+        List<StudyPlanDeck> planDecks = studyPlanDeckRepository.findByStudyPlanId(plan.getId()).stream()
+                .sorted(Comparator.comparingInt(StudyPlanDeck::getSortOrder).thenComparingLong(StudyPlanDeck::getId))
+                .toList();
+        List<Long> deckIds = planDecks.stream().map(StudyPlanDeck::getDeckId).toList();
+
+        List<Vocabulary> allPlanVocabs = deckIds.isEmpty() ? Collections.emptyList() : vocabularyRepository.findByDeckIdIn(deckIds);
+        List<Long> allVocabIds = allPlanVocabs.stream().map(Vocabulary::getId).toList();
+        Map<Long, StudyProgress> allProgressMap = allVocabIds.isEmpty() ? Collections.emptyMap() :
+                studyProgressRepository.findByUserIdAndVocabularyIdIn(userId, allVocabIds)
+                        .stream().collect(Collectors.toMap(StudyProgress::getVocabularyId, p -> p));
+
+        List<StudyPlanResponse.DeckInfo> deckInfos = new ArrayList<>();
+        if (!deckIds.isEmpty()) {
+            Map<Long, String> deckNames = vocabularySetRepository.findAllById(deckIds).stream()
+                    .collect(Collectors.toMap(VocabularySet::getId, VocabularySet::getName));
+
+            for (StudyPlanDeck spd : planDecks) {
+                Long deckId = spd.getDeckId();
+                List<Vocabulary> vocabs = vocabularyRepository.findByDeckId(deckId);
+                int deckMastered = 0;
+                for (Vocabulary v : vocabs) {
+                    StudyProgress sp = allProgressMap.get(v.getId());
+                    if (isMasteredInJava(sp)) {
+                        deckMastered++;
+                    }
+                }
+                deckInfos.add(new StudyPlanResponse.DeckInfo(
+                        deckId,
+                        deckNames.getOrDefault(deckId, "Bộ thẻ #" + deckId),
+                        vocabs.size(),
+                        deckMastered,
+                        spd.getSortOrder()
+                ));
+            }
+        }
+
+        Map<String, Vocabulary> dedupedPlanMap = new LinkedHashMap<>();
+        for (Vocabulary v : allPlanVocabs) {
+            if (v.getWord() != null) {
+                dedupedPlanMap.putIfAbsent(normalizeWord(v.getWord()), v);
+            }
+        }
+        List<Vocabulary> uniquePlanVocabs = new ArrayList<>(dedupedPlanMap.values());
+
+        ZoneId zoneId = parseZoneId(plan.getTimezone());
+        LocalDate currentStudyDate = getStudyDay(zoneId);
+        Instant endOfStudyDay = currentStudyDate.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        int masteredWords = 0;
+        int learningWords = 0;
+        int dueCount = 0;
+        int weakCount = 0;
+        int unstudiedNewWords = 0;
+
+        for (Vocabulary v : uniquePlanVocabs) {
+            StudyProgress sp = allProgressMap.get(v.getId());
+            if (!isStudiedInJava(sp)) {
+                unstudiedNewWords++;
+            } else {
+                if (isMasteredInJava(sp)) {
+                    masteredWords++;
+                } else {
+                    learningWords++;
+                }
+                if (sp.getNextReviewAt() != null && sp.getNextReviewAt().isBefore(endOfStudyDay)) {
+                    dueCount++;
+                } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < Sm2SqlConstants.WEAK_MAX_ACCURACY)) {
+                    weakCount++;
+                }
+            }
+        }
+
+        int totalWords = uniquePlanVocabs.size();
+        int remainingWords = Math.max(0, totalWords - masteredWords);
+
+        LocalDate today = LocalDate.now();
+        long daysRemaining = Math.max(1, ChronoUnit.DAYS.between(today, plan.getTargetDate()) + 1);
+        double avgWordsPerDay = totalWords == 0
+                ? 0.0
+                : Math.round(((double) remainingWords / daysRemaining) * 10.0) / 10.0;
+        boolean isOverloaded = avgWordsPerDay > plan.getMaxNewWordsPerDay();
+
+        int newCount = Math.min(plan.getMaxNewWordsPerDay(), unstudiedNewWords);
+        int totalToday = dueCount + weakCount + newCount;
+        boolean completedToday = totalWords > 0 && totalToday == 0;
+
+        StudyPlanResponse.TodayStats todayStats = new StudyPlanResponse.TodayStats(
+                dueCount,
+                weakCount,
+                newCount,
+                totalToday,
+                completedToday
+        );
+
+        return new StudyPlanResponse(
+                plan.getId(),
+                plan.getName(),
+                plan.getTargetDate(),
+                plan.getMaxNewWordsPerDay(),
+                plan.getMinWordsPerDay(),
+                plan.getTimezone(),
+                plan.isHardGateEnabled(),
+                plan.getStatus(),
+                deckInfos,
+                totalWords,
+                masteredWords,
+                learningWords,
+                remainingWords,
+                daysRemaining,
+                avgWordsPerDay,
+                isOverloaded,
+                todayStats,
+                plan.getRevision(),
+                null,
+                plan.getCreatedAt(),
+                plan.getUpdatedAt()
+        );
+    }
+
+    private boolean isStudiedInJava(StudyProgress sp) {
+        return sp != null && (sp.getCorrectCount() > 0 || sp.getWrongCount() > 0);
+    }
+
+    private boolean isMasteredInJava(StudyProgress sp) {
+        return isStudiedInJava(sp)
+                && sp.getAccuracy() != null
+                && sp.getAccuracy().doubleValue() >= Sm2SqlConstants.MASTERED_MIN_ACCURACY
+                && sp.getRepetitions() >= Sm2SqlConstants.MASTERED_MIN_REPETITIONS;
     }
 
     private ZoneId parseZoneId(String tz) {

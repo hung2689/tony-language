@@ -43,6 +43,9 @@ public class StudyPlan {
     @Column(name = "status", nullable = false, length = 20)
     private Status status = Status.ACTIVE;
 
+    @Column(name = "revision", nullable = false)
+    private long revision = 0L;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -164,5 +167,13 @@ public class StudyPlan {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public long getRevision() {
+        return revision;
+    }
+
+    public void setRevision(long revision) {
+        this.revision = revision;
     }
 }

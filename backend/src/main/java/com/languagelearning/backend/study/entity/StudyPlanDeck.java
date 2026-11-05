@@ -17,6 +17,9 @@ public class StudyPlanDeck {
     @Column(name = "deck_id", nullable = false)
     private Long deckId;
 
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder = 0;
+
     @Column(name = "added_at", nullable = false, updatable = false)
     private Instant addedAt;
 
@@ -26,6 +29,12 @@ public class StudyPlanDeck {
     public StudyPlanDeck(Long studyPlanId, Long deckId) {
         this.studyPlanId = studyPlanId;
         this.deckId = deckId;
+    }
+
+    public StudyPlanDeck(Long studyPlanId, Long deckId, int sortOrder) {
+        this.studyPlanId = studyPlanId;
+        this.deckId = deckId;
+        this.sortOrder = sortOrder;
     }
 
     @PrePersist
@@ -65,5 +74,13 @@ public class StudyPlanDeck {
 
     public void setAddedAt(Instant addedAt) {
         this.addedAt = addedAt;
+    }
+
+    public int getSortOrder() {
+        return sortOrder;
+    }
+
+    public void setSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

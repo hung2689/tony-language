@@ -55,6 +55,15 @@ public class StudyPlanController {
         return ResponseEntity.ok(ApiResponse.success("Thêm bộ từ vào lộ trình thành công", response));
     }
 
+    @PostMapping("/current/decks/remove")
+    public ResponseEntity<ApiResponse<StudyPlanResponse>> removeDecksFromPlan(
+            @Valid @RequestBody RemoveDecksFromPlanRequest request) {
+        Long userId = currentUserProvider.getCurrentUserId();
+        StudyPlanResponse response = studyPlanService.removeDecksFromPlan(userId, request.deckIds());
+        return ResponseEntity.ok(ApiResponse.success("Xóa bộ từ khỏi lộ trình thành công", response));
+    }
+
+    @Deprecated(forRemoval = true)
     @DeleteMapping("/current/decks/{deckId}")
     public ResponseEntity<ApiResponse<StudyPlanResponse>> removeDeckFromPlan(@PathVariable Long deckId) {
         Long userId = currentUserProvider.getCurrentUserId();

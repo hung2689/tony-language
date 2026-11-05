@@ -1,3 +1,5 @@
+import { request } from './api';
+
 // Client in-memory cache for today's queue and deck queues to avoid repeated multi-second fetches
 let todayQueueCache = null;
 let todayQueueCacheTime = 0;
@@ -9,7 +11,6 @@ export const clearStudyPlanQueueCache = () => {
   todayQueueCacheTime = 0;
   deckQueueCache.clear();
 };
-import { request } from './api';
 
 export const studyPlanService = {
   /**
@@ -26,16 +27,9 @@ export const studyPlanService = {
 
   /**
    * Creates a new study plan.
-   *
-   * @param {Object} data
-   * @param {string} data.name
-   * @param {Array<number>} data.deckIds
-   * @param {string} data.targetDate YYYY-MM-DD
-   * @param {number} [data.maxNewWordsPerDay=50]
-   * @param {number} [data.minWordsPerDay=5]
-   * @param {boolean} [data.hardGateEnabled=false]
    */
   createPlan(data) {
+    clearStudyPlanQueueCache();
     return request('/study-plans', {
       method: 'POST',
       body: JSON.stringify({
@@ -47,11 +41,6 @@ export const studyPlanService = {
 
   /**
    * Previews workload calculation for adding decks.
-   *
-   * @param {Object} data
-   * @param {Array<number>} data.deckIds
-   * @param {string} data.targetDate YYYY-MM-DD
-   * @param {number} [data.maxNewWordsPerDay=50]
    */
   previewAddDecks(data) {
     return request('/study-plans/preview', {
@@ -61,15 +50,10 @@ export const studyPlanService = {
   },
 
   /**
-   * Adds decks to the active study plan with optional overload strategy.
-   *
-   * @param {Object} data
-   * @param {Array<number>} data.deckIds
-   * @param {'KEEP_DEADLINE'|'EXTEND_DEADLINE'|'INCREASE_CAP'} [data.overloadStrategy]
-   * @param {string} [data.newTargetDate]
-   * @param {number} [data.newMaxNewWordsPerDay]
+   * Adds decks to the active study plan with optional overload strategy and preserved deckPositions.
    */
   addDecksToActivePlan(data) {
+    clearStudyPlanQueueCache();
     return request('/study-plans/current/decks', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -77,9 +61,24 @@ export const studyPlanService = {
   },
 
   /**
-   * Removes a deck from the active plan.
+   * Removes multiple decks (or a single deck) from the active plan in a single batch request.
+   *
+   * @param {Array<number>} deckIds
+   */
+  async removeDecksFromPlan(deckIds) {
+    clearStudyPlanQueueCache();
+    const res = await request('/study-plans/current/decks/remove', {
+      method: 'POST',
+      body: JSON.stringify({ deckIds: (deckIds || []).map(Number) }),
+    });
+    return res?.data ?? res;
+  },
+
+  /**
+   * Legacy single-deck removal (kept for backwards compatibility during transition).
    */
   removeDeckFromPlan(deckId) {
+    clearStudyPlanQueueCache();
     return request(`/study-plans/current/decks/${deckId}`, {
       method: 'DELETE',
     });
@@ -89,6 +88,7 @@ export const studyPlanService = {
    * Updates plan settings (target date, daily cap, hard gate, status).
    */
   updatePlan(data) {
+    clearStudyPlanQueueCache();
     return request('/study-plans/current', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -99,6 +99,7 @@ export const studyPlanService = {
    * Deletes the currently active plan.
    */
   deleteActivePlan() {
+    clearStudyPlanQueueCache();
     return request('/study-plans/current', {
       method: 'DELETE',
     });
@@ -108,7 +109,7 @@ export const studyPlanService = {
    * Retrieves today's study queue for the active plan.
    */
   getTodayQueue({ skipCache = false } = {}) {
-    if (!skipCache && todayQueueCache && (Date.now() - todayQueueCacheTime < QUEUE_CACHE_TTL)) {
+    if (!skipCache && todayQueueCache && Date.now() - todayQueueCacheTime < QUEUE_CACHE_TTL) {
       return Promise.resolve(todayQueueCache);
     }
     return request('/study-plans/current/today').then((data) => {
@@ -138,7 +139,7 @@ export const studyPlanService = {
   getDeckQueue(deckId, { skipCache = false } = {}) {
     const key = Number(deckId);
     const cached = deckQueueCache.get(key);
-    if (!skipCache && cached && (Date.now() - cached.timestamp < QUEUE_CACHE_TTL)) {
+    if (!skipCache && cached && Date.now() - cached.timestamp < QUEUE_CACHE_TTL) {
       return Promise.resolve(cached.data);
     }
     return request(`/decks/${key}/srs-queue`).then((data) => {
