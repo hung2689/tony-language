@@ -60,8 +60,9 @@ Mỗi kịch bản trước khi chạy đều được truncate sạch và seed 
 
 | STT | Nhóm chức năng / API Endpoint | Chế độ | Số query | Batch (Lần / Dòng) | Số dòng DB đọc | Thời gian thực thi (ms) | Response Payload | Ghi chú kiến trúc & Điểm nghẽn cần tối ưu ở Giai đoạn 3+ |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu) | **COLD**<br>**WARM** | **208 q**<br>**208 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 1.345 - 1.701 ms<br>410 - 526 ms | 717 - 723 B<br>723 B | **Nghẽn nghiêm trọng (208 queries / 20 câu)** do SM-2 và XP check lặp từng câu. Khi user chưa chạm Daily XP Cap, mỗi câu sinh 1 query check/insert `xp_events` (+20 queries = 208 queries). Cần viết lại Bulk SM-2 ở Giai đoạn 3. |
-| 2 | **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today` | **COLD**<br>**WARM** | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **6.761 r**<br>**6.761 r** | 548 - 574 ms<br>243 - 246 ms | 545.897 - 545.900 B<br>545.900 B (~545 KB) | **Nghẽn bộ nhớ & mạng (545 KB, 6.761 dòng)**. Load toàn bộ từ vựng lên RAM Java để phân loại due/weak/new. Cần chuyển sang SQL Window Functions / Pagination ở Giai đoạn 4. |
+| 1a | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu)<br>*(Trạng thái: Chưa chạm cap XP)* | **COLD**<br>**WARM** | **208 q**<br>**208 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 1.345 - 1.482 ms<br>464 - 526 ms | 717 - 723 B<br>723 B | **Nghẽn nghiêm trọng (208 queries / 20 câu)** do SM-2 và XP check lặp từng câu. Khi user chưa chạm Daily XP Cap, mỗi câu sinh thêm 1 query `INSERT/UPDATE user_xp` qua `addXpAtomic` (+20 queries = 208 queries). Cần viết lại Bulk SM-2 ở Giai đoạn 3. |
+| 1b | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu)<br>*(Trạng thái: Đã chạm cap XP)* | **COLD**<br>**WARM** | **188 q**<br>**188 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 401 ms<br>303 ms | 720 B<br>723 B | **188 queries** (-20 queries so với 1a). Do user đã đạt trần Daily XP (500 XP), `XpService` tính `actualXp = 0` nên bỏ qua bước gọi `userXpRepository.addXpAtomic` cho cả 20 câu. |
+| 2 | **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today`<br>*(1.750 thẻ: 1.250 due + 500 weak)* | **COLD**<br>**WARM** | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **6.761 r**<br>**6.761 r** | 548 - 761 ms<br>228 - 246 ms | 545.897 - 545.900 B<br>545.900 B (~545 KB raw,<br>32.533 B gzip -94,0%) | **Nghẽn bộ nhớ & mạng (545 KB, 6.761 dòng DB đọc, 1.750 thẻ)**. Load toàn bộ từ vựng lên RAM Java để phân loại due/weak/new. Cần chuyển sang SQL Window Functions / Pagination ở Giai đoạn 4. |
 | 3 | **Chi tiết lộ trình ôn tập**:<br>`GET /api/study-plans/current` | **COLD**<br>**WARM** | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **12 r**<br>**12 r** | 75 - 91 ms<br>46 - 69 ms | 1.600 - 1.603 B<br>1.603 B | Đã tối ưu hóa single-source SQL $O(1)$, chỉ đọc đúng 12 dòng. |
 | 4 | **Thống kê tổng quan**:<br>`GET /api/analytics/overview` | **COLD**<br>**WARM** | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **7.000 r**<br>**7.000 r** | 149 - 159 ms<br>111 - 119 ms | 298 - 301 B<br>301 B | 2 queries, đọc 7.000 dòng. |
 | 5 | **Danh sách từ yếu**:<br>`GET /api/analytics/weak-words?limit=10` | **COLD**<br>**WARM** | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **5.010 r**<br>**5.010 r** | 93 - 302 ms<br>69 - 99 ms | 2.147 B<br>2.147 B | 2 queries (1 query COUNT(*) phân trang của Spring Data JPA + 1 query SELECT data LIMIT 10). |
@@ -91,9 +92,16 @@ Trong Baseline B1, endpoint `GET /api/study-plans/current/today` trả về payl
    - Tuy nhiên, trong DTO trả về `TermCardDto.java`, trường `exampleParagraph` **KHÔNG được khai báo và không được serialize ra JSON** (chỉ có trường `example` chứa câu ví dụ đơn `exampleSentence`).
    - Quét toàn bộ mã nguồn frontend (`frontend/src`): **hoàn toàn KHÔNG CÓ trường `exampleParagraph`** (0 kết quả tìm kiếm).
 
-3. **Nguyên nhân thực tế của dung lượng ~545 KB**:
-   - Backend hiện tại nạp toàn bộ từ vựng thuộc mọi bộ thẻ trong lộ trình vào bộ nhớ JVM (`allVocabs = vocabularyRepository.findByDeckIdIn(deckIds)`), sau đó convert toàn bộ tập hợp đã chọn thành một mảng khổng lồ gồm **6.761 đối tượng `TermCardDto`**.
-   - Mỗi đối tượng JSON chứa đầy đủ 7 trường (`id`, `term`, `definition`, `pronunciation`, `partOfSpeech`, `example`, `synonyms`), trung bình ~80 bytes/đối tượng JSON $\times$ 6.761 đối tượng $\approx$ 545.900 bytes.
+3. **Nguyên nhân thực tế của dung lượng ~545 KB & Kiểm đếm thực tế (Verified Audit)**:
+   - Cơ sở dữ liệu đọc **6.761 dòng** qua các bảng `vocabularies`, `study_progress`, `vocabulary_synonyms`.
+   - Sau khi deduplicate theo `normalizeWord` và phân loại SM-2 trong bộ nhớ, hàng đợi chọn ra **1.750 thẻ** (`cards.length = 1.750`), bao gồm:
+     - **1.250 thẻ đến hạn ôn tập** (`dueCount = 1.250`).
+     - **500 thẻ yếu cần củng cố** (`weakCount = 500`).
+     - **0 thẻ mới** (`newCount = 0`).
+     - **0 thẻ khác** (`otherCount = 0`).
+     - Tổng cộng: **1.750 thẻ** (`totalCount = 1.750`).
+   - Dung lượng JSON thô (raw): **545.900 bytes (~533,11 KB)**, trung bình ~312 bytes/thẻ JSON.
+   - Dung lượng khi nén Gzip (`Accept-Encoding: gzip`): **32.533 bytes (~31,77 KB)**, giảm **-94,0%** băng thông mạng!
 
 4. **Kiểm tra mức độ sử dụng ở Frontend**:
    - Các component hiển thị chính: `DailyGateReminder.jsx`, `AppDock.jsx`, `SpacedRepetitionCard.jsx`, `StudyPlanPage.jsx` gọi `getTodayQueue()` **CHỈ ĐỂ LẤY CÁC TRƯỜNG ĐẾM TỔNG QUAN**:

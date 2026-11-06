@@ -412,9 +412,9 @@ public class PerfBaselineRunnerIntegrationTest {
         int totalRuns = 6; // 1 Cold + 5 Warm
         List<BenchmarkResult> results = new ArrayList<>();
 
-        // 1. POST /api/study/sessions + POST /api/study/sessions/{id}/answers (Batch 20 answers)
+        // 1a. POST /api/study/sessions + POST /api/study/sessions/{id}/answers (Batch 20 answers) [Chưa chạm cap XP]
         results.add(executeBenchmark(
-                "POST /api/study/sessions + POST /answers (20)",
+                "POST /api/study/sessions + POST /answers (20) [Chưa chạm cap XP]",
                 totalRuns,
                 (runIndex) -> {
                     CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 20, "SEQUENTIAL");
@@ -462,6 +462,70 @@ public class PerfBaselineRunnerIntegrationTest {
                                     "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
                             params.toArray()
                     );
+                    // Reset XP events & total XP so every iteration is deterministic in non-capped state
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 0 WHERE user_id = ?", perfUser.getId());
+                }
+        ));
+
+        // 1b. POST /api/study/sessions + POST /api/study/sessions/{id}/answers (Batch 20 answers) [Đã chạm cap XP]
+        results.add(executeBenchmark(
+                "POST /api/study/sessions + POST /answers (20) [Đã chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 20, "SEQUENTIAL");
+                    MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(createReq)))
+                            .andExpect(status().isCreated())
+                            .andReturn();
+
+                    Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                    Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                    Long sessionId = ((Number) dataMap.get("id")).longValue();
+
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + sessionId + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+
+                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                },
+                (runIndex) -> {
+                    String placeholders = deckVocabularyIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    // Pre-seed XP to reach daily cap (500 XP) so every iteration is deterministic in capped state
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 500 WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update(
+                            "INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) " +
+                                    "VALUES (?, 'DAILY_CAP_FIXTURE', 'cap_preseed_' || ?, 500, NOW()) " +
+                                    "ON CONFLICT DO NOTHING",
+                            perfUser.getId(), runIndex
+                    );
                 }
         ));
 
@@ -476,7 +540,38 @@ public class PerfBaselineRunnerIntegrationTest {
                     MvcResult res = mockMvc.perform(get("/api/study-plans/current/today"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+
+                    byte[] rawBytes = res.getResponse().getContentAsByteArray();
+                    if (runIndex == 0) {
+                        Map<?, ?> resMap = objectMapper.readValue(rawBytes, Map.class);
+                        Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                        List<?> cards = (List<?>) dataMap.get("cards");
+                        int dueCount = ((Number) dataMap.get("dueCount")).intValue();
+                        int weakCount = ((Number) dataMap.get("weakCount")).intValue();
+                        int newCount = ((Number) dataMap.get("newCount")).intValue();
+                        int totalCount = ((Number) dataMap.get("totalCount")).intValue();
+                        int otherCount = totalCount - (dueCount + weakCount + newCount);
+
+                        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                        try (java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(baos)) {
+                            gzos.write(rawBytes);
+                        }
+                        byte[] gzippedBytes = baos.toByteArray();
+
+                        System.out.println("=========================================================================");
+                        System.out.println("GET /api/study-plans/current/today VERIFIED AUDIT:");
+                        System.out.printf("  cards.length: %,d%n", cards.size());
+                        System.out.printf("  dueCount    : %,d%n", dueCount);
+                        System.out.printf("  weakCount   : %,d%n", weakCount);
+                        System.out.printf("  newCount    : %,d%n", newCount);
+                        System.out.printf("  otherCount  : %,d%n", otherCount);
+                        System.out.printf("  totalCount  : %,d%n", totalCount);
+                        System.out.printf("  Raw size    : %,d bytes (%.2f KB)%n", rawBytes.length, rawBytes.length / 1024.0);
+                        System.out.printf("  Gzip size   : %,d bytes (%.2f KB, -%.1f%%)%n", gzippedBytes.length, gzippedBytes.length / 1024.0, (1.0 - (double) gzippedBytes.length / rawBytes.length) * 100.0);
+                        System.out.println("=========================================================================");
+                    }
+
+                    return rawBytes.length;
                 },
                 null
         ));
