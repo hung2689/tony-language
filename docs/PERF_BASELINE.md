@@ -47,7 +47,7 @@
 | :--- | :---: | :---: | :---: | :--- |
 | **HTML Entry**: `dist/index.html` | 1.08 kB | **0.57 kB** | **0.57 kB** | File HTML gốc. |
 | **CSS Bundle**: `dist/assets/index-*.css` | 366.56 kB | **62.44 kB** | **62.45 kB** | Toàn bộ style sheet toàn app gộp vào 1 file duy nhất (đã trỏ WebP). |
-| **Main JS Bundle**: `dist/assets/index-*.js` | 711.64 kB | **195.26 kB** | **195.35 kB** | Monolithic bundle (sẽ được code-split ở Giai đoạn 4). |
+| **Main JS Bundle**: `dist/assets/index-*.js` | 711.64 kB | **195.26 kB** | **195.35 kB** | Monolithic bundle (sẽ được code-split ở Giai đoạn 2). |
 | **Tổng dung lượng tải về ban đầu (Initial Download)** | **1.079,28 kB** | **258,27 kB** | **258,37 kB** | Tổng kích thước tài nguyên tải về lúc trang chủ khởi động (chưa tính assets tĩnh). |
 
 ---
@@ -64,30 +64,30 @@
   - Tất cả ảnh PNG/JPG lớn được chuyển đổi sang định dạng WebP (quality 80) kèm lazy loading và decoding async.
   - Cấu hình cache header cho Vercel (`vercel.json`) với immutable 1 năm cho hashed build assets và 7 ngày cho static public assets.
 
-### Top 20 Tệp Dung Lượng Lớn Nhất & Trạng Thái Tham Chiếu Trong Code
+### Top 20 Tệp Dung Lượng Lớn Nhất Trong `frontend/public` (Trạng Thái SAU Tối Ưu)
 
-| STT | Tên tệp | Đường dẫn tương đối | Kích thước (MB) | Trạng thái tham chiếu trong mã nguồn (`src`) | Chi tiết / Vị trí tham chiếu |
+| STT | Tên tệp | Đường dẫn tương đối | Kích thước | Định dạng | Trạng thái tham chiếu / Sử dụng trong mã nguồn |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| 1 | `13772604_3840_2160_60fps.mp4` | `video/13772604_3840_2160_60fps.mp4` | **22,84 MB** | ❌ **0 tham chiếu (DEAD ASSET)** | Không có bất kỳ dòng code nào trong `src` hay `index.html` sử dụng. |
-| 2 | `forest-island.mp4` | `assets/animation/forest-island.mp4` | **3,17 MB** | ✅ **1 tham chiếu** | Được dùng tại `src/features/library/components/WorldMap.jsx:167`. |
-| 3 | `forest-island.mp4` *(trùng)* | `assets/lexicon/animations/forest-island.mp4` | **3,17 MB** | ❌ **0 tham chiếu (DUPLICATE)** | Tệp trùng lặp nguyên bản của STT 2 nhưng không được dùng. |
-| 4 | `backgrounddao.png` | `assets/background/backgrounddao.png` | **2,82 MB** | ✅ **2 tham chiếu** | Dùng trong `lexiconMapData.js` và `RpgLibraryWorkspace.css`. |
-| 5 | `spaced-repetition-paper-raw.png` | `assets/popup/spaced-repetition-paper-raw.png` | **2,52 MB** | ❌ **0 tham chiếu (RAW / UNUSED)** | Bản thiết kế thô chưa xử lý, không dùng trong app. |
-| 6 | `background-level-progression.png` | `assets/game-ui/background/background-level-progression.png` | **2,45 MB** | ❌ **0 tham chiếu (UNUSED)** | Ảnh nền giao diện game chưa gắn vào component nào. |
-| 7 | `spaced-repetition-paper.png` | `assets/popup/spaced-repetition-paper.png` | **2,24 MB** | ✅ **1 tham chiếu** | Dùng trong `SpacedRepetitionForecastModal.css`. |
-| 8 | `spaced-repetition-paper.png` *(trùng)* | `assets/backgrounds/spaced-repetition-paper.png` | **2,24 MB** | ❌ **0 tham chiếu (DUPLICATE)** | Tệp trùng lặp của STT 7. |
-| 9 | `background-main-world.png` | `assets/game-ui/background/background-main-world.png` | **2,11 MB** | ❌ **0 tham chiếu (UNUSED)** | Tài nguyên chưa dùng. |
-| 10 | `wallpaper-meadow.jpg` | `wallpapers/wallpaper-meadow.jpg` | **2,08 MB** | ✅ **2 tham chiếu** | Dùng trong `WallpaperContext.jsx`. |
-| 11 | `background-hero-banner.png` | `assets/game-ui/background/background-hero-banner.png` | **1,98 MB** | ❌ **0 tham chiếu (UNUSED)** | Tài nguyên chưa dùng. |
-| 12 | `wallpaper-forest.jpg` | `wallpapers/wallpaper-forest.jpg` | **1,68 MB** | ✅ **2 tham chiếu** | Dùng trong `WallpaperContext.jsx`. |
-| 13 | `contact_sheet.png` | `assets/rpg/raw/contact_sheet.png` | **1,33 MB** | ❌ **0 tham chiếu (RAW / UNUSED)** | Contact sheet gốc của RPG sprites, không dùng trực tiếp. |
-| 14 | `wallpaper-valley.jpg` | `wallpapers/wallpaper-valley.jpg` | **1,26 MB** | ✅ **3 tham chiếu** | Dùng trong `App.css` và `WallpaperContext.jsx`. |
-| 15 | `popup_desktop_raw.png` | `assets/popup/popup_desktop_raw.png` | **891 KB** | ❌ **0 tham chiếu (RAW / UNUSED)** | Bản raw popup desktop. |
-| 16 | `auth-bg.png` | `auth-bg.png` | **880 KB** | ✅ **1 tham chiếu** | Dùng làm hình nền đăng nhập trong `Auth.css`. |
-| 17 | `forecast-parchment-frame.png` | `assets/spaced-repetition/forecast-parchment-frame.png` | **741 KB** | ✅ **1 tham chiếu** | Dùng trong `SpacedRepetitionForecastModal.css`. |
-| 18 | `profile-paper-bg.png` | `profile-paper-bg.png` | **713 KB** | ✅ **1 tham chiếu** | Dùng trong `Profile.css`. |
-| 19 | `profile-paper-bg.png` *(trùng 1)* | `assets/profile/backgrounds/profile-paper-bg.png` | **713 KB** | ❌ **0 tham chiếu (DUPLICATE)** | Tệp trùng lặp của STT 18. |
-| 20 | `profile-paper-bg.png` *(trùng 2)* | `assets/profile/profile-paper-bg.png` | **713 KB** | ❌ **0 tham chiếu (DUPLICATE)** | Tệp trùng lặp của STT 18. |
+| 1 | `forest-island.mp4` | `assets/animation/forest-island.mp4` | **3,17 MB** | MP4 | ✅ **1 tham chiếu**: Video nền chuyển động bản đồ đảo (`WorldMap.jsx`). |
+| 2 | `wallpaper-meadow.webp` | `wallpapers/wallpaper-meadow.webp` | **1,01 MB** | WebP | ✅ **2 tham chiếu**: Preset hình nền đồng cỏ (`WallpaperContext.jsx`). Giảm từ 2,08 MB JPG. |
+| 3 | `wallpaper-forest.webp` | `wallpapers/wallpaper-forest.webp` | **819 KB** | WebP | ✅ **2 tham chiếu**: Preset hình nền rừng (`WallpaperContext.jsx`). Giảm từ 1,68 MB JPG. |
+| 4 | `wallpaper-valley.webp` | `wallpapers/wallpaper-valley.webp` | **503 KB** | WebP | ✅ **3 tham chiếu**: Preset hình nền thung lũng mặc định (`WallpaperContext.jsx`). Giảm từ 1,26 MB JPG. |
+| 5 | `spaced-repetition-paper.webp` | `assets/popup/spaced-repetition-paper.webp` | **193 KB** | WebP | ✅ **1 tham chiếu**: Giấy da cuộn popup dự báo ôn tập (`SpacedRepetitionForecastModal.css`). Giảm từ 2,24 MB PNG (-91.4%). |
+| 6 | `backgrounddao.webp` | `assets/background/backgrounddao.webp` | **189 KB** | WebP | ✅ **2 tham chiếu**: Bản đồ nền thư viện RPG (`lexiconMapData.js`, `RpgLibraryWorkspace.css`). Giảm từ 2,82 MB PNG (-93.3%). |
+| 7 | `forest-island-mask.png` | `assets/animation/forest-island-mask.png` | **91 KB** | PNG (8-bit) | ✅ **1 tham chiếu**: Mặt nạ viền chuyển động cho video bản đồ đảo (`WorldMap.jsx`). |
+| 8 | `texture_watercolor_wash_blue.png` | `assets/nen_texture/texture_watercolor_wash_blue.png` | **87 KB** | PNG (8-bit) | ✅ **Texture UI**: Hiệu ứng màu nước nền thẻ bài/bản đồ. Đã nén palette. |
+| 9 | `ornament_red_compass_stamp.png` | `assets/nen_texture/ornament_red_compass_stamp.png` | **76 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Dấu ấn la bàn đỏ phong cách cổ. Đã nén palette. |
+| 10 | `texture_parchment_edge_vertical.png` | `assets/nen_texture/texture_parchment_edge_vertical.png` | **70 KB** | PNG (8-bit) | ✅ **Texture UI**: Viền cuộn giấy da dọc trang trí. Đã nén palette. |
+| 11 | `ornament_compass_rose.png` | `assets/nen_texture/ornament_compass_rose.png` | **68 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Hoa la bàn cổ bản đồ RPG. Đã nén palette. |
+| 12 | `rank-supreme.png` | `assets/badges/rank-supreme.png` | **62 KB** | PNG (8-bit) | ✅ **1 tham chiếu**: Huy hiệu Rank Tối Thượng (`ranks.js`). Đã tối ưu palette. |
+| 13 | `profile-ship-illustration.webp` | `assets/profile/profile-ship-illustration.webp` | **61 KB** | WebP | ✅ **1 tham chiếu**: Minh họa con thuyền trang hồ sơ cá nhân (`Profile.jsx`). |
+| 14 | `ornament_green_ribbon.png` | `assets/nen_texture/ornament_green_ribbon.png` | **56 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Dải ruy băng ngọc lục bảo. Đã nén palette. |
+| 15 | `sign_wooden_blank.png` | `assets/nen_texture/sign_wooden_blank.png` | **56 KB** | PNG (8-bit) | ✅ **Texture UI**: Biển gỗ trống dẫn đường bản đồ. Đã nén palette. |
+| 16 | `vintage-map-bg.webp` | `assets/flashcard/vintage-map-bg.webp` | **55 KB** | WebP | ✅ **1 tham chiếu**: Nền flashcard bản đồ cổ (`FlashcardFront.jsx`). Giảm từ 520 KB PNG. |
+| 17 | `rank-legendary.png` | `assets/badges/rank-legendary.png` | **55 KB** | PNG (8-bit) | ✅ **1 tham chiếu**: Huy hiệu Rank Huyền Thoại (`ranks.js`). Đã tối ưu palette. |
+| 18 | `decor_whale.png` | `assets/decor_icon/decor_whale.png` | **55 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Biểu tượng cá voi biển trên bản đồ hải trình. |
+| 19 | `decor_map_scroll.png` | `assets/decor_icon/decor_map_scroll.png` | **54 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Cuộn hải đồ hải trình. |
+| 20 | `decor_ship_wheel.png` | `assets/decor_icon/decor_ship_wheel.png` | **53 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Bánh lái tàu thám hiểm. |
 
 ---
 

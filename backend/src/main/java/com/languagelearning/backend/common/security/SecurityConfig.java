@@ -61,7 +61,7 @@ public class SecurityConfig {
                                 "/api/profile/avatar/**",
                                 "/api/levels/tiers"
                         ).permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

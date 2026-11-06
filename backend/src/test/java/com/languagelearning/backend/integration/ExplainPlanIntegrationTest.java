@@ -65,8 +65,8 @@ public class ExplainPlanIntegrationTest {
                 "ORDER BY spd.sort_order ASC, spd.id ASC";
         runAndPrintExplain("2. DECK_STATS", deckStatsSql, userId, planId);
 
-        // 3. PLAN_AGGREGATE
-        String planAggregateSql = "EXPLAIN (ANALYZE, BUFFERS) " +
+        // 3. PLAN_AGGREGATE (Trước V10: GROUP BY biểu thức chuỗi)
+        String planAggregateBeforeV10 = "EXPLAIN (ANALYZE, BUFFERS) " +
                 "WITH plan_words AS ( " +
                 "  SELECT MIN(v.id) AS vocabulary_id " +
                 "  FROM study_plan_decks spd " +
@@ -91,7 +91,35 @@ public class ExplainPlanIntegrationTest {
                 "       COUNT(*) FILTER (WHERE NOT is_new AND is_due)::int AS \"dueCount\", " +
                 "       COUNT(*) FILTER (WHERE NOT is_new AND NOT is_due AND is_weak)::int AS \"weakCount\" " +
                 "FROM word_states";
-        runAndPrintExplain("3. PLAN_AGGREGATE", planAggregateSql, planId, Timestamp.from(Instant.now()), userId);
+        runAndPrintExplain("3. PLAN_AGGREGATE (TRƯỚC V10 - Biểu thức GROUP BY LOWER(BTRIM(...)))", planAggregateBeforeV10, planId, Timestamp.from(Instant.now()), userId);
+
+        // 4. PLAN_AGGREGATE (SAU V10: GROUP BY v.word_norm có stored column & index)
+        String planAggregateAfterV10 = "EXPLAIN (ANALYZE, BUFFERS) " +
+                "WITH plan_words AS ( " +
+                "  SELECT MIN(v.id) AS vocabulary_id " +
+                "  FROM study_plan_decks spd " +
+                "  JOIN vocabulary_set_items vsi ON vsi.vocabulary_set_id = spd.deck_id " +
+                "  JOIN vocabularies v ON v.id = vsi.vocabulary_id " +
+                "  WHERE spd.study_plan_id = ? " +
+                "  GROUP BY v.word_norm " +
+                "), " +
+                "word_states AS ( " +
+                "  SELECT pw.vocabulary_id, " +
+                "         (NOT " + Sm2SqlConstants.SQL_IS_STUDIED + ") AS is_new, " +
+                "         " + Sm2SqlConstants.SQL_IS_MASTERED + " AS is_mastered, " +
+                "         (sp.next_review_at IS NOT NULL AND sp.next_review_at < ?) AS is_due, " +
+                "         " + Sm2SqlConstants.SQL_IS_WEAK + " AS is_weak " +
+                "  FROM plan_words pw " +
+                "  LEFT JOIN study_progress sp ON sp.vocabulary_id = pw.vocabulary_id AND sp.user_id = ? " +
+                ") " +
+                "SELECT COUNT(*)::int AS \"totalWords\", " +
+                "       COUNT(*) FILTER (WHERE is_mastered)::int AS \"masteredWords\", " +
+                "       COUNT(*) FILTER (WHERE NOT is_new AND NOT is_mastered)::int AS \"learningWords\", " +
+                "       COUNT(*) FILTER (WHERE is_new)::int AS \"unstudiedNewWords\", " +
+                "       COUNT(*) FILTER (WHERE NOT is_new AND is_due)::int AS \"dueCount\", " +
+                "       COUNT(*) FILTER (WHERE NOT is_new AND NOT is_due AND is_weak)::int AS \"weakCount\" " +
+                "FROM word_states";
+        runAndPrintExplain("4. PLAN_AGGREGATE (SAU V10 - Dùng trực tiếp stored column v.word_norm)", planAggregateAfterV10, planId, Timestamp.from(Instant.now()), userId);
     }
 
     private void runAndPrintExplain(String label, String sql, Object... params) {

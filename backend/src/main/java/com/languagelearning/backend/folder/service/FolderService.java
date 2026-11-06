@@ -15,6 +15,8 @@ import com.languagelearning.backend.folder.entity.Folder;
 import com.languagelearning.backend.folder.repository.FolderRepository;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
 import com.languagelearning.backend.term.repository.VocabularySynonymRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,8 @@ public class FolderService {
 
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public FolderService(FolderRepository folderRepository,
                          VocabularySetRepository vocabularySetRepository,
@@ -173,6 +177,10 @@ public class FolderService {
                 );
             }
             folderRepository.delete(folder);
+            if (entityManager != null) {
+                entityManager.flush();
+                entityManager.clear();
+            }
             return;
         }
 

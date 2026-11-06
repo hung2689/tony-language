@@ -9,9 +9,28 @@ import {
 // ─── Preset IDs (static, not stored in DB) ───────────────────────────────────
 const PRESET_IDS = new Set(['valley', 'meadow', 'forest', 'none']);
 
+export function normalizeWallpaperId(id) {
+  if (!id || typeof id !== 'string') return 'valley';
+  const trimmed = id.trim();
+  if (trimmed.includes('valley')) return 'valley';
+  if (trimmed.includes('meadow')) return 'meadow';
+  if (trimmed.includes('forest')) return 'forest';
+  if (trimmed === 'none' || trimmed.includes('none')) return 'none';
+  return trimmed;
+}
+
+export function normalizeWallpaperUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('/wallpapers/wallpaper-valley.jpg')) return '/wallpapers/wallpaper-valley.webp';
+  if (url.includes('/wallpapers/wallpaper-meadow.jpg')) return '/wallpapers/wallpaper-meadow.webp';
+  if (url.includes('/wallpapers/wallpaper-forest.jpg')) return '/wallpapers/wallpaper-forest.webp';
+  return url;
+}
+
 function loadDeletedPresets() {
   try {
-    return new Set(JSON.parse(localStorage.getItem('deleted_presets') || '[]'));
+    const parsed = JSON.parse(localStorage.getItem('deleted_presets') || '[]');
+    return new Set((Array.isArray(parsed) ? parsed : []).map(normalizeWallpaperId));
   } catch {
     return new Set();
   }
@@ -64,7 +83,8 @@ const WallpaperContext = createContext(null);
 // ─── Helper: persist wallpaper selection locally ─────────────────────────────
 function loadLocalSelection() {
   try {
-    return localStorage.getItem('study_wallpaper_id') || 'valley';
+    const raw = localStorage.getItem('study_wallpaper_id');
+    return normalizeWallpaperId(raw);
   } catch {
     return 'valley';
   }
@@ -141,8 +161,8 @@ export function WallpaperProvider({ children }) {
     ...userWallpapers.map((w) => ({
       id: String(w.id),
       name: w.name,
-      imageUrl: w.imageUrl,
-      thumbnailUrl: w.thumbnailUrl || w.imageUrl,
+      imageUrl: normalizeWallpaperUrl(w.imageUrl),
+      thumbnailUrl: normalizeWallpaperUrl(w.thumbnailUrl || w.imageUrl),
       isPreset: false,
       isActive: w.active,
     })),
@@ -150,7 +170,7 @@ export function WallpaperProvider({ children }) {
 
   // ── activeWallpaper object ───────────────────────────────────────────────
   const activeWallpaper =
-    allWallpapers.find((w) => String(w.id) === String(currentId)) ||
+    allWallpapers.find((w) => String(w.id) === String(normalizeWallpaperId(currentId))) ||
     PRESET_WALLPAPERS[0];
 
   // ── Select / apply a wallpaper ───────────────────────────────────────────

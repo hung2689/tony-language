@@ -4,7 +4,7 @@
   "outputDirectory": "frontend/dist",
   "headers": [
     {
-      "source": "/assets/(.*)-[a-zA-Z0-9_-]{8,}\\.(js|css|woff2?|png|webp|svg)",
+      "source": "/assets/[^/]+-[a-zA-Z0-9_-]{8}\\.(js|css)",
       "headers": [
         {
           "key": "Cache-Control",

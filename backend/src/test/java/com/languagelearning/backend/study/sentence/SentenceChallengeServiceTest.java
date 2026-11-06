@@ -75,6 +75,20 @@ public class SentenceChallengeServiceTest {
                 "Today I feel very exhausted after a long day of work."
         );
 
+        when(geminiSentenceService.isAvailable(any())).thenReturn(true);
+        when(geminiSentenceService.evaluateSentence(any(), any())).thenReturn(
+                new SentenceEvaluationResponse(
+                        95,
+                        true,
+                        true,
+                        "EXCELLENT",
+                        "Câu dịch rất tốt và tự nhiên!",
+                        "Today I feel very exhausted after a long day of work.",
+                        "Today I feel very exhausted after a long day of work.",
+                        List.of()
+                )
+        );
+
         SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request);
 
         assertNotNull(response);
@@ -93,6 +107,20 @@ public class SentenceChallengeServiceTest {
                 "Hôm nay tôi cảm thấy rất kiệt sức.",
                 "Today I feel very tired after work.",
                 "Today I feel very exhausted after a long day of work."
+        );
+
+        when(geminiSentenceService.isAvailable(any())).thenReturn(true);
+        when(geminiSentenceService.evaluateSentence(any(), any())).thenReturn(
+                new SentenceEvaluationResponse(
+                        50,
+                        false,
+                        false,
+                        "NEEDS_IMPROVEMENT",
+                        "Bạn cần sử dụng từ vựng mục tiêu.",
+                        "Today I feel very tired after work.",
+                        "Today I feel very exhausted after a long day of work.",
+                        List.of("Câu của bạn chưa sử dụng từ vựng mục tiêu: exhausted")
+                )
         );
 
         SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request);
