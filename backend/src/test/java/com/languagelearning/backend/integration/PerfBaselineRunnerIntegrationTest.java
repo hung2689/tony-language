@@ -3,12 +3,16 @@ package com.languagelearning.backend.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.languagelearning.backend.account.User;
 import com.languagelearning.backend.account.UserRepository;
+import com.languagelearning.backend.analytics.service.AnalyticsService;
+import com.languagelearning.backend.common.dto.ApiResponse;
 import com.languagelearning.backend.common.security.PerfDataSeeder;
 import com.languagelearning.backend.common.security.SecurityTestUtils;
 import com.languagelearning.backend.deck.dto.DeckUpdateRequest;
 import com.languagelearning.backend.study.dto.AnswerBatchRequest;
 import com.languagelearning.backend.study.dto.AnswerItemDto;
 import com.languagelearning.backend.study.dto.CreateSessionRequest;
+import com.languagelearning.backend.study.dto.TodayStudyQueueResponse;
+import com.languagelearning.backend.study.service.StudyPlanService;
 import com.languagelearning.backend.term.dto.TermCardDto;
 import net.ttddyy.dsproxy.ExecutionInfo;
 import net.ttddyy.dsproxy.QueryInfo;
@@ -127,7 +131,8 @@ public class PerfBaselineRunnerIntegrationTest {
             int batchRows,
             long rowsRead,
             long durationMs,
-            long responseBytes
+            long responseBytes,
+            long gzipBytes
     ) {}
 
     public record BenchmarkResult(
@@ -141,7 +146,26 @@ public class PerfBaselineRunnerIntegrationTest {
     private WebApplicationContext webApplicationContext;
 
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = createObjectMapper();
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        com.fasterxml.jackson.databind.module.SimpleModule module = new com.fasterxml.jackson.databind.module.SimpleModule();
+        module.addSerializer(java.time.LocalDate.class, new com.fasterxml.jackson.databind.JsonSerializer<java.time.LocalDate>() {
+            @Override
+            public void serialize(java.time.LocalDate value, com.fasterxml.jackson.core.JsonGenerator gen, com.fasterxml.jackson.databind.SerializerProvider serializers) throws java.io.IOException {
+                gen.writeString(value.toString());
+            }
+        });
+        module.addSerializer(java.time.Instant.class, new com.fasterxml.jackson.databind.JsonSerializer<java.time.Instant>() {
+            @Override
+            public void serialize(java.time.Instant value, com.fasterxml.jackson.core.JsonGenerator gen, com.fasterxml.jackson.databind.SerializerProvider serializers) throws java.io.IOException {
+                gen.writeString(value.toString());
+            }
+        });
+        mapper.registerModule(module);
+        return mapper;
+    }
 
     @Autowired
     private UserRepository userRepository;
@@ -151,6 +175,12 @@ public class PerfBaselineRunnerIntegrationTest {
 
     @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private StudyPlanService studyPlanService;
+
+    @Autowired
+    private AnalyticsService analyticsService;
 
     private User perfUser;
     private Long targetDeckId;
@@ -255,44 +285,38 @@ public class PerfBaselineRunnerIntegrationTest {
             return ids.get(0);
         }
         return jdbcTemplate.queryForObject(
-                "INSERT INTO vocabulary_sets (name, description, user_id, created_at, updated_at) " +
-                        "VALUES (?, 'Dedicated benchmark deck', ?, NOW(), NOW()) RETURNING id",
-                Long.class, name, perfUser.getId()
+                "INSERT INTO vocabulary_sets (user_id, name, description, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW()) RETURNING id",
+                Long.class,
+                perfUser.getId(), name, "Dedicated benchmark deck"
         );
     }
 
     private void cleanupDeckCards(Long deckId) {
-        List<Long> vIds = jdbcTemplate.query(
+        List<Long> oldVocabIds = jdbcTemplate.query(
                 "SELECT vocabulary_id FROM vocabulary_set_items WHERE vocabulary_set_id = ?",
                 (rs, rowNum) -> rs.getLong("vocabulary_id"),
                 deckId
         );
-        if (!vIds.isEmpty()) {
+        if (!oldVocabIds.isEmpty()) {
             jdbcTemplate.update("DELETE FROM vocabulary_set_items WHERE vocabulary_set_id = ?", deckId);
-            String placeholders = vIds.stream().map(id -> "?").collect(Collectors.joining(", "));
-            jdbcTemplate.update(
-                    "DELETE FROM vocabularies WHERE id IN (" + placeholders + ") " +
-                            "AND NOT EXISTS (SELECT 1 FROM vocabulary_set_items WHERE vocabulary_id = vocabularies.id)",
-                    vIds.toArray()
-            );
+            String placeholders = oldVocabIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+            jdbcTemplate.update("DELETE FROM vocabularies WHERE id IN (" + placeholders + ")", oldVocabIds.toArray());
         }
     }
 
     private List<Long> insertCardsIntoDeck(Long deckId, int count, String prefix) {
-        StringBuilder vocabSql = new StringBuilder(
-                "INSERT INTO vocabularies (word, meaning, word_type, pronunciation, example_sentence, created_at, updated_at) VALUES "
-        );
+        StringBuilder sql = new StringBuilder("INSERT INTO vocabularies (word, meaning, word_type, pronunciation, example_sentence, created_at, updated_at) VALUES ");
         List<Object> params = new ArrayList<>();
         for (int i = 1; i <= count; i++) {
-            if (i > 1) vocabSql.append(", ");
-            vocabSql.append("(?, ?, 'noun', '/p/', 'example', NOW(), NOW())");
+            if (i > 1) sql.append(", ");
+            sql.append("(?, ?, 'noun', '/p/', 'example', NOW(), NOW())");
             params.add(prefix + i);
             params.add("Nghia cua tu " + prefix + i);
         }
-        vocabSql.append(" RETURNING id");
+        sql.append(" RETURNING id");
 
         List<Long> vocabIds = jdbcTemplate.query(
-                vocabSql.toString(),
+                sql.toString(),
                 (rs, rowNum) -> rs.getLong("id"),
                 params.toArray()
         );
@@ -329,9 +353,33 @@ public class PerfBaselineRunnerIntegrationTest {
         );
     }
 
+    public record ActionResponse(long rawBytes, long gzipBytes) {
+        public static ActionResponse of(byte[] raw) {
+            long rawLen = raw != null ? raw.length : 0;
+            long gzipLen = computeGzipSize(raw);
+            return new ActionResponse(rawLen, gzipLen);
+        }
+        public static ActionResponse ofBytes(long rawBytes) {
+            return new ActionResponse(rawBytes, 0);
+        }
+    }
+
+    public static long computeGzipSize(byte[] rawBytes) {
+        if (rawBytes == null || rawBytes.length == 0) return 0;
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            try (java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(baos)) {
+                gzos.write(rawBytes);
+            }
+            return baos.toByteArray().length;
+        } catch (Exception e) {
+            return rawBytes.length;
+        }
+    }
+
     @FunctionalInterface
     interface MeasuredAction {
-        long execute() throws Exception;
+        ActionResponse execute() throws Exception;
     }
 
     private RunMetric measure(MeasuredAction action) throws Exception {
@@ -339,7 +387,7 @@ public class PerfBaselineRunnerIntegrationTest {
         METRICS_COLLECTOR.reset();
         long startTime = System.nanoTime();
 
-        long responseBytes = action.execute();
+        ActionResponse response = action.execute();
 
         long endTime = System.nanoTime();
         long durationMs = (endTime - startTime) / 1_000_000;
@@ -348,12 +396,12 @@ public class PerfBaselineRunnerIntegrationTest {
         int batchRows = METRICS_COLLECTOR.getBatchRows();
         long rowsRead = METRICS_COLLECTOR.getRowsRead();
 
-        return new RunMetric(queries, batchCount, batchRows, rowsRead, durationMs, responseBytes);
+        return new RunMetric(queries, batchCount, batchRows, rowsRead, durationMs, response.rawBytes(), response.gzipBytes());
     }
 
     @FunctionalInterface
     interface IterationMeasuredAction {
-        long execute(int runIndex) throws Exception;
+        ActionResponse execute(int runIndex) throws Exception;
     }
 
     private BenchmarkResult executeBenchmark(String apiName, int totalRuns, IterationMeasuredAction action, java.util.function.IntConsumer beforeIteration) throws Exception {
@@ -383,6 +431,7 @@ public class PerfBaselineRunnerIntegrationTest {
         List<Long> rowsReadList = list.stream().map(RunMetric::rowsRead).sorted().toList();
         List<Long> durations = list.stream().map(RunMetric::durationMs).sorted().toList();
         List<Long> responseBytesList = list.stream().map(RunMetric::responseBytes).sorted().toList();
+        List<Long> gzipBytesList = list.stream().map(RunMetric::gzipBytes).sorted().toList();
 
         int mid = list.size() / 2;
         return new RunMetric(
@@ -391,19 +440,20 @@ public class PerfBaselineRunnerIntegrationTest {
                 batchRowsList.get(mid),
                 rowsReadList.get(mid),
                 durations.get(mid),
-                responseBytesList.get(mid)
+                responseBytesList.get(mid),
+                gzipBytesList.get(mid)
         );
     }
 
     private void printBenchmarkResult(BenchmarkResult res) {
         System.out.println("=========================================================================================");
         System.out.printf("API: %s%n", res.apiName());
-        System.out.printf("  COLD (Run 1)   : %4d ms | %3d queries | Batch: %2d (%4d rows) | Rows read: %5d | Bytes: %6d%n",
+        System.out.printf("  COLD (Run 1)   : %4d ms | %3d queries | Batch: %2d (%4d rows) | Rows read: %5d | Bytes: %6d (gzip: %6d)%n",
                 res.cold().durationMs(), res.cold().queries(), res.cold().batchCount(), res.cold().batchRows(),
-                res.cold().rowsRead(), res.cold().responseBytes());
-        System.out.printf("  WARM (Median 5): %4d ms | %3d queries | Batch: %2d (%4d rows) | Rows read: %5d | Bytes: %6d%n",
+                res.cold().rowsRead(), res.cold().responseBytes(), res.cold().gzipBytes());
+        System.out.printf("  WARM (Median 5): %4d ms | %3d queries | Batch: %2d (%4d rows) | Rows read: %5d | Bytes: %6d (gzip: %6d)%n",
                 res.warmMedian().durationMs(), res.warmMedian().queries(), res.warmMedian().batchCount(), res.warmMedian().batchRows(),
-                res.warmMedian().rowsRead(), res.warmMedian().responseBytes());
+                res.warmMedian().rowsRead(), res.warmMedian().responseBytes(), res.warmMedian().gzipBytes());
         System.out.println("  Runs: " + res.allRuns().stream()
                 .map(m -> m.durationMs() + "ms(" + m.queries() + "q," + m.rowsRead() + "r)")
                 .collect(Collectors.joining(", ")));
@@ -455,10 +505,9 @@ public class PerfBaselineRunnerIntegrationTest {
                             .andExpect(status().isOk())
                             .andReturn();
 
-                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.ofBytes(createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length);
                 },
                 (runIndex) -> {
-                    // Reset study progress of test vocabularies before each run to prevent exponential SM-2 interval overflow
                     String placeholders = deckVocabularyIds.stream().map(id -> "?").collect(Collectors.joining(", "));
                     List<Object> params = new ArrayList<>();
                     params.add(perfUser.getId());
@@ -469,7 +518,6 @@ public class PerfBaselineRunnerIntegrationTest {
                                     "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
                             params.toArray()
                     );
-                    // Reset XP events & total XP so every iteration is deterministic in non-capped state
                     jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
                     jdbcTemplate.update("UPDATE user_xp SET total_xp = 0 WHERE user_id = ?", perfUser.getId());
                 }
@@ -511,7 +559,7 @@ public class PerfBaselineRunnerIntegrationTest {
                             .andExpect(status().isOk())
                             .andReturn();
 
-                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.ofBytes(createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length);
                 },
                 (runIndex) -> {
                     String placeholders = deckVocabularyIds.stream().map(id -> "?").collect(Collectors.joining(", "));
@@ -524,7 +572,6 @@ public class PerfBaselineRunnerIntegrationTest {
                                     "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
                             params.toArray()
                     );
-                    // Pre-seed XP to reach daily cap (500 XP) so every iteration is deterministic in capped state
                     jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
                     jdbcTemplate.update("UPDATE user_xp SET total_xp = 500 WHERE user_id = ?", perfUser.getId());
                     jdbcTemplate.update(
@@ -572,7 +619,7 @@ public class PerfBaselineRunnerIntegrationTest {
                             .andExpect(status().isOk())
                             .andReturn();
 
-                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.ofBytes(createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length);
                 },
                 (runIndex) -> {
                     String placeholders = deckVocabularyIds100.stream().map(id -> "?").collect(Collectors.joining(", "));
@@ -626,7 +673,7 @@ public class PerfBaselineRunnerIntegrationTest {
                             .andExpect(status().isOk())
                             .andReturn();
 
-                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.ofBytes(createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length);
                 },
                 (runIndex) -> {
                     String placeholders = deckVocabularyIds100.stream().map(id -> "?").collect(Collectors.joining(", "));
@@ -661,7 +708,7 @@ public class PerfBaselineRunnerIntegrationTest {
                                     .content(objectMapper.writeValueAsString(createReq)))
                             .andExpect(status().isCreated())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 (runIndex) -> {
                     jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = FALSE WHERE user_id = ?", perfUser.getId());
@@ -679,56 +726,292 @@ public class PerfBaselineRunnerIntegrationTest {
                                     .content(objectMapper.writeValueAsString(createReq)))
                             .andExpect(status().isBadRequest())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 (runIndex) -> {
                     jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = TRUE, status = 'ACTIVE' WHERE user_id = ?", perfUser.getId());
                 }
         ));
 
+        // 1g. Đo riêng lẻ: POST /answers (20) [Chưa chạm cap XP]
+        final AtomicLong answerOnlySessionId20 = new AtomicLong();
+        results.add(executeBenchmark(
+                "POST /answers (20) [Đo riêng lẻ recordAnswers, Chưa chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + answerOnlySessionId20.get() + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(answerRes.getResponse().getContentAsByteArray());
+                },
+                (runIndex) -> {
+                    jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = FALSE WHERE user_id = ?", perfUser.getId());
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 20, "SEQUENTIAL");
+                    try {
+                        MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                        Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                        Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                        answerOnlySessionId20.set(((Number) dataMap.get("id")).longValue());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    String placeholders = deckVocabularyIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 0 WHERE user_id = ?", perfUser.getId());
+                }
+        ));
+
+        // 1h. Đo riêng lẻ: POST /answers (20) [Đã chạm cap XP]
+        results.add(executeBenchmark(
+                "POST /answers (20) [Đo riêng lẻ recordAnswers, Đã chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + answerOnlySessionId20.get() + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(answerRes.getResponse().getContentAsByteArray());
+                },
+                (runIndex) -> {
+                    jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = FALSE WHERE user_id = ?", perfUser.getId());
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 20, "SEQUENTIAL");
+                    try {
+                        MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                        Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                        Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                        answerOnlySessionId20.set(((Number) dataMap.get("id")).longValue());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    String placeholders = deckVocabularyIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 500 WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update(
+                            "INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) " +
+                                    "VALUES (?, 'DAILY_CAP_FIXTURE', 'cap_preseed_sep_' || ?, 500, NOW()) " +
+                                    "ON CONFLICT DO NOTHING",
+                            perfUser.getId(), runIndex
+                    );
+                }
+        ));
+
+        // 1i. Đo riêng lẻ: POST /answers (100) [Chưa chạm cap XP]
+        final AtomicLong answerOnlySessionId100 = new AtomicLong();
+        results.add(executeBenchmark(
+                "POST /answers (100) [Đo riêng lẻ recordAnswers, Chưa chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds100) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + answerOnlySessionId100.get() + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(answerRes.getResponse().getContentAsByteArray());
+                },
+                (runIndex) -> {
+                    jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = FALSE WHERE user_id = ?", perfUser.getId());
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 100, "SEQUENTIAL");
+                    try {
+                        MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                        Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                        Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                        answerOnlySessionId100.set(((Number) dataMap.get("id")).longValue());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    String placeholders = deckVocabularyIds100.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds100);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 0 WHERE user_id = ?", perfUser.getId());
+                }
+        ));
+
+        // 1j. Đo riêng lẻ: POST /answers (100) [Đã chạm cap XP]
+        results.add(executeBenchmark(
+                "POST /answers (100) [Đo riêng lẻ recordAnswers, Đã chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds100) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + answerOnlySessionId100.get() + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(answerRes.getResponse().getContentAsByteArray());
+                },
+                (runIndex) -> {
+                    jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = FALSE WHERE user_id = ?", perfUser.getId());
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 100, "SEQUENTIAL");
+                    try {
+                        MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createReq)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+                        Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                        Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                        answerOnlySessionId100.set(((Number) dataMap.get("id")).longValue());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    String placeholders = deckVocabularyIds100.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds100);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 500 WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update(
+                            "INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) " +
+                                    "VALUES (?, 'DAILY_CAP_FIXTURE', 'cap_preseed_100_sep_' || ?, 500, NOW()) " +
+                                    "ON CONFLICT DO NOTHING",
+                            perfUser.getId(), runIndex
+                    );
+                }
+        ));
+
         // Reset before read-only study plan & analytics endpoints to prevent contamination from session answers
         resetDatabase();
 
-        // 2. GET today-queue (/api/study-plans/current/today)
+        // 2a. GET today-queue (MỚI: CTE SQL)
         results.add(executeBenchmark(
-                "GET /api/study-plans/current/today",
+                "GET /api/study-plans/current/today (MỚI: CTE SQL)",
                 totalRuns,
                 (runIndex) -> {
-                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today"))
+                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today?cte=true"))
                             .andExpect(status().isOk())
                             .andReturn();
-
                     byte[] rawBytes = res.getResponse().getContentAsByteArray();
-                    if (runIndex == 0) {
-                        Map<?, ?> resMap = objectMapper.readValue(rawBytes, Map.class);
-                        Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
-                        List<?> cards = (List<?>) dataMap.get("cards");
-                        int dueCount = ((Number) dataMap.get("dueCount")).intValue();
-                        int weakCount = ((Number) dataMap.get("weakCount")).intValue();
-                        int newCount = ((Number) dataMap.get("newCount")).intValue();
-                        int totalCount = ((Number) dataMap.get("totalCount")).intValue();
-                        int otherCount = totalCount - (dueCount + weakCount + newCount);
+                    return ActionResponse.of(rawBytes);
+                },
+                null
+        ));
 
-                        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                        try (java.util.zip.GZIPOutputStream gzos = new java.util.zip.GZIPOutputStream(baos)) {
-                            gzos.write(rawBytes);
-                        }
-                        byte[] gzippedBytes = baos.toByteArray();
+        // 2b. GET today-queue (LEGACY: In-Memory)
+        results.add(executeBenchmark(
+                "GET /api/study-plans/current/today (LEGACY: In-Memory)",
+                totalRuns,
+                (runIndex) -> {
+                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today?legacy=true"))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    byte[] rawBytes = res.getResponse().getContentAsByteArray();
+                    return ActionResponse.of(rawBytes);
+                },
+                null
+        ));
 
-                        System.out.println("=========================================================================");
-                        System.out.println("GET /api/study-plans/current/today VERIFIED AUDIT:");
-                        System.out.printf("  cards.length: %,d%n", cards.size());
-                        System.out.printf("  dueCount    : %,d%n", dueCount);
-                        System.out.printf("  weakCount   : %,d%n", weakCount);
-                        System.out.printf("  newCount    : %,d%n", newCount);
-                        System.out.printf("  otherCount  : %,d%n", otherCount);
-                        System.out.printf("  totalCount  : %,d%n", totalCount);
-                        System.out.printf("  Raw size    : %,d bytes (%.2f KB)%n", rawBytes.length, rawBytes.length / 1024.0);
-                        System.out.printf("  Gzip size   : %,d bytes (%.2f KB, -%.1f%%)%n", gzippedBytes.length, gzippedBytes.length / 1024.0, (1.0 - (double) gzippedBytes.length / rawBytes.length) * 100.0);
-                        System.out.println("=========================================================================");
-                    }
-
-                    return rawBytes.length;
+        // 2c. GET today-summary (MỚI: CTE Summary)
+        results.add(executeBenchmark(
+                "GET /api/study-plans/current/today/summary (MỚI: CTE Summary)",
+                totalRuns,
+                (runIndex) -> {
+                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today/summary"))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    byte[] rawBytes = res.getResponse().getContentAsByteArray();
+                    return ActionResponse.of(rawBytes);
                 },
                 null
         ));
@@ -741,74 +1024,159 @@ public class PerfBaselineRunnerIntegrationTest {
                     MvcResult res = mockMvc.perform(get("/api/study-plans/current"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
 
-        // 4. GET /api/analytics/overview
+        // 4a. GET /api/analytics/overview (MỚI: SQL Aggregate)
         results.add(executeBenchmark(
-                "GET /api/analytics/overview",
+                "GET /api/analytics/overview (MỚI: SQL Aggregate)",
                 totalRuns,
                 (runIndex) -> {
                     MvcResult res = mockMvc.perform(get("/api/analytics/overview"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
 
-        // 5. GET /api/analytics/weak-words?limit=10
+        // 4b. GET /api/analytics/overview (LEGACY: In-Memory)
         results.add(executeBenchmark(
-                "GET /api/analytics/weak-words?limit=10",
+                "GET /api/analytics/overview (LEGACY: In-Memory)",
+                totalRuns,
+                (runIndex) -> {
+                    MvcResult res = mockMvc.perform(get("/api/analytics/overview?legacy=true"))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
+                },
+                null
+        ));
+
+        // 5a. GET /api/analytics/weak-words?limit=10 (MỚI: Index Scan + LIMIT)
+        results.add(executeBenchmark(
+                "GET /api/analytics/weak-words?limit=10 (MỚI: Index Scan + LIMIT)",
                 totalRuns,
                 (runIndex) -> {
                     MvcResult res = mockMvc.perform(get("/api/analytics/weak-words?limit=10"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
 
-        // 6. GET /api/analytics/retention
+        // 5b. GET /api/analytics/weak-words?limit=10 (LEGACY: In-Memory)
         results.add(executeBenchmark(
-                "GET /api/analytics/retention",
+                "GET /api/analytics/weak-words?limit=10 (LEGACY: In-Memory)",
+                totalRuns,
+                (runIndex) -> {
+                    MvcResult res = mockMvc.perform(get("/api/analytics/weak-words?limit=10&legacy=true"))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
+                },
+                null
+        ));
+
+        // 6a. GET /api/analytics/retention (MỚI: FILTER Aggregate)
+        results.add(executeBenchmark(
+                "GET /api/analytics/retention (MỚI: FILTER Aggregate)",
                 totalRuns,
                 (runIndex) -> {
                     MvcResult res = mockMvc.perform(get("/api/analytics/retention"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
 
-        // 7. GET /api/analytics/heatmap
+        // 6b. GET /api/analytics/retention (LEGACY: In-Memory)
         results.add(executeBenchmark(
-                "GET /api/analytics/heatmap",
+                "GET /api/analytics/retention (LEGACY: In-Memory)",
+                totalRuns,
+                (runIndex) -> {
+                    MvcResult res = mockMvc.perform(get("/api/analytics/retention?legacy=true"))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
+                },
+                null
+        ));
+
+        // 7a. GET /api/analytics/heatmap (MỚI: GROUP BY Day)
+        results.add(executeBenchmark(
+                "GET /api/analytics/heatmap (MỚI: GROUP BY Day)",
                 totalRuns,
                 (runIndex) -> {
                     MvcResult res = mockMvc.perform(get("/api/analytics/heatmap"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
 
-        // 8. GET Analytics Suite (overview + weak-words + retention + heatmap)
+        // 7b. GET /api/analytics/heatmap (LEGACY: In-Memory)
         results.add(executeBenchmark(
-                "GET Analytics Suite (overview+weak+retention+heatmap)",
+                "GET /api/analytics/heatmap (LEGACY: In-Memory)",
                 totalRuns,
                 (runIndex) -> {
-                    long bytes = 0;
-                    bytes += mockMvc.perform(get("/api/analytics/overview")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray().length;
-                    bytes += mockMvc.perform(get("/api/analytics/weak-words?limit=10")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray().length;
-                    bytes += mockMvc.perform(get("/api/analytics/retention")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray().length;
-                    bytes += mockMvc.perform(get("/api/analytics/heatmap")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray().length;
-                    return bytes;
+                    MvcResult res = mockMvc.perform(get("/api/analytics/heatmap?legacy=true"))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
+                },
+                null
+        ));
+
+        // 8a. GET Analytics Suite (MỚI: 4 endpoints)
+        results.add(executeBenchmark(
+                "GET Analytics Suite (MỚI: 4 endpoints)",
+                totalRuns,
+                (runIndex) -> {
+                    long raw = 0;
+                    long gz = 0;
+                    MvcResult r1 = mockMvc.perform(get("/api/analytics/overview")).andExpect(status().isOk()).andReturn();
+                    MvcResult r2 = mockMvc.perform(get("/api/analytics/weak-words?limit=10")).andExpect(status().isOk()).andReturn();
+                    MvcResult r3 = mockMvc.perform(get("/api/analytics/retention")).andExpect(status().isOk()).andReturn();
+                    MvcResult r4 = mockMvc.perform(get("/api/analytics/heatmap")).andExpect(status().isOk()).andReturn();
+                    raw += r1.getResponse().getContentAsByteArray().length;
+                    raw += r2.getResponse().getContentAsByteArray().length;
+                    raw += r3.getResponse().getContentAsByteArray().length;
+                    raw += r4.getResponse().getContentAsByteArray().length;
+                    gz += computeGzipSize(r1.getResponse().getContentAsByteArray());
+                    gz += computeGzipSize(r2.getResponse().getContentAsByteArray());
+                    gz += computeGzipSize(r3.getResponse().getContentAsByteArray());
+                    gz += computeGzipSize(r4.getResponse().getContentAsByteArray());
+                    return new ActionResponse(raw, gz);
+                },
+                null
+        ));
+
+        // 8b. GET Analytics Suite (LEGACY: 4 endpoints)
+        results.add(executeBenchmark(
+                "GET Analytics Suite (LEGACY: 4 endpoints)",
+                totalRuns,
+                (runIndex) -> {
+                    long raw = 0;
+                    long gz = 0;
+                    MvcResult r1 = mockMvc.perform(get("/api/analytics/overview?legacy=true")).andExpect(status().isOk()).andReturn();
+                    MvcResult r2 = mockMvc.perform(get("/api/analytics/weak-words?limit=10&legacy=true")).andExpect(status().isOk()).andReturn();
+                    MvcResult r3 = mockMvc.perform(get("/api/analytics/retention?legacy=true")).andExpect(status().isOk()).andReturn();
+                    MvcResult r4 = mockMvc.perform(get("/api/analytics/heatmap?legacy=true")).andExpect(status().isOk()).andReturn();
+                    raw += r1.getResponse().getContentAsByteArray().length;
+                    raw += r2.getResponse().getContentAsByteArray().length;
+                    raw += r3.getResponse().getContentAsByteArray().length;
+                    raw += r4.getResponse().getContentAsByteArray().length;
+                    gz += computeGzipSize(r1.getResponse().getContentAsByteArray());
+                    gz += computeGzipSize(r2.getResponse().getContentAsByteArray());
+                    gz += computeGzipSize(r3.getResponse().getContentAsByteArray());
+                    gz += computeGzipSize(r4.getResponse().getContentAsByteArray());
+                    return new ActionResponse(raw, gz);
                 },
                 null
         ));
@@ -842,7 +1210,7 @@ public class PerfBaselineRunnerIntegrationTest {
                                     .content(updatePayload))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
@@ -876,7 +1244,7 @@ public class PerfBaselineRunnerIntegrationTest {
                                     .content(unchangedPayload))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
@@ -909,9 +1277,9 @@ public class PerfBaselineRunnerIntegrationTest {
                                     .content(addPayload))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
-                (runIndex) -> cleanupDeckCards(addDeckId) // Reset to 0 cards before each iteration
+                (runIndex) -> cleanupDeckCards(addDeckId)
         ));
 
         // Reset before PUT Scenario C to ensure deleteDeck is fresh
@@ -939,10 +1307,9 @@ public class PerfBaselineRunnerIntegrationTest {
                                     .content(deletePayload))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 (runIndex) -> {
-                    // Before each iteration, remove any leftover temp cards and insert 500 fresh temp cards
                     List<Long> tempIds = jdbcTemplate.query(
                             "SELECT vocabulary_id FROM vocabulary_set_items WHERE vocabulary_set_id = ? AND vocabulary_id <> ?",
                             (rs, rowNum) -> rs.getLong("vocabulary_id"),
@@ -956,11 +1323,10 @@ public class PerfBaselineRunnerIntegrationTest {
                         String placeholders = tempIds.stream().map(id -> "?").collect(Collectors.joining(", "));
                         jdbcTemplate.update(
                                 "DELETE FROM vocabularies WHERE id IN (" + placeholders + ") " +
-                                        "AND NOT EXISTS (SELECT 1 FROM vocabulary_set_items WHERE vocabulary_id = vocabularies.id)",
+                                        "AND NOT EXISTS (SELECT 1 FROM vocabulary_set_items WHERE vocabulary_set_id = vocabularies.id)",
                                 tempIds.toArray()
                         );
                     }
-                    // Add 500 temp cards
                     insertCardsIntoDeck(deleteDeckId, 500, "bench_temp_del_r" + runIndex + "_");
                 }
         ));
@@ -976,22 +1342,78 @@ public class PerfBaselineRunnerIntegrationTest {
                     MvcResult res = mockMvc.perform(get("/api/decks"))
                             .andExpect(status().isOk())
                             .andReturn();
-                    return res.getResponse().getContentAsByteArray().length;
+                    return ActionResponse.of(res.getResponse().getContentAsByteArray());
                 },
                 null
         ));
 
         // Print final markdown summary
         System.out.println("\n\n========================= FULL BENCHMARK SUMMARY =========================");
-        System.out.println("| API Endpoint | COLD (ms/q/batch/rows/bytes) | WARM Median (ms/q/batch/rows/bytes) |");
+        System.out.println("| API Endpoint | COLD (ms/q/batch/rows/raw/gzip) | WARM Median (ms/q/batch/rows/raw/gzip) |");
         System.out.println("| :--- | :---: | :---: |");
         for (BenchmarkResult r : results) {
-            System.out.printf("| %s | %d ms / %d q / b:%d(%d) / r:%d / %d B | %d ms / %d q / b:%d(%d) / r:%d / %d B |%n",
+            System.out.printf("| %s | %d ms / %d q / b:%d(%d) / r:%d / %d B (gz:%d B) | %d ms / %d q / b:%d(%d) / r:%d / %d B (gz:%d B) |%n",
                     r.apiName(),
-                    r.cold().durationMs(), r.cold().queries(), r.cold().batchCount(), r.cold().batchRows(), r.cold().rowsRead(), r.cold().responseBytes(),
-                    r.warmMedian().durationMs(), r.warmMedian().queries(), r.warmMedian().batchCount(), r.warmMedian().batchRows(), r.warmMedian().rowsRead(), r.warmMedian().responseBytes()
+                    r.cold().durationMs(), r.cold().queries(), r.cold().batchCount(), r.cold().batchRows(), r.cold().rowsRead(), r.cold().responseBytes(), r.cold().gzipBytes(),
+                    r.warmMedian().durationMs(), r.warmMedian().queries(), r.warmMedian().batchCount(), r.warmMedian().batchRows(), r.warmMedian().rowsRead(), r.warmMedian().responseBytes(), r.warmMedian().gzipBytes()
             );
         }
         System.out.println("==========================================================================\n");
+
+        // Measure detailed sub-step timing breakdown
+        measureTodayQueueBreakdown();
+    }
+
+    private void measureTodayQueueBreakdown() throws Exception {
+        System.out.println("=========================================================================");
+        System.out.println("DETAILED BREAKDOWN BENCHMARK: GET /today (MỚI vs LEGACY, 5 Warm runs median)");
+
+        // Warmup runs
+        for (int i = 0; i < 2; i++) {
+            studyPlanService.getTodayQueueCte(perfUser.getId());
+            studyPlanService.getTodayQueue(perfUser.getId());
+        }
+
+        // Measure MỚI sub-steps
+        List<Long> moiDtoTimes = new ArrayList<>();
+        List<Long> moiJsonTimes = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            long t0 = System.nanoTime();
+            TodayStudyQueueResponse resp = studyPlanService.getTodayQueueCte(perfUser.getId());
+            long t1 = System.nanoTime();
+            byte[] json = objectMapper.writeValueAsBytes(ApiResponse.success("OK", resp));
+            long t2 = System.nanoTime();
+            moiDtoTimes.add((t1 - t0) / 1_000_000);
+            moiJsonTimes.add((t2 - t1) / 1_000_000);
+        }
+
+        // Measure LEGACY sub-steps
+        List<Long> legDtoTimes = new ArrayList<>();
+        List<Long> legJsonTimes = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            long t0 = System.nanoTime();
+            TodayStudyQueueResponse resp = studyPlanService.getTodayQueueLegacyForParity(perfUser.getId());
+            long t1 = System.nanoTime();
+            byte[] json = objectMapper.writeValueAsBytes(ApiResponse.success("OK", resp));
+            long t2 = System.nanoTime();
+            legDtoTimes.add((t1 - t0) / 1_000_000);
+            legJsonTimes.add((t2 - t1) / 1_000_000);
+        }
+
+        Collections.sort(moiDtoTimes);
+        Collections.sort(moiJsonTimes);
+        Collections.sort(legDtoTimes);
+        Collections.sort(legJsonTimes);
+
+        long moiService = moiDtoTimes.get(2);
+        long moiJson = moiJsonTimes.get(2);
+        long legService = legDtoTimes.get(2);
+        long legJson = legJsonTimes.get(2);
+
+        System.out.printf("  [MỚI CTE SQL]    : Service (SQL + DTO Mapping) = %4d ms | Jackson JSON Serialization = %4d ms | Total = %4d ms%n",
+                moiService, moiJson, moiService + moiJson);
+        System.out.printf("  [LEGACY In-RAM]  : Service (Queries + In-RAM)  = %4d ms | Jackson JSON Serialization = %4d ms | Total = %4d ms%n",
+                legService, legJson, legService + legJson);
+        System.out.println("=========================================================================");
     }
 }

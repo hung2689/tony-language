@@ -86,9 +86,13 @@ public class StudyPlanController {
     }
 
     @GetMapping("/current/today")
-    public ResponseEntity<ApiResponse<TodayStudyQueueResponse>> getTodayQueue() {
+    public ResponseEntity<ApiResponse<TodayStudyQueueResponse>> getTodayQueue(
+            @RequestParam(name = "legacy", required = false, defaultValue = "false") boolean legacy,
+            @RequestParam(name = "cte", required = false, defaultValue = "false") boolean cte) {
         Long userId = currentUserProvider.getCurrentUserId();
-        TodayStudyQueueResponse response = studyPlanService.getTodayQueue(userId);
+        TodayStudyQueueResponse response = cte
+                ? studyPlanService.getTodayQueueCte(userId)
+                : (legacy ? studyPlanService.getTodayQueueLegacyForParity(userId) : studyPlanService.getTodayQueue(userId));
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ cần học hôm nay thành công", response));
     }
 

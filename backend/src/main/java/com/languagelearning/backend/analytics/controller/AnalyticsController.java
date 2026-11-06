@@ -34,36 +34,48 @@ public class AnalyticsController {
 
     @GetMapping("/overview")
     public ResponseEntity<ApiResponse<AnalyticsOverviewResponse>> getOverview(
-            @RequestParam(required = false) String timezone) {
+            @RequestParam(required = false) String timezone,
+            @RequestParam(name = "legacy", required = false, defaultValue = "false") boolean legacy) {
         Long userId = currentUserProvider.getCurrentUserId();
         ZoneId zone = resolveZone(timezone);
-        AnalyticsOverviewResponse response = analyticsService.getOverview(userId, zone);
+        AnalyticsOverviewResponse response = legacy
+                ? analyticsService.getOverviewLegacyForParity(userId, zone)
+                : analyticsService.getOverview(userId, zone);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin tổng quan thành công", response));
     }
 
     @GetMapping("/heatmap")
     public ResponseEntity<ApiResponse<HeatmapResponse>> getHeatmap(
             @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String timezone) {
+            @RequestParam(required = false) String timezone,
+            @RequestParam(name = "legacy", required = false, defaultValue = "false") boolean legacy) {
         Long userId = currentUserProvider.getCurrentUserId();
         ZoneId zone = resolveZone(timezone);
         int targetYear = year != null ? year : LocalDate.now(zone).getYear();
-        HeatmapResponse response = analyticsService.getHeatmap(userId, targetYear, zone);
+        HeatmapResponse response = legacy
+                ? analyticsService.getHeatmapLegacyForParity(userId, targetYear, zone)
+                : analyticsService.getHeatmap(userId, targetYear, zone);
         return ResponseEntity.ok(ApiResponse.success("Lấy biểu đồ nhiệt thành công", response));
     }
 
     @GetMapping("/retention")
-    public ResponseEntity<ApiResponse<RetentionDistributionResponse>> getRetention() {
+    public ResponseEntity<ApiResponse<RetentionDistributionResponse>> getRetention(
+            @RequestParam(name = "legacy", required = false, defaultValue = "false") boolean legacy) {
         Long userId = currentUserProvider.getCurrentUserId();
-        RetentionDistributionResponse response = analyticsService.getRetentionDistribution(userId);
+        RetentionDistributionResponse response = legacy
+                ? analyticsService.getRetentionDistributionLegacyForParity(userId)
+                : analyticsService.getRetentionDistribution(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy phân bổ ghi nhớ thành công", response));
     }
 
     @GetMapping("/weak-words")
     public ResponseEntity<ApiResponse<List<WeakWordDto>>> getWeakWords(
-            @RequestParam(required = false, defaultValue = "10") int limit) {
+            @RequestParam(required = false, defaultValue = "10") int limit,
+            @RequestParam(name = "legacy", required = false, defaultValue = "false") boolean legacy) {
         Long userId = currentUserProvider.getCurrentUserId();
-        List<WeakWordDto> response = analyticsService.getWeakWords(userId, limit);
+        List<WeakWordDto> response = legacy
+                ? analyticsService.getWeakWordsLegacyForParity(userId, limit)
+                : analyticsService.getWeakWords(userId, limit);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ yếu thành công", response));
     }
 }
