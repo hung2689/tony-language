@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useWallpaper } from '../../features/wallpapers/WallpaperContext';
@@ -8,13 +8,14 @@ import { analyticsService } from '../../services/analyticsService';
 import AppHeader from './AppHeader';
 import AppDock from './AppDock';
 import MobileBottomNav from './MobileBottomNav';
-import DeckFormModal from '../../features/decks/DeckFormModal';
-import WallpaperModal from '../../features/wallpapers/WallpaperModal';
 import Toast from '../common/Toast';
+
+const DeckFormModal = lazy(() => import('../../features/decks/DeckFormModal'));
+const WallpaperModal = lazy(() => import('../../features/wallpapers/WallpaperModal'));
 
 export default function MainLayout() {
   const { user, logout } = useAuth();
-  const { activeWallpaper, overlayOpacity } = useWallpaper();
+  const { activeWallpaper, overlayOpacity, isWallpaperModalOpen } = useWallpaper();
   const navigate = useNavigate();
   const location = useLocation();
   const contentBodyRef = useRef(null);
@@ -53,7 +54,6 @@ export default function MainLayout() {
     }, 4000);
   }, []);
 
-  // Cleanup toast timer on unmount (BUG-04)
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) {
@@ -62,29 +62,13 @@ export default function MainLayout() {
     };
   }, []);
 
-  // Shared overview for header streak & library workspace (BUG-08)
-  const [overview, setOverview] = useState(null);
-
-  const fetchOverview = useCallback(async () => {
-    try {
-      const data = await analyticsService.getOverview();
-      setOverview(data);
-    } catch {
-      // Ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchOverview();
-  }, [fetchOverview]);
-
-  // Load folders for global modal
+  // Fetch folders for moving & creating decks
   const loadFolders = useCallback(async () => {
     try {
       const data = await folderService.getFolders();
       setFolders(data || []);
     } catch {
-      // Ignore
+      // Non-critical, ignore
     }
   }, []);
 
@@ -92,59 +76,80 @@ export default function MainLayout() {
     loadFolders();
   }, [loadFolders]);
 
+  // Fetch overall gamification stats (level, streak, mastered words)
+  const [overview, setOverview] = useState(null);
+  const fetchOverview = useCallback(async () => {
+    try {
+      const data = await analyticsService.getOverview();
+      setOverview(data);
+    } catch {
+      // Non-critical, ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOverview();
+  }, [fetchOverview]);
+
+  // Handle global deck creation from modal
   const handleGlobalCreateDeck = async (deckData) => {
     try {
-      const created = await deckService.createDeck(deckData);
-      showToast('Tạo bộ từ vựng thành công');
+      const newDeck = await deckService.createDeck(deckData);
       setIsGlobalCreateDeckOpen(false);
-      // Navigate to the created deck so user can immediately study or view
-      if (created?.id) {
-        navigate(`/decks/${created.id}`);
-      } else {
-        navigate('/library');
-      }
+      showToast('Tạo bộ từ vựng thành công!', 'success');
+      loadFolders();
+      navigate(`/decks/${newDeck.id}`);
     } catch (err) {
-      showToast(err.message || 'Lỗi khi tạo bộ từ vựng', 'error');
+      showToast(err.message || 'Không thể tạo bộ từ vựng.', 'error');
     }
   };
 
-  const handleQuickCreateFolder = async (name) => {
+  // Quick create folder from inside DeckFormModal
+  const handleQuickCreateFolder = async (folderName) => {
     try {
-      const newFolder = await folderService.createFolder(name);
-      showToast('Đã tạo thư mục mới');
+      const created = await folderService.createFolder(folderName);
       await loadFolders();
-      return newFolder;
+      showToast(`Đã tạo thư mục "${created.name}"`, 'success');
+      return created;
     } catch (err) {
-      showToast(err.message || 'Lỗi tạo thư mục', 'error');
+      showToast(err.message || 'Không thể tạo thư mục.', 'error');
       throw err;
     }
   };
 
-  const hasWallpaper = Boolean(activeWallpaper && (activeWallpaper.imageUrl || activeWallpaper.url));
-
   return (
-    <div className={`app-shell-layout ${hasWallpaper ? 'has-custom-wallpaper' : ''}`}>
-      {/* 0. Ambient Background Layer if Wallpaper selected */}
-      {hasWallpaper && (
+    <div
+      className={`app-shell-layout ${activeWallpaper ? 'has-custom-wallpaper' : ''}`}
+      style={{
+        '--bg-wallpaper-image': activeWallpaper?.url ? `url("${activeWallpaper.url}")` : 'none',
+        '--bg-wallpaper-blur': activeWallpaper?.blur ? `${activeWallpaper.blur}px` : '0px',
+        '--bg-overlay-opacity': overlayOpacity ?? 0.85,
+      }}
+    >
+      {/* Background Wallpaper Container */}
+      {activeWallpaper?.url && (
         <div
-          className="app-wallpaper-layer"
+          className="app-shell-wallpaper-bg"
           style={{
-            backgroundImage: `url(${activeWallpaper.imageUrl || activeWallpaper.url})`,
+            backgroundImage: `url("${activeWallpaper.url}")`,
+            filter: activeWallpaper.blur ? `blur(${activeWallpaper.blur}px)` : 'none',
+            transform: 'scale(1.05)', // Prevent blurry edge artifacts
           }}
           aria-hidden="true"
-        >
-          {/* Subtle light/white overlay to preserve crisp monochrome contrast */}
-          <div
-            className="app-wallpaper-overlay"
-            style={{
-              backgroundColor: `rgba(248, 250, 252, ${overlayOpacity / 100})`,
-            }}
-          />
-        </div>
+        />
       )}
 
-      {/* Main Column Container (Full width - No Sidebar) */}
-      <div className="app-main-column">
+      {/* Dark tint overlay for reading contrast */}
+      {activeWallpaper?.url && (
+        <div
+          className="app-shell-wallpaper-overlay"
+          style={{ opacity: overlayOpacity ?? 0.85 }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Main Layout Area: Header + Scrollable Content Body */}
+      <div className="app-main-area">
         {/* Top Header Bar */}
         <AppHeader
           user={user}
@@ -170,18 +175,26 @@ export default function MainLayout() {
       </div>
 
       {/* Global Create Deck Modal */}
-      <DeckFormModal
-        isOpen={isGlobalCreateDeckOpen}
-        onClose={() => setIsGlobalCreateDeckOpen(false)}
-        onSubmit={handleGlobalCreateDeck}
-        folders={folders}
-        onCreateFolderQuick={handleQuickCreateFolder}
-        currentFolderId={null}
-        deckToEdit={null}
-      />
+      {isGlobalCreateDeckOpen && (
+        <Suspense fallback={null}>
+          <DeckFormModal
+            isOpen={isGlobalCreateDeckOpen}
+            onClose={() => setIsGlobalCreateDeckOpen(false)}
+            onSubmit={handleGlobalCreateDeck}
+            folders={folders}
+            onCreateFolderQuick={handleQuickCreateFolder}
+            currentFolderId={null}
+            deckToEdit={null}
+          />
+        </Suspense>
+      )}
 
       {/* Wallpaper Switcher Modal */}
-      <WallpaperModal />
+      {isWallpaperModalOpen && (
+        <Suspense fallback={null}>
+          <WallpaperModal />
+        </Suspense>
+      )}
 
       {/* MagicUI macOS Dock for Navigation & Quick Actions */}
       <AppDock onOpenCreateDeck={() => setIsGlobalCreateDeckOpen(true)} />

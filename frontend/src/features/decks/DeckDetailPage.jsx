@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { deckService } from '../../services/deckService';
 import { folderService } from '../../services/folderService';
@@ -433,12 +433,30 @@ export default function DeckDetailPage() {
             (() => {
               const ActiveComponent = getModeById(activeModeId)?.component || FlashcardView;
               return (
-                <ActiveComponent
-                  cards={cards}
-                  deck={deck}
-                  onToast={showToast}
-                  onBackToCard={() => navigate(`/decks/${deck.id}`)}
-                />
+                <Suspense
+                  fallback={
+                    <div
+                      className="study-mode-loading-skeleton"
+                      style={{
+                        minHeight: '260px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#8c7b64',
+                        fontSize: '14px',
+                      }}
+                    >
+                      <span>Đang nạp chế độ học...</span>
+                    </div>
+                  }
+                >
+                  <ActiveComponent
+                    cards={cards}
+                    deck={deck}
+                    onToast={showToast}
+                    onBackToCard={() => navigate(`/decks/${deck.id}`)}
+                  />
+                </Suspense>
               );
             })()
           )}

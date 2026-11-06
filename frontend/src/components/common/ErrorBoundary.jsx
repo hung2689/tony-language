@@ -1,5 +1,17 @@
 import React, { Component } from 'react';
-import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
+import { AlertTriangle, RotateCcw, Home, RefreshCw } from 'lucide-react';
+
+export function isChunkLoadError(error) {
+  if (!error) return false;
+  const message = (error.message || String(error)).toLowerCase();
+  return (
+    error.name === 'ChunkLoadError' ||
+    message.includes('loading chunk') ||
+    message.includes('failed to fetch dynamically imported module') ||
+    message.includes('error loading dynamically imported module') ||
+    message.includes('importing a module script failed')
+  );
+}
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -13,20 +25,48 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('Unhandled UI error caught by ErrorBoundary:', error, errorInfo);
+
+    // If chunk loading failed (e.g. new deployment pruned old hashed chunks or network blip),
+    // automatically reload once to fetch the latest assets from the server.
+    if (isChunkLoadError(error)) {
+      try {
+        const reloadKey = 'chunk_reload_attempted';
+        const hasReloaded = sessionStorage.getItem(reloadKey);
+        if (!hasReloaded) {
+          sessionStorage.setItem(reloadKey, 'true');
+          window.location.reload();
+          return;
+        }
+      } catch {
+        // Ignore if sessionStorage is not accessible
+      }
+    }
   }
 
   handleReset = () => {
+    try {
+      sessionStorage.removeItem('chunk_reload_attempted');
+    } catch {
+      // Ignore
+    }
     this.setState({ hasError: false, error: null });
     window.location.reload();
   };
 
   handleGoHome = () => {
+    try {
+      sessionStorage.removeItem('chunk_reload_attempted');
+    } catch {
+      // Ignore
+    }
     this.setState({ hasError: false, error: null });
     window.location.href = '/';
   };
 
   render() {
     if (this.state.hasError) {
+      const isChunkErr = isChunkLoadError(this.state.error);
+
       return (
         <div style={{
           minHeight: '100vh',
@@ -53,21 +93,23 @@ export default class ErrorBoundary extends Component {
               width: '56px',
               height: '56px',
               borderRadius: '50%',
-              backgroundColor: '#fee2e2',
-              color: '#ef4444',
+              backgroundColor: isChunkErr ? '#dbeafe' : '#fee2e2',
+              color: isChunkErr ? '#2563eb' : '#ef4444',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 18px'
             }}>
-              <AlertTriangle size={28} />
+              {isChunkErr ? <RefreshCw size={26} /> : <AlertTriangle size={28} />}
             </div>
 
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 8px', color: '#0f172a' }}>
-              Đã xảy ra sự cố hiển thị
+              {isChunkErr ? 'Đã có bản cập nhật mới' : 'Đã xảy ra sự cố hiển thị'}
             </h2>
             <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 24px', lineHeight: 1.5 }}>
-              Trang web gặp sự cố không mong muốn khi hiển thị nội dung. Bạn có thể tải lại trang hoặc quay về trang chủ.
+              {isChunkErr
+                ? 'Một số tập tin tài nguyên đã được cập nhật hoặc kết nối mạng bị gián đoạn. Vui lòng bấm Tải lại trang để đồng bộ phiên bản mới nhất.'
+                : 'Trang web gặp sự cố không mong muốn khi hiển thị nội dung. Bạn có thể tải lại trang hoặc quay về trang chủ.'}
             </p>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -80,9 +122,9 @@ export default class ErrorBoundary extends Component {
                   gap: '6px',
                   padding: '9px 16px',
                   borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  color: '#334155',
+                  border: isChunkErr ? 'none' : '1px solid #cbd5e1',
+                  backgroundColor: isChunkErr ? '#2563eb' : '#ffffff',
+                  color: isChunkErr ? '#ffffff' : '#334155',
                   fontSize: '13.5px',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -102,8 +144,8 @@ export default class ErrorBoundary extends Component {
                   padding: '9px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: '#0f172a',
-                  color: '#ffffff',
+                  backgroundColor: isChunkErr ? '#f1f5f9' : '#0f172a',
+                  color: isChunkErr ? '#334155' : '#ffffff',
                   fontSize: '13.5px',
                   fontWeight: 600,
                   cursor: 'pointer'

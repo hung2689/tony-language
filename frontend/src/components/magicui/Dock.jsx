@@ -75,6 +75,8 @@ export function DockIcon({
   isActive = false,
   onClick,
   ariaLabel,
+  onMouseEnter,
+  onFocus,
 }) {
   const { mouseX, magnification, distance, baseSize } = useContext(DockContext);
   const iconRef = useRef(null);
@@ -105,7 +107,10 @@ export function DockIcon({
     <div
       ref={iconRef}
       className={`magic-dock-item-wrapper ${isHovered ? 'is-hovered' : ''}`}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={(e) => {
+        setIsHovered(true);
+        if (onMouseEnter) onMouseEnter(e);
+      }}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Tooltip */}
@@ -121,6 +126,7 @@ export function DockIcon({
         type="button"
         className={`magic-dock-icon-btn ${isActive ? 'is-active' : ''} ${className}`}
         onClick={onClick}
+        onFocus={onFocus}
         aria-label={ariaLabel || label}
         style={{
           width: `${size}px`,
@@ -143,16 +149,13 @@ export function DockIcon({
           </span>
         )}
       </button>
-
-      {/* Active Dot Indicator */}
-      {isActive && <span className="magic-dock-active-dot" aria-hidden="true" />}
     </div>
   );
 }
 
 /**
- * Vertical Separator inside Dock.
+ * Visual vertical separator inside Dock
  */
 export function DockSeparator({ className = '' }) {
-  return <div className={`magic-dock-separator ${className}`} role="separator" aria-orientation="vertical" />;
+  return <div className={`magic-dock-separator ${className}`} aria-hidden="true" />;
 }

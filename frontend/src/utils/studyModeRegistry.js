@@ -1,8 +1,10 @@
 import { Layers, GraduationCap, Gamepad2, Headphones, BookOpen, PenTool, Sparkles } from 'lucide-react';
+import { lazy } from 'react';
 import FlashcardView from '../features/decks/FlashcardView';
-import ContextStoryCloze from '../features/decks/ContextStoryCloze';
-import SentenceChallengeView from '../features/decks/SentenceChallengeView';
-import SynonymChallengeView from '../features/decks/SynonymChallengeView';
+
+export const ContextStoryCloze = lazy(() => import('../features/decks/ContextStoryCloze'));
+export const SentenceChallengeView = lazy(() => import('../features/decks/SentenceChallengeView'));
+export const SynonymChallengeView = lazy(() => import('../features/decks/SynonymChallengeView'));
 
 /**
  * Study Mode Registry Configuration

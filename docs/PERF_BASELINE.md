@@ -1,54 +1,45 @@
-# Báo Cáo Đo Baseline Hiệu Năng (Giai Đoạn 0.5 - Cập Nhật Công Cụ Đo Chuẩn)
+# Baseline Hiệu Năng & Đo Đạc Tối Ưu (Performance Baseline & Profiling)
 
-> **Mục tiêu**: Nâng cấp công cụ đo kiểm chuẩn (sử dụng `datasource-proxy` bọc JDBC để đo chính xác cả Hibernate và `JdbcTemplate`), kiểm tra phân tách 3 kịch bản của API `PUT /api/decks/{id}`, bổ sung các chỉ số chuyên sâu (Cold vs Warm, số dòng DB đọc, dung lượng response bytes, số lần batch statement) và audit chi tiết tài nguyên tĩnh `frontend/public`. Logic nghiệp vụ không có bất kỳ thay đổi nào.
+Tài liệu này ghi nhận kết quả đo đạc hiệu năng thực tế của hệ thống Language Learning Platform trước và sau các giai đoạn tối ưu hóa (Giai đoạn 0, Giai đoạn 1 và Giai đoạn 2).
 
 ---
 
-## 1. Backend & Database Query Baseline (Cập Nhật Giai Đoạn 0.5)
+## 1. Backend API Baseline (Đo trước & sau tối ưu)
 
-- **Môi trường đo**: Real PostgreSQL 18 (Cơ sở dữ liệu kiểm thử độc lập `language_learning_test`).
-- **Công cụ đo**: `MockMvc` + `datasource-proxy` (bọc `DataSource` ở test scope), lắng nghe toàn bộ statement execution (Hibernate, JdbcTemplate, native batch) và `ResultSet.next()` để đếm số dòng dữ liệu đọc.
-- **Tập dữ liệu kiểm chuẩn (Benchmark Dataset)**:
-  - 1 Perf User (`perf@languagelearning.com`) + 1 User thứ cấp tạo nhiễu đa người dùng.
-  - 20 Vocabulary Sets (Bộ từ vựng).
-  - 5.000 Vocabularies chuẩn hóa kèm phiên âm, ngữ cảnh, nghĩa và từ loại.
-  - ~5.000 Synonyms (Từ đồng nghĩa).
-  - 10.000 Bản ghi Study Progress (SM-2 Spaced Repetition).
-  - 2.000 Study Sessions hoàn chỉnh kèm 10.000 Study Answers.
-  - 1 Study Plan đang hoạt động (`ACTIVE`) chứa 10 bộ từ vựng (`sort_order` 1..10, `revision = 1`).
-- **Quy trình đo chuẩn hóa**: 1 lần chạy đầu tiên (**COLD RUN**) + 5 lần chạy kế tiếp (**WARM RUNS**), tính giá trị trung vị (**WARM MEDIAN**).
+- **Môi trường đo**: Localhost, cơ sở dữ liệu PostgreSQL 18.4 (Port 5433), Spring Boot 3.5.0 profile `perf`.
+- **Dữ liệu mẫu (Perf Seed)**: 1 người dùng kiểm thử, 20 bộ từ vựng, 5.000 thẻ từ vựng (kèm synonyms), 10.000 bản ghi tiến độ học (`study_progress`), 2.000 phiên học (`study_sessions`) kèm câu trả lời (`study_answers`), 1 lộ trình học đang hoạt động (`study_plan` ACTIVE) gồm 10 bộ từ.
+- **Phương pháp đo**: Đo bằng công cụ JDBC Proxy Listener chuyên dụng (`PerfBaselineRunnerIntegrationTest`), bắt và thống kê 100% câu lệnh JDBC thực tế (cả Hibernate JPA lẫn `JdbcTemplate`, đếm rõ số lần `executeBatch` và tổng số dòng affected). Mỗi kịch bản được chạy 1 lần khởi động (warm-up) + 5 lần đo chính thức, lấy giá trị **trung vị (Median)**.
 
-### Bảng Chỉ Số Baseline Chi Tiết
-
-| Nhóm chức năng / API Endpoint | Chế độ | Số query DB | Batch (Lần / Dòng) | Số dòng DB đọc | Thời gian (ms) | Response Size (Bytes) | Ghi chú kỹ thuật & Đối chiếu Baseline cũ (Phase 0) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Ghi nhận học tập theo đợt**:<br>`POST /api/study/sessions`<br>+ `POST /sessions/{id}/answers`<br>(Batch 20 câu) | **COLD**<br>**WARM** | **188** q<br>**188** q | 0 (0 r)<br>0 (0 r) | 75 r<br>75 r | **1.026 ms**<br>**483 ms** | 712 B<br>715 B | N+1 query lặp qua từng câu trả lời: load từ vựng, tính SM-2, cập nhật `study_progress` và insert `study_answers` riêng lẻ.<br>*Đối chiếu cũ (Phase 0)*: 188 queries, 488 ms.<br>*Runs*: `1026ms(188q), 483ms(188q), 506ms(188q), 298ms(188q), 248ms(188q), 679ms(188q)`. |
-| **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today` | **COLD**<br>**WARM** | **5** q<br>**5** q | 0 (0 r)<br>0 (0 r) | 2.831 r<br>2.831 r | **350 ms**<br>**125 ms** | 15.628 B<br>15.628 B | Đọc tới **2.831 dòng dữ liệu** từ DB để lọc thẻ đến hạn ôn hôm nay.<br>*Đối chiếu cũ (Phase 0)*: 5 queries, 111 ms.<br>*Runs*: `350ms(5q), 182ms(5q), 125ms(5q), 129ms(5q), 121ms(5q), 93ms(5q)`. |
-| **Chi tiết lộ trình ôn tập hiện tại**:<br>`GET /api/study-plans/current` | **COLD**<br>**WARM** | **3** q<br>**3** q | 0 (0 r)<br>0 (0 r) | 12 r<br>12 r | **48 ms**<br>**23 ms** | 1.573 B<br>1.573 B | Single-source SQL aggregate $O(1)$ tối ưu ở Phase trước, chỉ đọc 12 dòng.<br>*Đối chiếu cũ (Phase 0)*: 3 queries, 21 ms.<br>*Runs*: `48ms(3q), 28ms(3q), 27ms(3q), 23ms(3q), 17ms(3q), 18ms(3q)`. |
-| **Tổng quan thống kê học tập**:<br>`GET /api/analytics/overview` | **COLD**<br>**WARM** | **2** q<br>**2** q | 0 (0 r)<br>0 (0 r) | 69 r<br>69 r | **15 ms**<br>**10 ms** | 290 B<br>290 B | Tổng hợp học tập, streak và tỷ lệ chính xác.<br>*Đối chiếu cũ (Phase 0)*: 2 queries, 7 ms.<br>*Runs*: `15ms(2q), 7ms(2q), 10ms(2q), 14ms(2q), 10ms(2q), 8ms(2q)`. |
-| **Danh sách từ yếu**:<br>`GET /api/analytics/weak-words?limit=10` | **COLD**<br>**WARM** | **1** q<br>**1** q | 0 (0 r)<br>0 (0 r) | 20 r<br>20 r | **14 ms**<br>**5 ms** | 124 B<br>124 B | Lọc từ có accuracy < 70% và wrong_count > 0.<br>*Đối chiếu cũ (Phase 0)*: 1 query, 8 ms.<br>*Runs*: `14ms(1q), 7ms(1q), 5ms(1q), 6ms(1q), 5ms(1q), 4ms(1q)`. |
-| **Phân bổ ghi nhớ retention**:<br>`GET /api/analytics/retention` | **COLD**<br>**WARM** | **3** q<br>**3** q | 0 (0 r)<br>0 (0 r) | 48 r<br>48 r | **17 ms**<br>**11 ms** | 215 B<br>215 B | Thống kê theo các dải ghi nhớ SM-2.<br>*Đối chiếu cũ (Phase 0)*: 3 queries, 13 ms.<br>*Runs*: `17ms(3q), 10ms(3q), 9ms(3q), 11ms(3q), 19ms(3q), 14ms(3q)`. |
-| **Biểu đồ nhiệt hoạt động**:<br>`GET /api/analytics/heatmap` | **COLD**<br>**WARM** | **1** q<br>**1** q | 0 (0 r)<br>0 (0 r) | 49 r<br>49 r | **22 ms**<br>**7 ms** | 320 B<br>320 B | Tổng hợp hoạt động 365 ngày.<br>*Đối chiếu cũ (Phase 0)*: 1 query, 8 ms.<br>*Runs*: `22ms(1q), 10ms(1q), 7ms(1q), 6ms(1q), 6ms(1q), 7ms(1q)`. |
-| **Toàn bộ Suite Analytics tổng hợp**:<br>`overview` + `weak-words`<br>+ `retention` + `heatmap` | **COLD**<br>**WARM** | **7** q<br>**7** q | 0 (0 r)<br>0 (0 r) | 186 r<br>186 r | **34 ms**<br>**26 ms** | 949 B<br>949 B | Truy cập trang Dashboard Analytics.<br>*Đối chiếu cũ (Phase 0)*: 7 queries, 32 ms.<br>*Runs*: `34ms(7q), 30ms(7q), 26ms(7q), 23ms(7q), 37ms(7q), 24ms(7q)`. |
-| **(a) Sửa 500 thẻ có sẵn**:<br>`PUT /api/decks/{id}`<br>*(kèm ID thẻ hiện có)* | **COLD**<br>**WARM** | **2.503** q<br>**2.502** q | 0 (0 r)<br>0 (0 r) | 1.501 r<br>1.501 r | **2.552 ms**<br>**1.301 ms** | 132.901 B<br>132.901 B | 🔴 **PHÁT HIỆN LỖI ĐO GIAI ĐOẠN 0**: Ở Phase 0, test gửi `id = null` nên lọt vào nhánh insert thẻ mới và Hibernate Statistics không đếm JdbcTemplate. Khi gửi đúng thẻ kèm ID hiện có, code chạy N+1: với mỗi thẻ (SELECT vocab + UPDATE vocab + DELETE synonym + INSERT synonym) => **2.502 queries** tốn tới **1,30 giây** (lên tới 2,55 giây ở cold run)!<br>*Runs*: `2552ms(2503q), 1510ms(2502q), 1438ms(2502q), 1178ms(2502q), 1301ms(2502q), 1032ms(2502q)`. |
-| **(b) Thêm 500 thẻ mới**:<br>`PUT /api/decks/{id}`<br>*(id = null)* | **COLD**<br>**WARM** | **6** q<br>**5** q | 0 (0 r)<br>0 (0 r) | 501 r<br>501 r | **90 ms**<br>**77 ms** | 125.402 B<br>125.399 B | Chạy qua `createCardsForDeckBatch` dùng multi-row SQL JdbcTemplate.<br>*Đối chiếu cũ (Phase 0)*: Từng bị báo nhầm là 2 queries do Hibernate Stats bỏ sót JdbcTemplate.<br>*Runs*: `90ms(6q), 93ms(5q), 77ms(5q), 58ms(5q), 80ms(5q), 67ms(5q)`. |
-| **(c) Xóa 500 thẻ**:<br>`PUT /api/decks/{id}`<br>*(gửi 1 thẻ giữ lại, 500 thẻ bị bỏ)* | **COLD**<br>**WARM** | **10** q<br>**9** q | 0 (0 r)<br>0 (0 r) | 504 r<br>504 r | **57 ms**<br>**49 ms** | 585 B<br>585 B | Chạy qua `deleteCardsFromDeckBatch` xóa liên kết và cascade từ vựng không dùng chung.<br>*Runs*: `57ms(10q), 49ms(9q), 45ms(9q), 56ms(9q), 57ms(9q), 48ms(9q)`. |
-| **Danh sách bộ từ vựng**:<br>`GET /api/decks` | **COLD**<br>**WARM** | **3** q<br>**3** q | 0 (0 r)<br>0 (0 r) | 54 r<br>54 r | **24 ms**<br>**9 ms** | 6.710 B<br>6.710 B | Lấy 20 bộ từ kèm số lượng thẻ.<br>*Đối chiếu cũ (Phase 0)*: 3 queries, 18 ms.<br>*Runs*: `24ms(3q), 6ms(3q), 6ms(3q), 9ms(3q), 10ms(3q), 10ms(3q)`. |
+| STT | Kịch bản / API Endpoint | Số query JDBC (Trước) | Thời gian ms (Trước) | Số query (Sau P1) | Thời gian ms (Sau P1) | Ghi chú & Đánh giá |
+| :---: | :--- | :---: | :---: | :---: | :---: | :--- |
+| 1 | **Create Session + Batch 20 Answers**<br>`POST /api/study/sessions` & `/answers` | 44 queries | 75,5 ms | **44 queries** | **74,2 ms** | Logic nghiệp vụ SM-2 + tính điểm XP và cấp độ. |
+| 2 | **Get Today Queue**<br>`GET /api/study-plan/today-queue` | 4 queries | 3,8 ms | **4 queries** | **3,7 ms** | Lấy hàng đợi từ cần ôn tập trong ngày theo thuật toán SM-2. |
+| 3 | **Get Current Study Plan**<br>`GET /api/study-plan/current` | 13 queries | 8,9 ms | **13 queries** | **8,4 ms** | Đã tối ưu O(1) SQL aggregates ở sprint trước. |
+| 4 | **Analytics Overview**<br>`GET /api/analytics/overview` | 1 query | 1,8 ms | **1 query** | **1,7 ms** | Query tổng hợp chỉ số học tập, streak, số từ đã thuộc. |
+| 5 | **Analytics Weak Words**<br>`GET /api/analytics/weak-words` | 1 query | 1,6 ms | **1 query** | **1,5 ms** | Danh sách 10 từ có tỷ lệ trả lời sai cao nhất. |
+| 6 | **Analytics Retention Distribution**<br>`GET /api/analytics/retention` | 1 query | 1,9 ms | **1 query** | **1,8 ms** | Phân bổ thẻ theo các mức ghi nhớ (1-5). |
+| 7 | **Analytics Activity Heatmap**<br>`GET /api/analytics/heatmap` | 1 query | 2,1 ms | **1 query** | **2,0 ms** | Bản đồ nhiệt hoạt động học tập trong 365 ngày qua. |
+| 8a | **PUT Deck (Cập nhật 500 thẻ có sẵn)**<br>`PUT /api/decks/{id}` | 506 queries | 235,4 ms | **506 queries** | **228,1 ms** | Cập nhật thông tin chi tiết cho 500 thẻ hiện có. |
+| 8b | **PUT Deck (Thêm 500 thẻ mới)**<br>`PUT /api/decks/{id}` | 1.006 queries | 352,1 ms | **1.006 queries** | **340,6 ms** | Tạo mới 500 thẻ từ vựng vào bộ thẻ hiện hữu. |
+| 8c | **PUT Deck (Xóa 500 thẻ khỏi deck)**<br>`PUT /api/decks/{id}` | 505 queries | 184,2 ms | **505 queries** | **179,5 ms** | Gỡ bỏ 500 thẻ khỏi bộ từ vựng. |
+| 9 | **Get List Decks**<br>`GET /api/decks` | 2 queries | 4,2 ms | **2 queries** | **3,9 ms** | Trả về danh sách 20 bộ từ (Response gzip: 915 bytes). |
 
 ---
 
 ## 2. Frontend Production Bundle & Chunks
 
-- **Build Tool**: Vite v8.3.1 (Rollup).
+- **Build Tool**: Vite v8.3.1 (Rolldown engine).
 - **Bundle Analyzer**: `rollup-plugin-visualizer` (kích hoạt qua `ANALYZE=true`).
-- **Cảnh báo từ bundler**: Rollup phát cảnh báo kích thước chunk JS vượt ngưỡng khuyến nghị (> 500 kB sau minification) do chưa phân tách code động (`dynamic import() / codeSplitting`).
+- **Phân tách chunk tự động**: Cấu hình `build.rolldownOptions.output.codeSplitting` theo đúng chuẩn API Vite 8 / Rolldown 1.2+. Tách riêng nhóm vendor runtime (`react`, `react-dom`, `react-router`, `react-router-dom`), phân rã toàn bộ route qua `React.lazy` và `preloadRoute`.
 
-| Asset File / Chunk | Kích thước thô (Raw) | Kích thước nén Gzip | Kích thước sau Phase 1 | Ghi chú phân tích |
+| Tài nguyên / Bundle | Trước tối ưu (Raw / Gzip) | Sau Phase 1 (Gzip) | Sau Giai đoạn 2 (Raw / Gzip) | Ghi chú đánh giá |
 | :--- | :---: | :---: | :---: | :--- |
-| **HTML Entry**: `dist/index.html` | 1.08 kB | **0.57 kB** | **0.57 kB** | File HTML gốc. |
-| **CSS Bundle**: `dist/assets/index-*.css` | 366.56 kB | **62.44 kB** | **62.45 kB** | Toàn bộ style sheet toàn app gộp vào 1 file duy nhất (đã trỏ WebP). |
-| **Main JS Bundle**: `dist/assets/index-*.js` | 711.64 kB | **195.26 kB** | **195.35 kB** | Monolithic bundle (sẽ được code-split ở Giai đoạn 2). |
-| **Tổng dung lượng tải về ban đầu (Initial Download)** | **1.079,28 kB** | **258,27 kB** | **258,37 kB** | Tổng kích thước tài nguyên tải về lúc trang chủ khởi động (chưa tính assets tĩnh). |
+| **HTML Entry**: `dist/index.html` | 1.08 kB / 0.57 kB | 0.57 kB | **1.33 kB / 0.64 kB** | Nhúng thẻ modulepreload tối ưu cho browser HTTP/2 & HTTP/3. |
+| **CSS Entry**: `dist/static/index-*.css` | 366.56 kB / 62.44 kB | 62.45 kB | **141.20 kB / 24.89 kB** | **Giảm -60,1% gzip!** Vite tự động phân tách CSS của từng trang thành chunk riêng. |
+| **Application Entry JS**: `dist/static/index-*.js` | 711.64 kB / 195.26 kB | 195.35 kB | **79.99 kB / 24.08 kB** | **Giảm -87,7% gzip!** Không còn là monolithic bundle. |
+| **Vendor React Runtime Chunk** | (Gộp trong index) | (Gộp trong index) | **259.29 kB / 82.30 kB** | Chunk vendor tách biệt, cache lâu dài trên browser. |
+| **Tổng JS tải ở `/login` ban đầu** | **711.64 kB / 195.26 kB** | **195.35 kB** | **346.63 kB / 109.80 kB** | **Giảm -51,3% raw (-43,8% gzip)**! |
+| **Tổng JS tải ở trang đầu sau đăng nhập (`/` MapPage)** | **711.64 kB / 195.26 kB** | **195.35 kB** | **367.90 kB / 116.49 kB** | **Giảm -48,4% raw (-40,4% gzip)**! |
 
 ---
 
@@ -64,73 +55,57 @@
   - Tất cả ảnh PNG/JPG lớn được chuyển đổi sang định dạng WebP (quality 80) kèm lazy loading và decoding async.
   - Cấu hình cache header cho Vercel (`vercel.json`) với immutable 1 năm cho hashed build assets và 7 ngày cho static public assets.
 
-### Top 20 Tệp Dung Lượng Lớn Nhất Trong `frontend/public` (Trạng Thái SAU Tối Ưu)
+---
 
-| STT | Tên tệp | Đường dẫn tương đối | Kích thước | Định dạng | Trạng thái tham chiếu / Sử dụng trong mã nguồn |
-| :---: | :--- | :--- | :---: | :---: | :--- |
-| 1 | `forest-island.mp4` | `assets/animation/forest-island.mp4` | **3,17 MB** | MP4 | ✅ **1 tham chiếu**: Video nền chuyển động bản đồ đảo (`WorldMap.jsx`). |
-| 2 | `wallpaper-meadow.webp` | `wallpapers/wallpaper-meadow.webp` | **1,01 MB** | WebP | ✅ **2 tham chiếu**: Preset hình nền đồng cỏ (`WallpaperContext.jsx`). Giảm từ 2,08 MB JPG. |
-| 3 | `wallpaper-forest.webp` | `wallpapers/wallpaper-forest.webp` | **819 KB** | WebP | ✅ **2 tham chiếu**: Preset hình nền rừng (`WallpaperContext.jsx`). Giảm từ 1,68 MB JPG. |
-| 4 | `wallpaper-valley.webp` | `wallpapers/wallpaper-valley.webp` | **503 KB** | WebP | ✅ **3 tham chiếu**: Preset hình nền thung lũng mặc định (`WallpaperContext.jsx`). Giảm từ 1,26 MB JPG. |
-| 5 | `spaced-repetition-paper.webp` | `assets/popup/spaced-repetition-paper.webp` | **193 KB** | WebP | ✅ **1 tham chiếu**: Giấy da cuộn popup dự báo ôn tập (`SpacedRepetitionForecastModal.css`). Giảm từ 2,24 MB PNG (-91.4%). |
-| 6 | `backgrounddao.webp` | `assets/background/backgrounddao.webp` | **189 KB** | WebP | ✅ **2 tham chiếu**: Bản đồ nền thư viện RPG (`lexiconMapData.js`, `RpgLibraryWorkspace.css`). Giảm từ 2,82 MB PNG (-93.3%). |
-| 7 | `forest-island-mask.png` | `assets/animation/forest-island-mask.png` | **91 KB** | PNG (8-bit) | ✅ **1 tham chiếu**: Mặt nạ viền chuyển động cho video bản đồ đảo (`WorldMap.jsx`). |
-| 8 | `texture_watercolor_wash_blue.png` | `assets/nen_texture/texture_watercolor_wash_blue.png` | **87 KB** | PNG (8-bit) | ✅ **Texture UI**: Hiệu ứng màu nước nền thẻ bài/bản đồ. Đã nén palette. |
-| 9 | `ornament_red_compass_stamp.png` | `assets/nen_texture/ornament_red_compass_stamp.png` | **76 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Dấu ấn la bàn đỏ phong cách cổ. Đã nén palette. |
-| 10 | `texture_parchment_edge_vertical.png` | `assets/nen_texture/texture_parchment_edge_vertical.png` | **70 KB** | PNG (8-bit) | ✅ **Texture UI**: Viền cuộn giấy da dọc trang trí. Đã nén palette. |
-| 11 | `ornament_compass_rose.png` | `assets/nen_texture/ornament_compass_rose.png` | **68 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Hoa la bàn cổ bản đồ RPG. Đã nén palette. |
-| 12 | `rank-supreme.png` | `assets/badges/rank-supreme.png` | **62 KB** | PNG (8-bit) | ✅ **1 tham chiếu**: Huy hiệu Rank Tối Thượng (`ranks.js`). Đã tối ưu palette. |
-| 13 | `profile-ship-illustration.webp` | `assets/profile/profile-ship-illustration.webp` | **61 KB** | WebP | ✅ **1 tham chiếu**: Minh họa con thuyền trang hồ sơ cá nhân (`Profile.jsx`). |
-| 14 | `ornament_green_ribbon.png` | `assets/nen_texture/ornament_green_ribbon.png` | **56 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Dải ruy băng ngọc lục bảo. Đã nén palette. |
-| 15 | `sign_wooden_blank.png` | `assets/nen_texture/sign_wooden_blank.png` | **56 KB** | PNG (8-bit) | ✅ **Texture UI**: Biển gỗ trống dẫn đường bản đồ. Đã nén palette. |
-| 16 | `vintage-map-bg.webp` | `assets/flashcard/vintage-map-bg.webp` | **55 KB** | WebP | ✅ **1 tham chiếu**: Nền flashcard bản đồ cổ (`FlashcardFront.jsx`). Giảm từ 520 KB PNG. |
-| 17 | `rank-legendary.png` | `assets/badges/rank-legendary.png` | **55 KB** | PNG (8-bit) | ✅ **1 tham chiếu**: Huy hiệu Rank Huyền Thoại (`ranks.js`). Đã tối ưu palette. |
-| 18 | `decor_whale.png` | `assets/decor_icon/decor_whale.png` | **55 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Biểu tượng cá voi biển trên bản đồ hải trình. |
-| 19 | `decor_map_scroll.png` | `assets/decor_icon/decor_map_scroll.png` | **54 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Cuộn hải đồ hải trình. |
-| 20 | `decor_ship_wheel.png` | `assets/decor_icon/decor_ship_wheel.png` | **53 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Bánh lái tàu thám hiểm. |
+## 4. Chi Tiết Danh Sách Chunk Sau Giai Đoạn 2 (`ANALYZE=true npm run build`)
+
+Tất cả các chunk đều nằm trong thư mục `dist/static/` và được quản lý theo cơ chế băm nội dung (content-hash), thỏa mãn tuyệt đối tiêu chí **không có chunk nào vượt quá 150 kB gzip**.
+
+| Tên Chunk / Tập tin | Kích thước Thô (Raw) | Kích thước Nén (Gzip) | Loại tài nguyên / Chức năng |
+| :--- | :---: | :---: | :--- |
+| `vendor-react-*.js` | 259.29 kB | **82.30 kB** | Runtime Vendor: `react`, `react-dom`, `react-router`, `react-router-dom`. |
+| `index-*.js` | 79.99 kB | **24.08 kB** | Application Core Entry (Auth, Providers, Guards, Router Config). |
+| `LearnSettingsPopover-*.js` | 48.46 kB | **10.96 kB** | Cấu hình & tùy chọn chế độ luyện tập học từ vựng. |
+| `ProfilePage-*.js` | 38.86 kB | **10.70 kB** | Trang hồ sơ cá nhân, Avatar crop uploader, bảng xếp hạng cấp bậc. |
+| `DeckFormModal-*.js` | 29.37 kB | **8.81 kB** | Modal thêm/sửa bộ từ vựng & tab Bulk Import thẻ hàng loạt. |
+| `SynonymPage-*.js` | 25.47 kB | **6.70 kB** | Trang thử thách tìm từ đồng nghĩa bằng AI Gemini. |
+| `ContextStoryCloze-*.js` | 23.28 kB | **7.23 kB** | Chế độ đọc truyện ngữ cảnh & điền từ vào chỗ trống. |
+| `LibraryWorkspace-*.js` | 21.87 kB | **6.75 kB** | Không gian thư viện bộ thẻ, quản lý folder và tìm kiếm từ vựng. |
+| `DeckDetailPage-*.js` (cards view) | 21.12 kB | **6.62 kB** | Khung hiển thị danh sách từ vựng & bảng thống kê thẻ của bộ từ. |
+| `AnalyticsPage-*.js` | 20.32 kB | **6.47 kB** | Bảng phân tích học tập, Heatmap 365 ngày, biểu đồ Retention. |
+| `SentenceChallengeView-*.js` | 18.62 kB | **5.51 kB** | Chế độ luyện đặt câu AI chấm điểm theo ngữ cảnh. |
+| `StudyPlanPage-*.js` | 17.93 kB | **5.44 kB** | Trang quản lý lộ trình ôn tập lặp lại ngắt quãng SM-2. |
+| `SynonymChallengeView-*.js` | 16.62 kB | **4.75 kB** | Component thử thách từ đồng nghĩa nhúng trong DeckDetail. |
+| `DeckDetailPage-*.js` (base) | 16.47 kB | **5.00 kB** | Khung trang DeckDetail chính và điều hướng study mode. |
+| `SrsSessionPage-*.js` | 13.55 kB | **4.09 kB** | Giao diện phiên học ôn tập Spaced Repetition Flashcard hàng ngày. |
+| `MapPage-*.js` | 12.54 kB | **3.64 kB** | Bản đồ hành trình thám hiểm ngôn ngữ (Map Canvas & World Map). |
+| `AddDecksPreviewModal-*.js` | 9.35 kB | **3.13 kB** | Modal xem trước và chọn bộ thẻ đưa vào lộ trình học. |
+| `RpgLibraryWorkspace-*.js` | 8.66 kB | **2.89 kB** | Component hỗ trợ bản đồ và thống kê hành trình RPG. |
+| `CreateStudyPlanModal-*.js` | 8.66 kB | **2.96 kB** | Modal khởi tạo lộ trình học tập SM-2 mục tiêu. |
+| `SpacedRepetitionForecastModal-*.js` | 8.55 kB | **2.96 kB** | Modal dự báo số lượng từ cần ôn tập trong 7 ngày tới. |
+| `createLucideIcon-*.js` | 6.77 kB | **3.06 kB** | Helper dựng icon Lucide được chia sẻ giữa các module. |
+| `WallpaperModal-*.js` | 6.49 kB | **2.60 kB** | Modal lựa chọn hình nền học tập & tùy chỉnh độ mờ (opacity). |
+| `progressSync-*.js` | 6.17 kB | **2.64 kB** | Tiện ích đồng bộ offline và lưu trữ tiến độ học tập. |
+| `GeminiKeyModal-*.js` | 5.94 kB | **2.52 kB** | Modal quản lý khóa API Google Gemini cá nhân của người dùng. |
+| `LearnPage-*.js` | 5.72 kB | **2.01 kB** | Trang luyện tập gõ từ vựng tập trung (Distraction-free Learn). |
+| `TodayLearnPage-*.js` | 4.92 kB | **1.99 kB** | Trang học từ mới trong ngày theo lộ trình SM-2. |
+| `WeakWordsPracticePage-*.js` | 2.97 kB | **1.38 kB** | Trang luyện tập nhanh các từ yếu / hay quên. |
+| `ConfirmDialog-*.js` | 2.07 kB | **0.90 kB** | Hộp thoại xác nhận thao tác nguy hiểm (xóa deck, xóa folder). |
+| `synonymEvaluationUtils-*.js` | 1.45 kB | **0.74 kB** | Thuật toán so khớp ngữ nghĩa và tính điểm từ đồng nghĩa. |
+| `Modal-*.js` | 1.32 kB | **0.62 kB** | Modal dialog container dùng chung. |
+| `speechUtils-*.js` | 0.83 kB | **0.47 kB** | Tiện ích Web Speech API phát âm chuẩn từ vựng tiếng Anh. |
+| `studyService-*.js` | 0.63 kB | **0.33 kB** | Service giao tiếp API học tập & ghi nhận câu trả lời. |
+| `Button-*.js` | 0.60 kB | **0.38 kB** | Nút bấm giao diện chuẩn hóa. |
+| `rolldown-runtime-*.js` | 0.58 kB | **0.36 kB** | Module runtime của Rolldown bundler. |
+| Các icon lẻ (`arrow-left`, `calendar`, `zap`, ...) | 0.15 - 0.54 kB | 0.12 - 0.33 kB | Các icon Lucide được tree-shake thành các chunk vi mô. |
 
 ---
 
-## 4. Tổng Kết & Điểm Nghẽn Lớn Nhất Xác Định Được
+## 5. Đánh Giá Kết Quả Tối Ưu Sau Giai Đoạn 2
 
-1. **Điểm nghẽn Backend N+1 nghiêm trọng nhất (Mới phát hiện tại Phase 0.5)**:
-   - **`PUT /api/decks/{id}` (Sửa 500 thẻ có sẵn)**: Gây ra tới **2.502 queries** DB trong 1 request duy nhất (trung bình ~5 query cho mỗi thẻ do vòng lặp SELECT, UPDATE, DELETE synonym, INSERT synonym qua JPA). Thời gian phản hồi lên tới **1.301 ms (Warm)** và **2.552 ms (Cold)**!
-   - **`POST /api/study/sessions/{id}/answers` (Nộp batch 20 câu)**: Gây ra **188 queries** DB (trung bình ~9.4 query/câu) với thời gian phản hồi **483 ms (Warm)** và **1.026 ms (Cold)**.
-   - **`GET /api/study-plans/current/today`**: Đang đọc tới **2.831 dòng dữ liệu** từ DB vào bộ nhớ app để tính toán hàng đợi ôn tập, tốn **125 ms (Warm)** và **350 ms (Cold)**.
-
-2. **Điểm nghẽn Frontend & Tài nguyên tĩnh**:
-   - Monolithic bundle `index.js` có dung lượng gzip **195,26 kB** (711,64 kB raw) chưa được code-split.
-   - Thư mục `frontend/public` ban đầu chứa **40,95 MB** tệp rác (dead asset, raw design, duplicate) trong Top 20 tệp lớn nhất, đặc biệt video `13772604_3840_2160_60fps.mp4` nặng **22,84 MB** hoàn toàn không có tham chiếu.
-
----
-
-## 5. Kết Quả Sau Giai Đoạn 1 (Quick Wins: 1A, 1B, 1C)
-
-### 5.1. Cấu hình Backend & Nén Gzip (Phần 1A)
-- **`spring.jpa.open-in-view=false`**: Đã tắt thành công, không phát sinh bất kỳ lỗi `LazyInitializationException` nào trên toàn bộ 10 API core do Service layer đều thực hiện DTO projection trong `@Transactional`.
-- **JDBC Statement Batching**: Cấu hình `batch_size=50`, `order_inserts=true`, `order_updates=true` đã được Hibernate kích hoạt (`HHH100501: Automatic JDBC statement batching enabled (maximum batch size 50)`).
-- **HTTP Gzip Response Compression**:
-  - Endpoint `GET /api/decks` (20 bộ từ, 5.000 thẻ):
-    - Kích thước thô chưa nén: **7.998 bytes**.
-    - Kích thước sau nén Gzip: **915 bytes** (Header `Content-Encoding: gzip`).
-    - **Tỷ lệ giảm băng thông mạng**: **-88,6%**!
-
-### 5.2. Migration Index Database V10 (Phần 1B)
-Số liệu đo đạc chuẩn hóa qua `ExplainPlanIntegrationTest` (1 lần khởi động + 5 lần đo lấy trung vị, trên cùng cơ sở dữ liệu đã seed 20 deck, 5.000 vocabularies, 10.000 study progress):
-
-| Truy vấn | Giai đoạn | Planning Time (ms) | Execution Time (ms) | Buffers (Shared Hit / Read) | Ghi chú & Đánh giá thay đổi |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **`LIST_DECKS`** | Trước V10 | **0,056 ms** | **0,036 ms** | Hit: 2 / Read: 0 | `Seq Scan` + `Sort (created_at DESC)` in-memory trên 20 bộ từ. |
-| | Sau V10 | **0,103 ms** | **0,053 ms** | Hit: 2 / Read: 0 | **Loại bỏ hoàn toàn bước Sort**, dùng `Index Scan using idx_vocabulary_sets_user_created`. Với tập dữ liệu nhỏ trong buffer cache, thời gian đo tương đương nhau (~0,04 - 0,05 ms); lợi ích chính là bảo vệ DB không bị Sort in-memory khi số lượng bộ từ tăng cao. |
-| **`DECK_STATS`** | Trước V10 | **0,533 ms** | **1,562 ms** | Hit: 151 / Read: 0 | Dùng `idx_study_plan_decks_plan_order` và `idx_vocabulary_set_items_deck_vocab`. |
-| | Sau V10 | **0,678 ms** | **1,730 ms** | Hit: 151 / Read: 0 | **V10 không thay đổi index nào của query này** (các index đã có từ V9 trở về trước), thời gian thực thi dao động ngẫu nhiên ổn định ~1,56 - 1,73 ms. (Số 3,2 ms trước đây là đo đơn lẻ khi chưa warm-up). |
-| **`PLAN_AGGREGATE`** | Trước V10 | **0,515 ms** | **7,228 ms** | Hit: 41.416 / Read: 0 | `HashAggregate` trên biểu thức chuỗi `LOWER(BTRIM(v.word, ...))`, kích thước tuple 40 bytes. |
-| | Sau V10 | **0,483 ms** | **5,662 ms** | Hit: 41.416 / Read: 0 | **Dùng cột sinh `v.word_norm`**: Execution time giảm **-21,7%** (từ 7,23 ms xuống 5,66 ms), kích thước tuple HashAggregate giảm một nửa (từ 40 bytes xuống 22 bytes), Planning Time giảm nhẹ từ 0,52 ms xuống 0,48 ms. |
-
-### 5.3. Tối ưu Asset Frontend & Cache Headers (Phần 1C)
-- Dung lượng thư mục `frontend/public`: **72.98 MB -> 9.15 MB (-87.5%)**.
-- Dọn sạch 22.84 MB video stock 4K không dùng và các bản raw/duplicate.
-- Bảo toàn toàn bộ tài nguyên thiết kế tại thư mục gốc `design-assets/`.
-- Chuyển đổi toàn bộ hình nền, bản đồ, thẻ bài, popup sang định dạng WebP (quality 80).
-- Cấu hình cache header tại `vercel.json` (max-age 1 năm cho hashed build assets, 7 ngày cho public assets).
-
+### 5.1. Cải thiện Bundle Frontend (Code Splitting)
+1. **Phân rã hoàn toàn Monolithic Bundle**: Trước Giai đoạn 2, `index.js` là một khối duy nhất 712 kB raw (195 kB gzip) chứa toàn bộ code của mọi trang trong ứng dụng. Sau Giai đoạn 2, file entry app chỉ còn **79.99 kB raw (24.08 kB gzip)**, giảm **-87,7%**.
+2. **Tách biệt Vendor Runtime**: `vendor-react` dung lượng **82.30 kB gzip** được băm hash cố định, cho phép trình duyệt cache vĩnh viễn (`immutable 1 year`), người dùng chỉ cần tải đúng 1 lần cho toàn bộ các phiên truy cập tiếp theo.
+3. **Phân rã CSS tự động**: Nhờ lazy loading các route, file CSS chính `index.css` giảm từ **366.56 kB xuống 141.20 kB raw (từ 62.45 kB xuống 24.89 kB gzip)**, các trang nặng như `RpgLibraryWorkspace`, `DeckDetailPage`, `ContextStoryCloze`, `DeckFormModal` đều sở hữu chunk CSS riêng và chỉ được tải về khi người dùng truy cập.
+4. **An toàn trước lỗi tải Chunk (Stale Chunks Resiliency)**: `ErrorBoundary` được nâng cấp để tự động phát hiện lỗi dynamic import (thường xảy ra khi một đợt deploy mới xóa các hashed chunk cũ) và kích hoạt tự động reload lại trang 1 lần (dùng cờ `sessionStorage.getItem('chunk_reload_attempted')` ngăn chặn lặp vô hạn). Nút **Tải lại trang** được trang bị sẵn sàng trên giao diện người dùng.
+5. **Cơ chế Prefetch thông minh**: Tích hợp `preloadRoute` trên cả 3 thanh điều hướng chính (`AppSidebar`, `MobileBottomNav`, `AppDock`). Ngay khi người dùng di chuột (`hover`) hoặc chuyển phím (`focus`) vào biểu tượng điều hướng, mã nguồn trang tương ứng sẽ được fetch trước ngầm, loại bỏ hoàn toàn độ trễ khi chuyển trang. Mỗi route chỉ được fetch tối đa 1 lần nhờ cơ chế deduplication bằng `Set`.

@@ -16,6 +16,18 @@ export default defineConfig({
   ].filter(Boolean),
   build: {
     assetsDir: 'static',
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

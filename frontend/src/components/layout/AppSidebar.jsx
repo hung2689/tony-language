@@ -17,6 +17,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AvatarFrame from '../common/AvatarFrame';
 import { useWallpaper } from '../../features/wallpapers/WallpaperContext';
 import { useStudyPlan } from '../../features/studyplan/StudyPlanContext';
+import { preloadRoute } from '../../utils/preloadRoute';
 
 export default function AppSidebar({
   user = null,
@@ -96,7 +97,7 @@ export default function AppSidebar({
         {/* Top Header Section */}
         <div className="sidebar-top-section">
           <div className="sidebar-top-brand">
-            <div className="sidebar-brand-link" onClick={handleNavigateHome} role="button" tabIndex={0}>
+            <div className="sidebar-brand-link" onClick={handleNavigateHome} onMouseEnter={() => preloadRoute('map')} onFocus={() => preloadRoute('map')} role="button" tabIndex={0}>
               <div className="sidebar-brand-icon-box" title="LEXICON">
                 <span className="brand-gem-symbol">✦</span>
               </div>
@@ -141,6 +142,8 @@ export default function AppSidebar({
               type="button"
               className={`sidebar-nav-button ${isHomeActive ? 'is-active' : ''}`}
               onClick={handleNavigateHome}
+              onMouseEnter={() => preloadRoute('map')}
+              onFocus={() => preloadRoute('map')}
               aria-current={isHomeActive ? 'page' : undefined}
               title="Trang chủ"
             >
@@ -152,6 +155,8 @@ export default function AppSidebar({
               type="button"
               className="sidebar-nav-button"
               onClick={handleNavigateHome}
+              onMouseEnter={() => preloadRoute('library')}
+              onFocus={() => preloadRoute('library')}
               title="Thư viện bộ thẻ"
             >
               <BookOpen size={18} className="sidebar-nav-icon" />
@@ -167,6 +172,8 @@ export default function AppSidebar({
               type="button"
               className={`sidebar-nav-button ${isStudyPlanActive ? 'is-active' : ''}`}
               onClick={handleStudyPlanClick}
+              onMouseEnter={() => preloadRoute('studyPlan')}
+              onFocus={() => preloadRoute('studyPlan')}
               aria-current={isStudyPlanActive ? 'page' : undefined}
               title="Lộ trình học lặp lại ngắt quãng (SM-2)"
             >
@@ -178,6 +185,8 @@ export default function AppSidebar({
               type="button"
               className={`sidebar-nav-button ${isAnalyticsActive ? 'is-active' : ''}`}
               onClick={handleNavigateAnalytics}
+              onMouseEnter={() => preloadRoute('analytics')}
+              onFocus={() => preloadRoute('analytics')}
               aria-current={isAnalyticsActive ? 'page' : undefined}
               title="Thống kê học tập & Huy hiệu"
             >
@@ -282,6 +291,8 @@ export default function AppSidebar({
                 <button
                   type="button"
                   className="sidebar-dropdown-item"
+                  onMouseEnter={() => preloadRoute('profile')}
+                  onFocus={() => preloadRoute('profile')}
                   onClick={() => {
                     setIsUserMenuOpen(false);
                     navigate('/profile');

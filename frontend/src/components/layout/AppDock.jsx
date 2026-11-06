@@ -15,6 +15,7 @@ import { Dock, DockIcon, DockSeparator } from '../magicui/Dock';
 import { useWallpaper } from '../../features/wallpapers/WallpaperContext';
 import { useStudyPlan } from '../../features/studyplan/StudyPlanContext';
 import { useTheme } from '../../features/theme/ThemeContext';
+import { preloadRoute } from '../../utils/preloadRoute';
 
 export default function AppDock({ onOpenCreateDeck }) {
   const navigate = useNavigate();
@@ -41,6 +42,8 @@ export default function AppDock({ onOpenCreateDeck }) {
           label="Bản đồ"
           isActive={isMapActive}
           onClick={() => navigate('/')}
+          onMouseEnter={() => preloadRoute('map')}
+          onFocus={() => preloadRoute('map')}
         >
           <Compass size={20} />
         </DockIcon>
@@ -50,6 +53,8 @@ export default function AppDock({ onOpenCreateDeck }) {
           label="Từ vựng của tôi"
           isActive={isLibraryActive}
           onClick={() => navigate('/library')}
+          onMouseEnter={() => preloadRoute('library')}
+          onFocus={() => preloadRoute('library')}
         >
           <BookOpen size={20} />
         </DockIcon>
@@ -59,6 +64,8 @@ export default function AppDock({ onOpenCreateDeck }) {
           label="Lịch sử học tập"
           isActive={isAnalyticsActive}
           onClick={() => navigate('/analytics')}
+          onMouseEnter={() => preloadRoute('analytics')}
+          onFocus={() => preloadRoute('analytics')}
         >
           <BarChart3 size={20} />
         </DockIcon>
@@ -67,6 +74,8 @@ export default function AppDock({ onOpenCreateDeck }) {
         <DockIcon
           label="Lộ trình ôn tập"
           isActive={isPlanActive}
+          onMouseEnter={() => preloadRoute('studyPlan')}
+          onFocus={() => preloadRoute('studyPlan')}
           onClick={() => {
             if (activePlan) {
               navigate('/study-plan');
@@ -83,6 +92,8 @@ export default function AppDock({ onOpenCreateDeck }) {
           label="Lặp lại ngắt quãng"
           isActive={isSrsActive}
           badge={dueCount > 0 ? dueCount : null}
+          onMouseEnter={() => preloadRoute('srs')}
+          onFocus={() => preloadRoute('srs')}
           onClick={() => {
             if (activePlan) {
               navigate('/study-plan/srs');
@@ -101,22 +112,25 @@ export default function AppDock({ onOpenCreateDeck }) {
         <DockIcon
           label="Tạo bộ thẻ mới"
           onClick={onOpenCreateDeck}
+          ariaLabel="Tạo bộ thẻ mới"
         >
           <Plus size={20} />
         </DockIcon>
 
         {/* 7. Đổi hình nền */}
         <DockIcon
-          label="Đổi hình nền"
+          label="Hình nền học tập"
           onClick={openWallpaperModal}
+          ariaLabel="Hình nền học tập"
         >
           <ImageIcon size={20} />
         </DockIcon>
 
-        {/* 8. Chế độ Sáng / Tối */}
+        {/* 8. Chuyển đổi giao diện Sáng / Tối */}
         <DockIcon
-          label={isDark ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối'}
+          label={isDark ? 'Chế độ Sáng' : 'Chế độ Tối'}
           onClick={toggleTheme}
+          ariaLabel={isDark ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
         >
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </DockIcon>

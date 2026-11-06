@@ -1,6 +1,7 @@
 import { Compass, BookOpen, BarChart3, GraduationCap, Repeat } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStudyPlan } from '../../features/studyplan/StudyPlanContext';
+import { preloadRoute } from '../../utils/preloadRoute';
 
 export default function MobileBottomNav() {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ export default function MobileBottomNav() {
         type="button"
         className={`mobile-nav-item ${isMapActive ? 'is-active' : ''}`}
         onClick={() => navigate('/')}
+        onMouseEnter={() => preloadRoute('map')}
+        onFocus={() => preloadRoute('map')}
         aria-label="Bản đồ"
       >
         <Compass size={19} />
@@ -45,6 +48,8 @@ export default function MobileBottomNav() {
         type="button"
         className={`mobile-nav-item ${isVocabActive ? 'is-active' : ''}`}
         onClick={() => navigate('/library')}
+        onMouseEnter={() => preloadRoute('library')}
+        onFocus={() => preloadRoute('library')}
         aria-label="Từ vựng"
       >
         <BookOpen size={19} />
@@ -55,6 +60,8 @@ export default function MobileBottomNav() {
         type="button"
         className={`mobile-nav-item ${isAnalyticsActive ? 'is-active' : ''}`}
         onClick={() => navigate('/analytics')}
+        onMouseEnter={() => preloadRoute('analytics')}
+        onFocus={() => preloadRoute('analytics')}
         aria-label="Lịch sử"
       >
         <BarChart3 size={19} />
@@ -65,6 +72,8 @@ export default function MobileBottomNav() {
         type="button"
         className={`mobile-nav-item ${isPlanActive ? 'is-active' : ''}`}
         onClick={handleStudyPlanClick}
+        onMouseEnter={() => preloadRoute('studyPlan')}
+        onFocus={() => preloadRoute('studyPlan')}
         aria-label="Lộ trình"
       >
         <GraduationCap size={19} />
@@ -75,6 +84,8 @@ export default function MobileBottomNav() {
         type="button"
         className={`mobile-nav-item ${isSrsActive ? 'is-active' : ''}`}
         onClick={handleSrsClick}
+        onMouseEnter={() => preloadRoute('srs')}
+        onFocus={() => preloadRoute('srs')}
         aria-label="Ôn tập SRS"
       >
         <Repeat size={19} />
