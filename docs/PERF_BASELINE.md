@@ -21,8 +21,8 @@ Tài liệu này ghi nhận toàn diện kết quả đo đạc hiệu năng th�
 ### 1.1. Bảng Đối Chiếu Chỉ Số Backend: Trước (Baseline 0.5 Gốc) vs Sau (Phase 1 & 2)
 
 *Ghi chú nguồn số liệu*:
-- **Cột Trước (Baseline 0.5 Gốc)**: 100% khôi phục nguyên bản từ kết quả đo chuẩn hóa tại commit `e2b4ee6ab2008ef097e0446a7e38f6a4f23a5690`.
-- **Cột Sau (Phase 1 & 2)**: 100% đo thực tế qua `PerfBaselineRunnerIntegrationTest` (chạy trên PostgreSQL 18.4, test database `language_learning_test`, profile `test`) với cơ chế truncate và seed lại dữ liệu trước mỗi kịch bản để đảm bảo tính tái lập 100%.
+- **Cột Trước (Baseline 0.5 Gốc)**: 100% khôi phục nguyên bản từ kết quả đo chuẩn hóa tại commit `e2b4ee6ab2008ef097e0446a7e38f6a4f23a5690`. Lưu ý: Tập dữ liệu của Baseline 0.5 cũ chạy tích lũy không truncate sạch giữa các test, khiến user chạm trần Daily XP (dẫn đến 188 queries thay vì 208 queries) và chưa tính COUNT query phân trang của Spring Data JPA.
+- **Cột Sau (Phase 1 & 2)**: Đo thực tế qua `PerfBaselineRunnerIntegrationTest` trên PostgreSQL 18.4 (`language_learning_test`, port 5433).
 - **Chỉ số chính & Độ tin cậy**: **Số query** và **Số dòng DB đọc** là các chỉ số chính có tính **xác định (deterministic)**, lặp lại giống nhau 100% qua mọi lần chạy độc lập. **Thời gian thực thi (ms)** chỉ mang tính tham khảo và nằm trong dải nhiễu dao động của CPU/hệ điều hành.
 
 | Nhóm chức năng / API Endpoint | Chế độ | Số query (Trước 0.5) | Batch Lần / Dòng (Trước) | Dòng DB đọc (Trước) | Thời gian (Trước 0.5) | Response Size (Trước) | Số query (Sau P1/P2) | Batch Lần / Dòng (Sau) | Dòng DB đọc (Sau) | Thời gian (Sau P1/P2) | Response Size (Sau) | Ghi chú kỹ thuật & Đánh giá thay đổi |
@@ -39,6 +39,71 @@ Tài liệu này ghi nhận toàn diện kết quả đo đạc hiệu năng th�
 | **PUT Deck (b: Thêm 500 thẻ mới)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 6 q<br>5 q | 0 (0 r)<br>0 (0 r) | 501 r<br>501 r | 90 ms<br>77 ms | 125.402 B<br>125.399 B | **6 q**<br>**5 q** | **1 (1 r)**<br>**0 (0 r)** | **501 r**<br>**501 r** | **73 ms**<br>**128 ms** | 125.902 B<br>125.899 B | **Không đổi so với 0.5** (duy trì 5-6 queries, đường bulk insert đa dòng `createCardsForDeckBatch` qua JdbcTemplate đã có từ trước, không phải cải thiện mới của Giai đoạn 1 hay 2). |
 | **PUT Deck (c: Xóa 500 thẻ khỏi deck)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 10 q<br>9 q | 0 (0 r)<br>0 (0 r) | 504 r<br>504 r | 57 ms<br>49 ms | 585 B<br>585 B | **10 q**<br>**9 q** | **3 (3 r)**<br>**2 (2 r)** | **504 r**<br>**504 r** | **128 ms**<br>**74 ms** | 589 B<br>586 B | Duy trì 9 queries warm, 504 dòng đọc. Cột Trước khôi phục đúng 57 ms / 49 ms từ bản 0.5 gốc (commit `e2b4ee6`). |
 | **Get List Decks**:<br>`GET /api/decks` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 54 r<br>54 r | 24 ms<br>9 ms | 6.710 B<br>6.710 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **45 r**<br>**45 r** | **29 ms**<br>**8 ms** | 5.912 B<br>5.912 B | Duy trì 3 queries ổn định. Đọc 45 dòng (gồm 23 bộ từ và aggregate counts trên tập dữ liệu benchmark độc lập sau truncate & seed sạch). Cột Trước khôi phục đúng 54 r / 6.710 B từ bản 0.5 gốc (commit `e2b4ee6`). |
+
+---
+
+### 1.2. Baseline B1 – Dùng Cho Giai Đoạn 3 Trở Đi
+
+Mục này chốt chính thức bộ chỉ số **Baseline B1** – mốc đo lường chuẩn xác, có tính tái lập 100% trên cùng tập dữ liệu sạch, dùng làm mốc so sánh trực tiếp cho toàn bộ các tối ưu hóa backend từ Giai đoạn 3 trở đi.
+
+#### 1.2.1. Quy Cách Tập Dữ Liệu Kiểm Chuẩn B1 (Verified Database Counts)
+Mỗi kịch bản trước khi chạy đều được truncate sạch và seed lại đúng chuẩn qua `PerfDataSeeder` và được kiểm chứng qua `TestDatabaseSafetyGuard`:
+1. `vocabularies`: **5.501 dòng** (5.000 seeder baseline + 501 thẻ dành riêng cho kịch bản PUT deck benchmark).
+2. `vocabulary_sets`: **23 dòng** (20 seeder baseline + 3 bộ thẻ dành riêng cho PUT deck benchmark).
+3. `study_progress`: **10.000 dòng**.
+4. `study_sessions`: **2.000 dòng**.
+5. `study_answers`: **10.000 dòng**.
+
+#### 1.2.2. Bảng Chỉ Số Chuẩn Baseline B1 (Đo Thực Tế Trên PostgreSQL 18.4)
+
+*Ghi chú*: Số query, số lần batch, số dòng đọc và dung lượng response là các chỉ số **xác định 100% (deterministic)**. Thời gian thực thi ghi nhận từ các lần đo độc lập (1 Cold + 5 Warm Runs lấy giá trị trung vị).
+
+| STT | Nhóm chức năng / API Endpoint | Chế độ | Số query | Batch (Lần / Dòng) | Số dòng DB đọc | Thời gian thực thi (ms) | Response Payload | Ghi chú kiến trúc & Điểm nghẽn cần tối ưu ở Giai đoạn 3+ |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| 1 | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu) | **COLD**<br>**WARM** | **208 q**<br>**208 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 1.345 - 1.701 ms<br>410 - 526 ms | 717 - 723 B<br>723 B | **Nghẽn nghiêm trọng (208 queries / 20 câu)** do SM-2 và XP check lặp từng câu. Khi user chưa chạm Daily XP Cap, mỗi câu sinh 1 query check/insert `xp_events` (+20 queries = 208 queries). Cần viết lại Bulk SM-2 ở Giai đoạn 3. |
+| 2 | **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today` | **COLD**<br>**WARM** | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **6.761 r**<br>**6.761 r** | 548 - 574 ms<br>243 - 246 ms | 545.897 - 545.900 B<br>545.900 B (~545 KB) | **Nghẽn bộ nhớ & mạng (545 KB, 6.761 dòng)**. Load toàn bộ từ vựng lên RAM Java để phân loại due/weak/new. Cần chuyển sang SQL Window Functions / Pagination ở Giai đoạn 4. |
+| 3 | **Chi tiết lộ trình ôn tập**:<br>`GET /api/study-plans/current` | **COLD**<br>**WARM** | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **12 r**<br>**12 r** | 75 - 91 ms<br>46 - 69 ms | 1.600 - 1.603 B<br>1.603 B | Đã tối ưu hóa single-source SQL $O(1)$, chỉ đọc đúng 12 dòng. |
+| 4 | **Thống kê tổng quan**:<br>`GET /api/analytics/overview` | **COLD**<br>**WARM** | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **7.000 r**<br>**7.000 r** | 149 - 159 ms<br>111 - 119 ms | 298 - 301 B<br>301 B | 2 queries, đọc 7.000 dòng. |
+| 5 | **Danh sách từ yếu**:<br>`GET /api/analytics/weak-words?limit=10` | **COLD**<br>**WARM** | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **5.010 r**<br>**5.010 r** | 93 - 302 ms<br>69 - 99 ms | 2.147 B<br>2.147 B | 2 queries (1 query COUNT(*) phân trang của Spring Data JPA + 1 query SELECT data LIMIT 10). |
+| 6 | **Tỷ lệ ghi nhớ retention**:<br>`GET /api/analytics/retention` | **COLD**<br>**WARM** | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **5.024 r**<br>**5.024 r** | 90 - 154 ms<br>65 - 110 ms | 219 B<br>219 B | 3 queries ổn định. |
+| 7 | **Biểu đồ nhiệt 365 ngày**:<br>`GET /api/analytics/heatmap` | **COLD**<br>**WARM** | **1 q**<br>**1 q** | **0 (0 r)**<br>**0 (0 r)** | **2.000 r**<br>**2.000 r** | 39 - 42 ms<br>25 - 29 ms | 6.930 B<br>6.930 B | 1 query duy nhất quét 2.000 sessions. |
+| 8 | **Analytics Suite (Toàn bộ 4 API)** | **COLD**<br>**WARM** | **8 q**<br>**8 q** | **0 (0 r)**<br>**0 (0 r)** | **19.034 r**<br>**19.034 r** | 254 - 255 ms<br>232 ms | 9.594 - 9.597 B<br>9.594 - 9.597 B | Tổng cộng 8 queries (2 + 2 + 3 + 1), đọc 19.034 dòng. |
+| 9 | **PUT Deck (a: Sửa 500 thẻ có sẵn)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | **2.502 q**<br>**2.501 q** | **1.000 (1.001 r)**<br>**999 (1.000 r)** | **1.501 r**<br>**1.501 r** | 2.839 - 2.855 ms<br>1.958 - 2.271 ms | 133.402 - 133.405 B<br>133.402 B (~133 KB) | **Nghẽn nghiêm trọng (2.501 queries)** do Hibernate dirty checking và entity lookup lặp từng thẻ. Batch 999 lần cho 1.000 dòng là batch cỡ 1. Cần thay bằng Spring JdbcTemplate batch update ở Giai đoạn 3.1. |
+| 10 | **PUT Deck (b: Thêm 500 thẻ mới)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | **6 q**<br>**5 q** | **1 (1 r)**<br>**0 (0 r)** | **501 r**<br>**501 r** | 129 - 251 ms<br>106 - 111 ms | 125.903 B<br>125.900 B (~125 KB) | Duy trì 5 queries, sử dụng đường dẫn multi-row insert có sẵn. |
+| 11 | **PUT Deck (c: Xóa 500 thẻ khỏi deck)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | **10 q**<br>**9 q** | **3 (3 r)**<br>**2 (2 r)** | **504 r**<br>**504 r** | 63 - 86 ms<br>44 - 71 ms | 590 B<br>587 B | Duy trì 9 queries warm, 504 dòng đọc. |
+| 12 | **Danh sách bộ từ vựng**:<br>`GET /api/decks` | **COLD**<br>**WARM** | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **45 r**<br>**45 r** | 27 - 47 ms<br>9 - 16 ms | 5.935 B<br>5.935 B | 3 queries ổn định, đọc 45 dòng (23 decks + folders + item count group by). |
+
+#### 1.2.3. Phân Tích Chuyên Sâu Payload `GET /api/study-plans/current/today` (~545 KB)
+Trong Baseline B1, endpoint `GET /api/study-plans/current/today` trả về payload rất lớn: **545.900 bytes (~545 KB)** cho **6.761 dòng DB đọc**.
+
+1. **Cấu trúc trường của `TermCardDto`**:
+   - `id`: `Long` (mã định danh từ vựng).
+   - `term`: `String` (từ tiếng Anh).
+   - `definition`: `String` (nghĩa tiếng Việt).
+   - `pronunciation`: `String` (phiên âm IPA).
+   - `partOfSpeech`: `String` (từ loại).
+   - `example`: `String` (câu ví dụ tiếng Anh, lấy từ `v.getExampleSentence()`).
+   - `synonyms`: `List<String>` (danh sách từ đồng nghĩa).
+   - `lastReviewedAt`, `intervalDays`, `repetitions`: giá trị `null` trong hàng đợi hôm nay.
+
+2. **Phân tích trường `exampleParagraph` (Đoạn văn ví dụ)**:
+   - Trong entity cơ sở dữ liệu `Vocabulary.java`, có trường `exampleParagraph` (`TEXT`, đoạn văn tiếng Anh dài ~200 - 500 ký tự).
+   - Tuy nhiên, trong DTO trả về `TermCardDto.java`, trường `exampleParagraph` **KHÔNG được khai báo và không được serialize ra JSON** (chỉ có trường `example` chứa câu ví dụ đơn `exampleSentence`).
+   - Quét toàn bộ mã nguồn frontend (`frontend/src`): **hoàn toàn KHÔNG CÓ trường `exampleParagraph`** (0 kết quả tìm kiếm).
+
+3. **Nguyên nhân thực tế của dung lượng ~545 KB**:
+   - Backend hiện tại nạp toàn bộ từ vựng thuộc mọi bộ thẻ trong lộ trình vào bộ nhớ JVM (`allVocabs = vocabularyRepository.findByDeckIdIn(deckIds)`), sau đó convert toàn bộ tập hợp đã chọn thành một mảng khổng lồ gồm **6.761 đối tượng `TermCardDto`**.
+   - Mỗi đối tượng JSON chứa đầy đủ 7 trường (`id`, `term`, `definition`, `pronunciation`, `partOfSpeech`, `example`, `synonyms`), trung bình ~80 bytes/đối tượng JSON $\times$ 6.761 đối tượng $\approx$ 545.900 bytes.
+
+4. **Kiểm tra mức độ sử dụng ở Frontend**:
+   - Các component hiển thị chính: `DailyGateReminder.jsx`, `AppDock.jsx`, `SpacedRepetitionCard.jsx`, `StudyPlanPage.jsx` gọi `getTodayQueue()` **CHỈ ĐỂ LẤY CÁC TRƯỜNG ĐẾM TỔNG QUAN**:
+     - `todayQueue.totalWords`
+     - `todayQueue.dueWords`
+     - `todayQueue.weakWords`
+     - `todayQueue.newWords`
+     Các component này **hoàn toàn không dùng đến mảng `cards`** nhưng vẫn phải tải 545 KB JSON qua mạng ở mọi lần load trang!
+   - Chỉ duy nhất trang học thực sự `TodayLearnPage.jsx` mới sử dụng mảng `cards` để truyền vào `useLearnSession`.
+   - **Đề xuất tối ưu hóa cho Giai đoạn 4**: Tách riêng endpoint nhẹ `GET /api/study-plans/current/today-summary` (chỉ trả 4 trường đếm số lượng, dung lượng < 100 bytes) cho Dashboard/AppDock; và áp dụng phân trang hoặc chỉ tải thẻ của phiên học (daily session queue) khi người dùng bấm vào học.
 
 ---
 
