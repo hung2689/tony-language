@@ -85,8 +85,7 @@ public class StudyService {
         Long deckId = null;
         if (request.getDeckId() != null) {
             // Check hard gate constraint if active plan enforces it
-            StudyPlanResponse activePlan = studyPlanService.getCurrentPlan(userId);
-            if (activePlan != null && activePlan.hardGateEnabled() && activePlan.todayStats() != null && activePlan.todayStats().totalCount() > 0) {
+            if (studyPlanService.isHardGateBlocking(userId)) {
                 throw new ValidationException("HARD_GATE_ACTIVE", "Bạn đang bật tính năng Khóa tập trung. Vui lòng hoàn thành bài học hôm nay trước khi học các bộ từ khác.");
             }
 

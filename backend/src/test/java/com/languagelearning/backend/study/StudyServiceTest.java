@@ -111,6 +111,17 @@ class StudyServiceTest {
     }
 
     @Test
+    @DisplayName("createSession: Fails with HARD_GATE_ACTIVE when isHardGateBlocking returns true")
+    void createSession_HardGateActive_ThrowsValidationException() {
+        when(studyPlanService.isHardGateBlocking(userId)).thenReturn(true);
+
+        CreateSessionRequest req = new CreateSessionRequest(deckId, "VI_TO_EN", 5, "RANDOM");
+        ValidationException ex = assertThrows(ValidationException.class, () -> studyService.createSession(userId, req));
+        assertEquals("HARD_GATE_ACTIVE", ex.getErrorCode());
+        verify(studySessionRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("recordAnswers: Success records batch answers and upserts progress")
     void recordAnswers_Success() {
         Long sessionId = 100L;
