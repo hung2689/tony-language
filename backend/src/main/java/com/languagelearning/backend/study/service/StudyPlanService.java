@@ -503,6 +503,63 @@ public class StudyPlanService {
         );
     }
 
+    /**
+     * Ultra-lightweight endpoint returning strictly count summary statistics for today's study queue.
+     * Evaluates in at most 2 queries and returns 1 single row without loading cards or synonyms.
+     */
+    @Transactional(readOnly = true)
+    public TodaySummaryResponse getTodaySummary(Long userId) {
+        StudyPlan activePlan = studyPlanRepository.findByUserIdAndStatus(userId, StudyPlan.Status.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Chưa có lộ trình ôn tập nào đang hoạt động."));
+
+        ZoneId zoneId = parseZoneId(activePlan.getTimezone());
+        LocalDate currentStudyDate = getStudyDay(zoneId);
+        Instant endOfStudyDay = currentStudyDate.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        int maxNew = activePlan.getMaxNewWordsPerDay();
+        int minWords = activePlan.getMinWordsPerDay();
+        Timestamp endTimestamp = Timestamp.from(endOfStudyDay);
+
+        TodaySummaryResponse summary = jdbcTemplate.query(
+                StudyPlanSql.TODAY_QUEUE_SUMMARY,
+                rs -> {
+                    if (rs.next()) {
+                        int dueCount = rs.getInt("due_count");
+                        int weakCount = rs.getInt("weak_count");
+                        int newCount = rs.getInt("new_count");
+                        int totalCount = rs.getInt("total_count");
+                        return new TodaySummaryResponse(
+                                activePlan.getId(),
+                                activePlan.getName(),
+                                currentStudyDate,
+                                dueCount,
+                                weakCount,
+                                newCount,
+                                totalCount
+                        );
+                    }
+                    return new TodaySummaryResponse(
+                            activePlan.getId(),
+                            activePlan.getName(),
+                            currentStudyDate,
+                            0, 0, 0, 0
+                    );
+                },
+                activePlan.getId(),
+                endTimestamp,
+                userId,
+                maxNew,
+                minWords
+        );
+
+        return summary != null ? summary : new TodaySummaryResponse(
+                activePlan.getId(),
+                activePlan.getName(),
+                currentStudyDate,
+                0, 0, 0, 0
+        );
+    }
+
     private record QueueCardResult(
             Long id,
             String word,

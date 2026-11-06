@@ -1,14 +1,18 @@
 import { request } from './api';
 
-// Client in-memory cache for today's queue and deck queues to avoid repeated multi-second fetches
+// Client in-memory cache for today's queue, summary, and deck queues to avoid repeated multi-second fetches
 let todayQueueCache = null;
 let todayQueueCacheTime = 0;
+let todaySummaryCache = null;
+let todaySummaryCacheTime = 0;
 const deckQueueCache = new Map();
 const QUEUE_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
 export const clearStudyPlanQueueCache = () => {
   todayQueueCache = null;
   todayQueueCacheTime = 0;
+  todaySummaryCache = null;
+  todaySummaryCacheTime = 0;
   deckQueueCache.clear();
 };
 
@@ -115,6 +119,20 @@ export const studyPlanService = {
     return request('/study-plans/current/today').then((data) => {
       todayQueueCache = data;
       todayQueueCacheTime = Date.now();
+      return data;
+    });
+  },
+
+  /**
+   * Retrieves today's study queue lightweight count summary for the active plan.
+   */
+  getTodaySummary({ skipCache = false } = {}) {
+    if (!skipCache && todaySummaryCache && Date.now() - todaySummaryCacheTime < QUEUE_CACHE_TTL) {
+      return Promise.resolve(todaySummaryCache);
+    }
+    return request('/study-plans/current/today/summary').then((data) => {
+      todaySummaryCache = data;
+      todaySummaryCacheTime = Date.now();
       return data;
     });
   },

@@ -136,4 +136,15 @@ describe('studyPlanService Unit Tests', () => {
     expect(requestSpy).toHaveBeenCalledWith('/study-plans/current/today');
     expect(res.data.totalWords).toBe(0);
   });
+
+  it('getTodaySummary calls /study-plans/current/today/summary with GET', async () => {
+    const requestSpy = vi.spyOn(api, 'request').mockResolvedValueOnce({
+      data: { dueWords: 5, weakWords: 2, newWords: 3, totalWords: 10 },
+    });
+
+    const res = await studyPlanService.getTodaySummary();
+
+    expect(requestSpy).toHaveBeenCalledWith('/study-plans/current/today/summary');
+    expect(res.data.totalWords).toBe(10);
+  });
 });

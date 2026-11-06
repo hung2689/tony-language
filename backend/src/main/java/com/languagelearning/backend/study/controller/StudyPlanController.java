@@ -92,6 +92,13 @@ public class StudyPlanController {
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ cần học hôm nay thành công", response));
     }
 
+    @GetMapping("/current/today/summary")
+    public ResponseEntity<ApiResponse<TodaySummaryResponse>> getTodaySummary() {
+        Long userId = currentUserProvider.getCurrentUserId();
+        TodaySummaryResponse response = studyPlanService.getTodaySummary(userId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy tóm tắt từ cần học hôm nay thành công", response));
+    }
+
     @GetMapping("/current/forecast")
     public ResponseEntity<ApiResponse<SrsForecastResponse>> getActivePlanForecast() {
         Long userId = currentUserProvider.getCurrentUserId();
