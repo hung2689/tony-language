@@ -71,6 +71,33 @@ public class StudyPlanService {
     }
 
     /**
+     * Lightweight check to determine if an active hard-gate study plan is blocking other study activities.
+     * Evaluates in at most 2 queries without full deck statistics or today-queue generation.
+     */
+    @Transactional(readOnly = true)
+    public boolean isHardGateBlocking(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        Optional<StudyPlan> activePlanOpt = studyPlanRepository.findByUserIdAndStatusAndHardGateEnabledTrue(userId, StudyPlan.Status.ACTIVE);
+        if (activePlanOpt.isEmpty()) {
+            return false;
+        }
+
+        StudyPlan plan = activePlanOpt.get();
+        ZoneId zoneId = parseZoneId(plan.getTimezone());
+        LocalDate currentStudyDate = getStudyDay(zoneId);
+        Instant endOfStudyDay = currentStudyDate.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        return studyPlanDeckRepository.hasCardsToStudyToday(
+                userId,
+                plan.getId(),
+                endOfStudyDay,
+                plan.getMaxNewWordsPerDay()
+        );
+    }
+
+    /**
      * Create a new study plan. Only one plan can be ACTIVE at a time.
      */
     @Transactional

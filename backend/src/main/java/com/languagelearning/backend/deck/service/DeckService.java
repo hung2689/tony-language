@@ -27,6 +27,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.sql.PreparedStatement;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +47,9 @@ public class DeckService {
 
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public DeckService(VocabularySetRepository vocabularySetRepository,
                        VocabularySetItemRepository vocabularySetItemRepository,
@@ -144,13 +151,35 @@ public class DeckService {
                 .collect(Collectors.toSet());
 
         Set<Long> retainedVocabIds = new HashSet<>();
-        List<TermCardDto> updatedCardDtos = new ArrayList<>(request.getCards().size());
+        List<TermCardDto> updatedCardDtos = new ArrayList<>(Collections.nCopies(request.getCards().size(), null));
         List<Integer> newCardIndices = new ArrayList<>();
         List<TermCardDto> newCardsToInsert = new ArrayList<>();
+
+        // Group cards into update vs insert
+        List<Integer> updateIndices = new ArrayList<>();
+        List<Long> updateVocabIds = new ArrayList<>();
+        List<TermCardDto> cardsToUpdate = new ArrayList<>();
 
         for (int i = 0; i < request.getCards().size(); i++) {
             TermCardDto cardDto = request.getCards().get(i);
             if (cardDto.getId() != null && existingVocabIdsInDeck.contains(cardDto.getId())) {
+                updateIndices.add(i);
+                updateVocabIds.add(cardDto.getId());
+                cardsToUpdate.add(cardDto);
+                retainedVocabIds.add(cardDto.getId());
+            } else {
+                newCardIndices.add(i);
+                newCardsToInsert.add(cardDto);
+            }
+        }
+
+        if (jdbcTemplate != null && !cardsToUpdate.isEmpty()) {
+            updateCardsBatch(updateVocabIds, cardsToUpdate, updateIndices, updatedCardDtos);
+        } else if (!cardsToUpdate.isEmpty()) {
+            // Fallback for environments without JdbcTemplate
+            for (int k = 0; k < cardsToUpdate.size(); k++) {
+                TermCardDto cardDto = cardsToUpdate.get(k);
+                int originalIdx = updateIndices.get(k);
                 Vocabulary vocab = vocabularyRepository.findById(cardDto.getId())
                         .orElseThrow(() -> new ValidationException("Không tìm thấy thẻ từ với id: " + cardDto.getId()));
 
@@ -162,10 +191,10 @@ public class DeckService {
                 vocabularyRepository.save(vocab);
 
                 vocabularySynonymRepository.deleteByVocabularyId(vocab.getId());
+                vocabularySynonymRepository.flush();
                 List<String> savedSynonyms = saveSynonyms(vocab.getId(), cardDto.getSynonyms());
 
-                retainedVocabIds.add(vocab.getId());
-                updatedCardDtos.add(new TermCardDto(
+                updatedCardDtos.set(originalIdx, new TermCardDto(
                         vocab.getId(),
                         vocab.getWord(),
                         vocab.getMeaning(),
@@ -174,10 +203,6 @@ public class DeckService {
                         vocab.getExampleSentence(),
                         savedSynonyms
                 ));
-            } else {
-                updatedCardDtos.add(null);
-                newCardIndices.add(i);
-                newCardsToInsert.add(cardDto);
             }
         }
 
@@ -388,6 +413,123 @@ public class DeckService {
             if (cardDto.getDefinition() == null || cardDto.getDefinition().trim().isEmpty()) {
                 throw new ValidationException("Định nghĩa không được để trống");
             }
+        }
+    }
+
+    private void updateCardsBatch(List<Long> updateVocabIds,
+                                  List<TermCardDto> cardsToUpdate,
+                                  List<Integer> updateIndices,
+                                  List<TermCardDto> updatedCardDtos) {
+        // 1. Fetch current vocabulary records in ONE query
+        // Note on parameter limit: PostgreSQL wire protocol uses a 16-bit integer for parameter count (max 32,767 parameters).
+        // Since updateDeck limits cards to <= 1,000 upfront, updateVocabIds never exceeds 1,000 parameters.
+        // If operations exceed 10,000 items in future extensions, partition/chunking into sub-batches of 1,000 is required.
+        String placeholders = updateVocabIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+        String selectSql = "SELECT id, word, meaning, word_type, pronunciation, example_sentence " +
+                           "FROM vocabularies WHERE id IN (" + placeholders + ")";
+        Map<Long, Map<String, String>> existingVocabs = new HashMap<>();
+        jdbcTemplate.query(selectSql, (rs) -> {
+            Map<String, String> row = new HashMap<>();
+            row.put("word", rs.getString("word"));
+            row.put("meaning", rs.getString("meaning"));
+            row.put("word_type", rs.getString("word_type"));
+            row.put("pronunciation", rs.getString("pronunciation"));
+            row.put("example_sentence", rs.getString("example_sentence"));
+            existingVocabs.put(rs.getLong("id"), row);
+        }, updateVocabIds.toArray());
+
+        // 2. Fetch existing synonyms in ONE query
+        Map<Long, List<String>> existingSynonymsByVocabId = new HashMap<>();
+        String synSelectSql = "SELECT vocabulary_id, synonym FROM vocabulary_synonyms WHERE vocabulary_id IN (" + placeholders + ")";
+        jdbcTemplate.query(synSelectSql, (rs) -> {
+            long vId = rs.getLong("vocabulary_id");
+            String syn = rs.getString("synonym");
+            existingSynonymsByVocabId.computeIfAbsent(vId, k -> new ArrayList<>()).add(syn);
+        }, updateVocabIds.toArray());
+
+        // 3. Compare fields and determine which cards actually changed
+        List<Object[]> vocabUpdateBatchArgs = new ArrayList<>();
+        List<Long> vocabsNeedingSynonymDelete = new ArrayList<>();
+        List<Object[]> synonymInsertBatchArgs = new ArrayList<>();
+
+        for (int k = 0; k < cardsToUpdate.size(); k++) {
+            TermCardDto dto = cardsToUpdate.get(k);
+            Long vocabId = dto.getId();
+            Map<String, String> exist = existingVocabs.get(vocabId);
+            if (exist == null) {
+                throw new ValidationException("Không tìm thấy thẻ từ với id: " + vocabId);
+            }
+
+            String newWord = dto.getTerm().trim();
+            String newMeaning = dto.getDefinition().trim();
+            String newPos = dto.getPartOfSpeech() != null ? dto.getPartOfSpeech().trim() : null;
+            String newPron = dto.getPronunciation() != null ? dto.getPronunciation().trim() : null;
+            String newExample = dto.getExample() != null ? dto.getExample().trim() : null;
+
+            boolean fieldChanged = !Objects.equals(newWord, exist.get("word"))
+                    || !Objects.equals(newMeaning, exist.get("meaning"))
+                    || !Objects.equals(newPos, exist.get("word_type"))
+                    || !Objects.equals(newPron, exist.get("pronunciation"))
+                    || !Objects.equals(newExample, exist.get("example_sentence"));
+
+            if (fieldChanged) {
+                vocabUpdateBatchArgs.add(new Object[]{newWord, newMeaning, newPos, newPron, newExample, java.sql.Timestamp.from(Instant.now()), vocabId});
+            }
+
+            // Synonyms comparison
+            List<String> normalizedNewSyns = normalizeSynonyms(dto.getSynonyms());
+
+            List<String> existingSyns = existingSynonymsByVocabId.getOrDefault(vocabId, Collections.emptyList());
+            Set<String> existLower = existingSyns.stream().map(String::toLowerCase).collect(Collectors.toSet());
+            Set<String> newLower = normalizedNewSyns.stream().map(String::toLowerCase).collect(Collectors.toSet());
+
+            if (!existLower.equals(newLower)) {
+                vocabsNeedingSynonymDelete.add(vocabId);
+                for (String syn : normalizedNewSyns) {
+                    synonymInsertBatchArgs.add(new Object[]{vocabId, syn});
+                }
+            }
+
+            // Populate updatedCardDtos preserving original order
+            int originalIdx = updateIndices.get(k);
+            updatedCardDtos.set(originalIdx, new TermCardDto(
+                    vocabId,
+                    newWord,
+                    newMeaning,
+                    newPron,
+                    newPos,
+                    newExample,
+                    normalizedNewSyns
+            ));
+        }
+
+        // 4. Execute batch UPDATE on vocabularies if any changed
+        if (!vocabUpdateBatchArgs.isEmpty()) {
+            String updateSql = "UPDATE vocabularies SET word = ?, meaning = ?, word_type = ?, pronunciation = ?, " +
+                               "example_sentence = ?, updated_at = ? WHERE id = ?";
+            jdbcTemplate.batchUpdate(updateSql, vocabUpdateBatchArgs);
+        }
+
+        // 5. Execute batch DELETE on synonyms for cards whose synonyms changed using vocabulary_id = ANY(?)
+        if (!vocabsNeedingSynonymDelete.isEmpty()) {
+            Long[] vocabIdsArray = vocabsNeedingSynonymDelete.toArray(new Long[0]);
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement("DELETE FROM vocabulary_synonyms WHERE vocabulary_id = ANY(?)");
+                ps.setArray(1, connection.createArrayOf("int8", vocabIdsArray));
+                return ps;
+            });
+        }
+
+        // 6. Execute batch INSERT on synonyms
+        if (!synonymInsertBatchArgs.isEmpty()) {
+            String insertSynSql = "INSERT INTO vocabulary_synonyms (vocabulary_id, synonym) VALUES (?, ?) ON CONFLICT DO NOTHING";
+            jdbcTemplate.batchUpdate(insertSynSql, synonymInsertBatchArgs);
+        }
+
+        // 7. Flush and clear persistence context to avoid any stale entity caches
+        if (entityManager != null) {
+            entityManager.flush();
+            entityManager.clear();
         }
     }
 

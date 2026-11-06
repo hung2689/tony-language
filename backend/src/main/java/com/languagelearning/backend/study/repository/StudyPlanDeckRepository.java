@@ -49,4 +49,33 @@ public interface StudyPlanDeckRepository extends JpaRepository<StudyPlanDeck, Lo
     PlanAggregateProjection calculatePlanAggregate(@Param("userId") Long userId,
                                                    @Param("planId") Long planId,
                                                    @Param("endOfStudyDay") Instant endOfStudyDay);
+
+    @Query(value = """
+        SELECT EXISTS(
+            WITH plan_words AS (
+                SELECT MIN(v.id) AS vocabulary_id
+                FROM study_plan_decks spd
+                JOIN vocabulary_set_items vsi ON vsi.vocabulary_set_id = spd.deck_id
+                JOIN vocabularies v ON v.id = vsi.vocabulary_id
+                WHERE spd.study_plan_id = :planId
+                GROUP BY LOWER(BTRIM(v.word, E' \\t\\n\\r'))
+            )
+            SELECT 1
+            FROM plan_words pw
+            LEFT JOIN study_progress sp ON sp.vocabulary_id = pw.vocabulary_id AND sp.user_id = :userId
+            WHERE (
+                (sp.id IS NOT NULL AND (
+                    (sp.next_review_at IS NOT NULL AND sp.next_review_at < :endOfStudyDay)
+                    OR (sp.wrong_count > 0 AND sp.accuracy < 70.0)
+                ))
+                OR
+                (:maxNewWords > 0 AND (sp.id IS NULL OR (sp.correct_count = 0 AND sp.wrong_count = 0)))
+            )
+            LIMIT 1
+        )
+    """, nativeQuery = true)
+    boolean hasCardsToStudyToday(@Param("userId") Long userId,
+                                 @Param("planId") Long planId,
+                                 @Param("endOfStudyDay") Instant endOfStudyDay,
+                                 @Param("maxNewWords") int maxNewWords);
 }

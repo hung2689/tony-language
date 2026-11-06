@@ -15,6 +15,8 @@ public interface StudyPlanRepository extends JpaRepository<StudyPlan, Long> {
 
     Optional<StudyPlan> findByUserIdAndStatus(Long userId, StudyPlan.Status status);
 
+    Optional<StudyPlan> findByUserIdAndStatusAndHardGateEnabledTrue(Long userId, StudyPlan.Status status);
+
     List<StudyPlan> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
     Optional<StudyPlan> findFirstByUserIdOrderByCreatedAtDesc(Long userId);

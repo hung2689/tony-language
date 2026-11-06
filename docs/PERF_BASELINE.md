@@ -60,8 +60,9 @@ Mỗi kịch bản trước khi chạy đều được truncate sạch và seed 
 
 | STT | Nhóm chức năng / API Endpoint | Chế độ | Số query | Batch (Lần / Dòng) | Số dòng DB đọc | Thời gian thực thi (ms) | Response Payload | Ghi chú kiến trúc & Điểm nghẽn cần tối ưu ở Giai đoạn 3+ |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| 1 | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu) | **COLD**<br>**WARM** | **208 q**<br>**208 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 1.345 - 1.701 ms<br>410 - 526 ms | 717 - 723 B<br>723 B | **Nghẽn nghiêm trọng (208 queries / 20 câu)** do SM-2 và XP check lặp từng câu. Khi user chưa chạm Daily XP Cap, mỗi câu sinh 1 query check/insert `xp_events` (+20 queries = 208 queries). Cần viết lại Bulk SM-2 ở Giai đoạn 3. |
-| 2 | **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today` | **COLD**<br>**WARM** | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **6.761 r**<br>**6.761 r** | 548 - 574 ms<br>243 - 246 ms | 545.897 - 545.900 B<br>545.900 B (~545 KB) | **Nghẽn bộ nhớ & mạng (545 KB, 6.761 dòng)**. Load toàn bộ từ vựng lên RAM Java để phân loại due/weak/new. Cần chuyển sang SQL Window Functions / Pagination ở Giai đoạn 4. |
+| 1a | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu)<br>*(Trạng thái: Chưa chạm cap XP)* | **COLD**<br>**WARM** | **208 q**<br>**208 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 1.345 - 1.482 ms<br>464 - 526 ms | 717 - 723 B<br>723 B | **Nghẽn nghiêm trọng (208 queries / 20 câu)** do SM-2 và XP check lặp từng câu. Khi user chưa chạm Daily XP Cap, mỗi câu sinh thêm 1 query `INSERT/UPDATE user_xp` qua `addXpAtomic` (+20 queries = 208 queries). Cần viết lại Bulk SM-2 ở Giai đoạn 3. |
+| 1b | **Ghi nhận 20 câu trả lời**:<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu)<br>*(Trạng thái: Đã chạm cap XP)* | **COLD**<br>**WARM** | **188 q**<br>**188 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | 401 ms<br>303 ms | 720 B<br>723 B | **188 queries** (-20 queries so với 1a). Do user đã đạt trần Daily XP (500 XP), `XpService` tính `actualXp = 0` nên bỏ qua bước gọi `userXpRepository.addXpAtomic` cho cả 20 câu. |
+| 2 | **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today`<br>*(1.750 thẻ: 1.250 due + 500 weak)* | **COLD**<br>**WARM** | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **6.761 r**<br>**6.761 r** | 548 - 761 ms<br>228 - 246 ms | 545.897 - 545.900 B<br>545.900 B (~545 KB raw,<br>32.533 B gzip -94,0%) | **Nghẽn bộ nhớ & mạng (545 KB, 6.761 dòng DB đọc, 1.750 thẻ)**. Load toàn bộ từ vựng lên RAM Java để phân loại due/weak/new. Cần chuyển sang SQL Window Functions / Pagination ở Giai đoạn 4. |
 | 3 | **Chi tiết lộ trình ôn tập**:<br>`GET /api/study-plans/current` | **COLD**<br>**WARM** | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **12 r**<br>**12 r** | 75 - 91 ms<br>46 - 69 ms | 1.600 - 1.603 B<br>1.603 B | Đã tối ưu hóa single-source SQL $O(1)$, chỉ đọc đúng 12 dòng. |
 | 4 | **Thống kê tổng quan**:<br>`GET /api/analytics/overview` | **COLD**<br>**WARM** | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **7.000 r**<br>**7.000 r** | 149 - 159 ms<br>111 - 119 ms | 298 - 301 B<br>301 B | 2 queries, đọc 7.000 dòng. |
 | 5 | **Danh sách từ yếu**:<br>`GET /api/analytics/weak-words?limit=10` | **COLD**<br>**WARM** | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **5.010 r**<br>**5.010 r** | 93 - 302 ms<br>69 - 99 ms | 2.147 B<br>2.147 B | 2 queries (1 query COUNT(*) phân trang của Spring Data JPA + 1 query SELECT data LIMIT 10). |
@@ -91,9 +92,16 @@ Trong Baseline B1, endpoint `GET /api/study-plans/current/today` trả về payl
    - Tuy nhiên, trong DTO trả về `TermCardDto.java`, trường `exampleParagraph` **KHÔNG được khai báo và không được serialize ra JSON** (chỉ có trường `example` chứa câu ví dụ đơn `exampleSentence`).
    - Quét toàn bộ mã nguồn frontend (`frontend/src`): **hoàn toàn KHÔNG CÓ trường `exampleParagraph`** (0 kết quả tìm kiếm).
 
-3. **Nguyên nhân thực tế của dung lượng ~545 KB**:
-   - Backend hiện tại nạp toàn bộ từ vựng thuộc mọi bộ thẻ trong lộ trình vào bộ nhớ JVM (`allVocabs = vocabularyRepository.findByDeckIdIn(deckIds)`), sau đó convert toàn bộ tập hợp đã chọn thành một mảng khổng lồ gồm **6.761 đối tượng `TermCardDto`**.
-   - Mỗi đối tượng JSON chứa đầy đủ 7 trường (`id`, `term`, `definition`, `pronunciation`, `partOfSpeech`, `example`, `synonyms`), trung bình ~80 bytes/đối tượng JSON $\times$ 6.761 đối tượng $\approx$ 545.900 bytes.
+3. **Nguyên nhân thực tế của dung lượng ~545 KB & Kiểm đếm thực tế (Verified Audit)**:
+   - Cơ sở dữ liệu đọc **6.761 dòng** qua các bảng `vocabularies`, `study_progress`, `vocabulary_synonyms`.
+   - Sau khi deduplicate theo `normalizeWord` và phân loại SM-2 trong bộ nhớ, hàng đợi chọn ra **1.750 thẻ** (`cards.length = 1.750`), bao gồm:
+     - **1.250 thẻ đến hạn ôn tập** (`dueCount = 1.250`).
+     - **500 thẻ yếu cần củng cố** (`weakCount = 500`).
+     - **0 thẻ mới** (`newCount = 0`).
+     - **0 thẻ khác** (`otherCount = 0`).
+     - Tổng cộng: **1.750 thẻ** (`totalCount = 1.750`).
+   - Dung lượng JSON thô (raw): **545.900 bytes (~533,11 KB)**, trung bình ~312 bytes/thẻ JSON.
+   - Dung lượng khi nén Gzip (`Accept-Encoding: gzip`): **32.533 bytes (~31,77 KB)**, giảm **-94,0%** băng thông mạng!
 
 4. **Kiểm tra mức độ sử dụng ở Frontend**:
    - Các component hiển thị chính: `DailyGateReminder.jsx`, `AppDock.jsx`, `SpacedRepetitionCard.jsx`, `StudyPlanPage.jsx` gọi `getTodayQueue()` **CHỈ ĐỂ LẤY CÁC TRƯỜNG ĐẾM TỔNG QUAN**:
@@ -253,3 +261,60 @@ Số liệu đo đạc chuẩn hóa qua `ExplainPlanIntegrationTest` (1 lần kh
 3. **Phân rã CSS tự động**: Nhờ lazy loading các route, file CSS chính `index.css` giảm từ **366.56 kB xuống 141.20 kB raw (từ 62.45 kB xuống 24.89 kB gzip)**, các trang nặng như `RpgLibraryWorkspace`, `DeckDetailPage`, `ContextStoryCloze`, `DeckFormModal` đều sở hữu chunk CSS riêng và chỉ được tải về khi người dùng truy cập.
 4. **An toàn trước lỗi tải Chunk (Stale Chunks Resiliency)**: `ErrorBoundary` được nâng cấp để tự động phát hiện lỗi dynamic import (thường xảy ra khi một đợt deploy mới xóa các hashed chunk cũ) và kích hoạt tự động reload lại trang 1 lần (dùng cờ `sessionStorage.getItem('chunk_reload_attempted')` ngăn chặn lặp vô hạn). Nút **Tải lại trang** được trang bị sẵn sàng trên giao diện người dùng.
 5. **Cơ chế Prefetch thông minh**: Tích hợp `preloadRoute` trên cả 3 thanh điều hướng chính (`AppSidebar`, `MobileBottomNav`, `AppDock`). Ngay khi người dùng di chuột (`hover`) hoặc chuyển phím (`focus`) vào biểu tượng điều hướng, mã nguồn trang tương ứng sẽ được fetch trước ngầm, loại bỏ hoàn toàn độ trễ khi chuyển trang. Mỗi route chỉ được fetch tối đa 1 lần nhờ cơ chế deduplication bằng `Set`.
+
+
+---
+
+## 7. Kết Quả Tối Ưu Sau Giai Đoạn 3 (Batch Hóa Đường Ghi Nóng)
+
+Giai đoạn 3 tập trung giải quyết triệt để hai điểm nghẽn ghi dữ liệu nghiêm trọng nhất của hệ thống:
+1. **`PUT /api/decks/{id}`**: Thay thế Hibernate dirty checking N+1 lặp 500 thẻ bằng `JdbcTemplate.batchUpdate` có diff in-memory.
+2. **`POST /api/study/sessions` + `POST /answers`**: Thay thế vòng lặp SM-2, XP check và insert đơn lẻ bằng Bulk SM-2 PostgreSQL UPSERT, batch insert answers và batch XP check/award $O(1)$.
+3. **`createSession` Hard Gate Optimization**: Tối ưu hóa kiểm tra hard-gate của `createSession` bằng query nhẹ `hasCardsToStudyToday` (dùng `SELECT EXISTS (...) LIMIT 1`) thay vì load toàn bộ plan aggregate nặng nề.
+
+### 7.1. Bảng Đối Chiếu Chỉ Số Baseline B1 vs Giai Đoạn 3 (Đo Thực Tế Trên PostgreSQL 18.4)
+
+*Tất cả số liệu đo trực tiếp qua `PerfBaselineRunnerIntegrationTest` trên database kiểm thử độc lập `language_learning_test` (port 5433).*
+
+| STT | Endpoint / Kịch bản đo | Chỉ số | Baseline B1 (Trước P3) | Sau Giai đoạn 3 (Thực tế) | Tỷ lệ cải thiện | Đánh giá kiến trúc & Cơ chế tối ưu |
+| :---: | :--- | :---: | :---: | :---: | :---: | :--- |
+| **1a** | **Ghi nhận 20 câu trả lời**<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu)<br>*(Chưa chạm cap XP)* | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | **208 q**<br>1 (1 r)<br>75 r<br>**464 - 526 ms**<br>1.345 ms | **15 q**<br>4 (61 r)<br>44 r<br>**49 ms**<br>509 ms | **-92,8% queries**<br>-<br>-<br>**-89,9% thời gian**<br>-62,2% COLD | **Bulk SM-2 & Batch XP**: Gom 20 câu vào 1 query validate từ vựng `IN (...)`, 1 query check duplicate `IN (...)`, 1 query load progress `IN (...)`, 1 JDBC batch insert `study_answers`, 1 PostgreSQL native `INSERT ... ON CONFLICT DO UPDATE` batch upsert `study_progress`, và 4 queries cho batch XP. Query count giảm từ 208 xuống 15! |
+| **1b** | **Ghi nhận 20 câu trả lời**<br>`POST /api/study/sessions`<br>+ `POST /answers` (20 câu)<br>*(Đã chạm cap XP)* | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | **188 q**<br>1 (1 r)<br>75 r<br>**303 ms**<br>401 ms | **14 q**<br>4 (61 r)<br>44 r<br>**52 ms**<br>47 ms | **-92,6% queries**<br>-<br>-<br>**-82,8% thời gian**<br>-88,3% COLD | Tương tự 1a, nhưng do user đã chạm Daily XP cap, bỏ qua 1 câu `addXpAtomic` nên chỉ còn đúng 14 queries. |
+| **1c** | **Ghi nhận 100 câu trả lời**<br>`POST /api/study/sessions`<br>+ `POST /answers` (100 câu)<br>*(Chưa chạm cap XP)* | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | *(Ước tính lý thuyết<br>~1.008 q, không đo ở B1)* | **15 q**<br>3 (201 r)<br>304 r<br>**82 ms**<br>104 ms | **Độ phức tạp $O(1)$**<br>(100 câu vẫn tốn 15 queries) | **Chứng minh $O(1)$ query complexity**: Dù kích thước batch tăng gấp 5 lần (từ 20 lên 100 câu), số query giữ nguyên tuyệt đối 15 queries. Thời gian chỉ 82 ms. |
+| **1d** | **Ghi nhận 100 câu trả lời**<br>`POST /api/study/sessions`<br>+ `POST /answers` (100 câu)<br>*(Đã chạm cap XP)* | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | *(Ước tính lý thuyết<br>~908 q, không đo ở B1)* | **14 q**<br>3 (201 r)<br>304 r<br>**65 ms**<br>62 ms | **Độ phức tạp $O(1)$**<br>(100 câu vẫn tốn 14 queries) | Số query giữ nguyên 14 queries khi tăng lên 100 câu. Thời gian thực thi chỉ 65 ms. |
+| **1e** | **Khởi tạo session độc lập**<br>`POST /api/study/sessions`<br>*(Không plan / Không bật hard gate)* | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | *(Ước tính ~4-5 q<br>khi gọi getCurrentPlan)* | **4 q**<br>0 (0 r)<br>2 r<br>**10 ms**<br>11 ms | **Đo thật từ harness** | Gồm 1 query kiểm tra plan hard gate, 1 query kiểm tra deck ownership, 1 query count items, 1 query insert session. |
+| **1f** | **Khởi tạo session độc lập**<br>`POST /api/study/sessions`<br>*(Bật hard gate, còn thẻ cần học)* | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | *(Ước tính ~4-5 q<br>khi gọi getCurrentPlan)* | **2 q**<br>0 (0 r)<br>2 r<br>**39 ms**<br>62 ms | **Chặn sớm $O(1)$**<br>(Status 400 Bad Request) | Gồm 1 query nạp plan có hard gate, 1 query `hasCardsToStudyToday` (dùng `SELECT EXISTS (...) LIMIT 1` dừng ngay ở thẻ đầu tiên). Ném `HARD_GATE_ACTIVE`. |
+| **2** | **PUT Deck (a: Sửa 500 thẻ có sẵn)**<br>`PUT /api/decks/{id}` | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | **2.501 q**<br>999 (1.000 r)<br>1.501 r<br>**1.958 - 2.271 ms**<br>2.839 ms | **7 q**<br>2 (1.000 r)<br>1.501 r<br>**128 ms**<br>373 ms | **-99,7% queries**<br>Batch gom thực sự<br>-<br>**-93,5% thời gian**<br>-86,9% COLD | **Bulk JDBC Update**: Thay dirty-checking N+1 bằng `jdbcTemplate.batchUpdate`. 1.000 dòng được cập nhật trọn vẹn trong đúng 2 batch JDBC (`b:2(1000)`). Số query giảm ngoạn mục từ 2.501 xuống 7. |
+| **2'** | **PUT Deck (a': Sửa 500 thẻ không đổi)**<br>`PUT /api/decks/{id}` | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)**<br>Thời gian (COLD) | *(Trước đây tốn<br>2.501 queries)* | **4 q**<br>0 (0 r)<br>1.501 r<br>**66 ms**<br>62 ms | **-100% write queries**<br>(0 batch, 0 updates) | **Diff In-Memory**: So khớp toàn bộ thuộc tính thẻ và synonyms trong RAM trước khi gửi SQL. Nếu người dùng lưu bộ thẻ mà không sửa nội dung thẻ, 0 câu UPDATE/DELETE nào được phát sinh tới DB. |
+| **3** | **PUT Deck (b: Thêm 500 thẻ mới)**<br>`PUT /api/decks/{id}` | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)** | **5 q**<br>0 (0 r)<br>501 r<br>**106 - 111 ms** | **5 q**<br>0 (0 r)<br>501 r<br>**127 ms** | **0% suy thoái**<br>(Duy trì tối ưu có sẵn) | Giữ nguyên đường dẫn bulk insert đa dòng `createCardsForDeckBatch`. |
+| **4** | **PUT Deck (c: Xóa 500 thẻ)**<br>`PUT /api/decks/{id}` | **Số query**<br>Batch<br>Dòng đọc<br>**Thời gian (WARM)** | **9 q**<br>2 (2 r)<br>504 r<br>**44 - 71 ms** | **9 q**<br>2 (2 r)<br>504 r<br>**68 ms** | **0% suy thoái**<br>(Duy trì tối ưu có sẵn) | Giữ nguyên 9 queries warm, 504 dòng đọc. |
+
+### 7.2. Phân Tích Chi Tiết 14 - 15 Câu Lệnh Của Chuỗi `createSession + recordAnswers`
+
+Ghi nhận thẳng thắn: Mục tiêu lý tưởng "$\le 12$ query / 20 câu" hiện **chưa đạt** (thực tế đo được là **14 queries** khi đã chạm cap XP và **15 queries** khi chưa chạm cap XP). Tuy nhiên, so với 208 queries ban đầu, con số này đã giảm **-92,8%** và duy trì ổn định $O(1)$ cho cả batch 100 câu.
+
+Toàn bộ 14 - 15 câu lệnh thực tế được phân theo các nhóm chức năng rõ ràng như sau:
+
+#### Nhóm I: Khởi tạo phiên học `createSession` (4 queries khi không hard gate)
+1. `SELECT ... FROM study_plans WHERE user_id = ? AND status = 'ACTIVE' AND hard_gate_enabled = TRUE`: Kiểm tra nhanh trạng thái khóa tập trung (trả về rỗng).
+2. `SELECT ... FROM vocabulary_sets WHERE id = ? AND user_id = ?`: Xác thực quyền sở hữu và kiểm tra sự tồn tại của bộ từ.
+3. `SELECT count(*) FROM vocabulary_set_items WHERE vocabulary_set_id = ?`: Đếm số thẻ thuộc bộ từ vựng (Spring Data count mapping).
+4. `INSERT INTO study_sessions (...) VALUES (...)`: Lưu phiên học mới vào database.
+
+#### Nhóm II: Ghi nhận câu trả lời `recordAnswers` (10 - 11 queries)
+5. **Khóa phiên học (Session Row Lock)**: `SELECT ... FROM study_sessions WHERE id = ? AND user_id = ? FOR NO KEY UPDATE` (bảo đảm an toàn giao dịch).
+6. **Xác thực từ vựng thuộc deck**: `SELECT vocabulary_id FROM vocabulary_set_items WHERE vocabulary_set_id = ? AND vocabulary_id IN (...)` (1 query kiểm tra tập hợp).
+7. **Kiểm tra đáp án trùng lặp**: `SELECT client_answer_id, override, is_correct FROM study_answers WHERE session_id = ? AND client_answer_id IN (...)` (phát hiện retry và overrides).
+8. **Chèn đáp án hàng loạt (Batch Insert Answers)**: `INSERT INTO study_answers (...) VALUES (...) ON CONFLICT (session_id, client_answer_id) WHERE client_answer_id IS NOT NULL DO NOTHING RETURNING client_answer_id` (chèn đa dòng nguyên tử, chống race condition).
+9. **Khóa hàng tiến độ (Progress Row Lock)**: `SELECT * FROM study_progress WHERE user_id = ? AND vocabulary_id IN (...) ORDER BY vocabulary_id FOR UPDATE` (nạp dữ liệu và khóa độc quyền theo thứ tự `vocabulary_id` tăng dần để triệt tiêu hoàn toàn nguy cơ deadlock).
+10. **Cập nhật tiến độ & SM-2 hàng loạt (Bulk UPSERT Progress)**: `INSERT INTO study_progress (...) VALUES (...) ON CONFLICT (user_id, vocabulary_id) DO UPDATE SET ...` (1 lệnh batch JDBC duy nhất cập nhật cả counters lẫn lịch lặp SM-2).
+11. **Kiểm tra hạn ngạch XP trong ngày**: `SELECT coalesce(sum(xp), 0) FROM xp_events WHERE user_id = ? AND created_at >= ? AND created_at < ?` (1 query tính hạn mức còn lại đối với trần 500 XP).
+12. **Kiểm tra khóa trùng lặp sự kiện XP**: `SELECT source_key FROM xp_events WHERE user_id = ? AND source_type = 'STUDY_ANSWER' AND source_key IN (...)` (đảm bảo tính idempotent của XP).
+13. **Chèn nhật ký sự kiện XP (Batch Insert Events)**: `INSERT INTO xp_events (...) VALUES (...) ON CONFLICT DO NOTHING` (1 lệnh batch JDBC ghi nhận toàn bộ điểm thành phần).
+14. **Cộng dồn XP nguyên tử vào User** *(chỉ chạy khi chưa chạm cap XP)*: `INSERT INTO user_xp (user_id, total_xp, updated_at) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET total_xp = user_xp.total_xp + ?` (cập nhật tổng XP một lần duy nhất cho cả batch).
+15. **Cập nhật bộ đếm phiên học (Save Session)**: `UPDATE study_sessions SET total_questions = ?, correct_answers = ?, wrong_answers = ? WHERE id = ?` (cập nhật tổng số câu đúng/sai của session).
+
+#### Cơ hội tối ưu để rút xuống $\le 12$ queries trong các giai đoạn tiếp theo:
+- **Rút gọn query count ở createSession (-1 q)**: Bỏ câu lệnh `SELECT count(*)` của `vocabulary_set_items` bằng cách lưu trường cache `total_cards` trên bảng `vocabulary_sets`.
+- **Gộp bước kiểm tra XP (-2 q)**: Tích hợp kiểm tra hạn ngạch và duplicate XP qua Redis cache hoặc một function SQL gộp duy nhất.
+- **Rút gọn kiểm tra client_answer_id (-1 q)**: Bỏ bước `SELECT client_answer_id` ở Step 2, tin tưởng hoàn toàn vào `INSERT ... ON CONFLICT DO NOTHING RETURNING`.

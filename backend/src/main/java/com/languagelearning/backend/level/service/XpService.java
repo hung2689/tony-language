@@ -9,11 +9,15 @@ import com.languagelearning.backend.level.repository.UserXpRepository;
 import com.languagelearning.backend.level.repository.XpEventRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class XpService {
@@ -23,9 +27,127 @@ public class XpService {
     private final UserXpRepository userXpRepository;
     private final XpEventRepository xpEventRepository;
 
+    @Autowired(required = false)
+    private JdbcTemplate jdbcTemplate;
+
     public XpService(UserXpRepository userXpRepository, XpEventRepository xpEventRepository) {
         this.userXpRepository = userXpRepository;
         this.xpEventRepository = xpEventRepository;
+    }
+
+    public record AnswerXpItem(String clientAnswerId, boolean isCorrect, int attemptNo, boolean isOverride) {}
+
+    /**
+     * Batch awards answer XP in consolidated queries:
+     * 1) 1 query for daily remaining quota
+     * 2) 1 query to check existing clientAnswerIds
+     * 3) 1 batch insert into xp_events
+     * 4) 1 atomic update into user_xp (if totalBatchXp > 0)
+     */
+    @Transactional
+    public int awardAnswersBatchXp(Long userId, List<AnswerXpItem> items, Instant now) {
+        if (userId == null || items == null || items.isEmpty()) {
+            return 0;
+        }
+        if (now == null) now = Instant.now();
+
+        // 1. Collect non-blank clientAnswerIds (deduplicate within batch)
+        List<AnswerXpItem> validItems = new ArrayList<>();
+        Set<String> uniqueKeys = new HashSet<>();
+        for (AnswerXpItem item : items) {
+            if (item.clientAnswerId() != null && !item.clientAnswerId().isBlank()) {
+                String key = item.clientAnswerId().trim();
+                if (uniqueKeys.add(key)) {
+                    validItems.add(new AnswerXpItem(key, item.isCorrect(), item.attemptNo(), item.isOverride()));
+                }
+            }
+        }
+        if (validItems.isEmpty()) {
+            return 0;
+        }
+
+        // 2. Daily cap check
+        ZoneOffset offset = ZoneOffset.UTC;
+        LocalDate today = now.atOffset(offset).toLocalDate();
+        Instant startOfDay = today.atStartOfDay().toInstant(offset);
+        Instant endOfDay = today.plusDays(1).atStartOfDay().toInstant(offset);
+
+        long currentDailyXp = xpEventRepository.sumXpByUserIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
+        long remainingQuota = Math.max(0L, XpConfig.DAILY_CAP_XP - currentDailyXp);
+
+        // 3. Find existing keys
+        Set<String> existingKeys = new HashSet<>();
+        if (jdbcTemplate != null) {
+            String placeholders = validItems.stream().map(i -> "?").collect(Collectors.joining(", "));
+            List<Object> params = new ArrayList<>();
+            params.add(userId);
+            validItems.forEach(i -> params.add(i.clientAnswerId()));
+            List<String> found = jdbcTemplate.query(
+                    "SELECT source_key FROM xp_events WHERE user_id = ? AND source_type = 'STUDY_ANSWER' AND source_key IN (" + placeholders + ")",
+                    (rs, rowNum) -> rs.getString("source_key"),
+                    params.toArray()
+            );
+            existingKeys.addAll(found);
+        } else {
+            for (AnswerXpItem item : validItems) {
+                if (xpEventRepository.existsByUserIdAndSourceTypeAndSourceKey(userId, "STUDY_ANSWER", item.clientAnswerId())) {
+                    existingKeys.add(item.clientAnswerId());
+                }
+            }
+        }
+
+        // 4. Calculate actual XP for each item
+        List<Object[]> eventsToInsert = new ArrayList<>();
+        int totalBatchXp = 0;
+        java.sql.Timestamp nowTimestamp = java.sql.Timestamp.from(now);
+
+        for (AnswerXpItem item : validItems) {
+            if (existingKeys.contains(item.clientAnswerId())) {
+                continue;
+            }
+
+            int requestedXp = XpConfig.WRONG_OR_SKIPPED_XP;
+            if (item.isOverride()) {
+                requestedXp = XpConfig.OVERRIDE_XP;
+            } else if (item.isCorrect()) {
+                requestedXp = (item.attemptNo() <= 1) ? XpConfig.FIRST_ATTEMPT_CORRECT_XP : XpConfig.RETRY_CORRECT_XP;
+            }
+
+            int actualXp = (int) Math.min(requestedXp, remainingQuota);
+            remainingQuota -= actualXp;
+            totalBatchXp += actualXp;
+
+            eventsToInsert.add(new Object[]{userId, "STUDY_ANSWER", item.clientAnswerId(), actualXp, nowTimestamp});
+        }
+
+        if (eventsToInsert.isEmpty()) {
+            return 0;
+        }
+
+        // 5. Batch insert events
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate(
+                    "INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) " +
+                    "VALUES (?, ?, ?, ?, ?) ON CONFLICT (user_id, source_type, source_key) DO NOTHING",
+                    eventsToInsert
+            );
+        } else {
+            for (Object[] row : eventsToInsert) {
+                XpEvent event = new XpEvent((Long) row[0], (String) row[1], (String) row[2], (Integer) row[3]);
+                try {
+                    xpEventRepository.save(event);
+                } catch (DataIntegrityViolationException ex) {
+                    log.debug("Concurrent XP event race caught for user {} source {}:{}", userId, row[1], row[2]);
+                }
+            }
+        }
+
+        // 6. Atomically update total XP if earned
+        if (totalBatchXp > 0) {
+            userXpRepository.addXpAtomic(userId, totalBatchXp, now);
+        }
+
+        return totalBatchXp;
     }
 
     @Transactional(readOnly = true)
