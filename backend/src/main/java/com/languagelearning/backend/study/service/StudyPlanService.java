@@ -796,7 +796,7 @@ public class StudyPlanService {
      */
     @Transactional(readOnly = true)
     public SrsForecastResponse getDeckForecast(Long userId, Long deckId) {
-        VocabularySet deck = vocabularySetRepository.findById(deckId)
+        VocabularySet deck = vocabularySetRepository.findByIdAndUserId(deckId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("DECK_NOT_FOUND", "Không tìm thấy bộ từ vựng"));
         List<Vocabulary> vocabs = vocabularyRepository.findByDeckId(deckId);
         return computeForecast(userId, deckId, deck.getName(), vocabs);
@@ -845,7 +845,7 @@ public class StudyPlanService {
      */
     @Transactional(readOnly = true)
     public TodayStudyQueueResponse getDeckStudyQueue(Long userId, Long deckId) {
-        VocabularySet deck = vocabularySetRepository.findById(deckId)
+        VocabularySet deck = vocabularySetRepository.findByIdAndUserId(deckId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("DECK_NOT_FOUND", "Không tìm thấy bộ từ vựng"));
 
         List<Vocabulary> vocabs = vocabularyRepository.findByDeckId(deckId);
