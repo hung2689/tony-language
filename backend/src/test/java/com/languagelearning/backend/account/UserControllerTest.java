@@ -25,6 +25,9 @@ class UserControllerTest {
     @Mock
     private UserProfileRepository userProfileRepository;
 
+    @Mock
+    private com.languagelearning.backend.level.service.XpService xpService;
+
     @InjectMocks
     private UserController userController;
 
@@ -37,6 +40,9 @@ class UserControllerTest {
 
         when(currentUserProvider.getCurrentUser()).thenReturn(user);
         when(userProfileRepository.findByUserId(1L)).thenReturn(Optional.of(profile));
+        when(xpService.getLevelInfo(1L)).thenReturn(new com.languagelearning.backend.level.dto.LevelInfoDto(
+                1, 0L, 0L, 100L, 1, "Đồng", false
+        ));
 
         UserMeResponse response = userController.getCurrentUser();
 
