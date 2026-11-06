@@ -196,7 +196,7 @@ describe('LearnFeedback Redesign (Incorrect Answer UI)', () => {
       margin: 0;
       padding: 40px 20px;
       min-height: 100vh;
-      background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.jpg') no-repeat center top / cover fixed;
+      background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.webp') no-repeat center top / cover fixed;
       font-family: 'Merriweather', 'Lora', serif;
       display: flex;
       flex-direction: column;
@@ -251,7 +251,7 @@ describe('LearnFeedback Redesign (Incorrect Answer UI)', () => {
       margin: 0;
       padding: 40px 20px;
       min-height: 100vh;
-      background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.jpg') no-repeat center top / cover fixed;
+      background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.webp') no-repeat center top / cover fixed;
       font-family: 'Merriweather', 'Lora', serif;
       display: flex;
       flex-direction: column;

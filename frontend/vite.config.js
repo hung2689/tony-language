@@ -14,6 +14,9 @@ export default defineConfig({
       brotliSize: true,
     }),
   ].filter(Boolean),
+  build: {
+    assetsDir: 'static',
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

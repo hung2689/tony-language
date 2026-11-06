@@ -128,7 +128,7 @@ export default function SpacedRepetitionForecastModal({
       <div className="srs-popup-card">
         {/* Cutout Asset: Top-left Compass Rose with Foliage */}
         <img
-          src="/assets/popup/popup_compass_rose.png"
+          src="/assets/nen_texture/ornament_compass_rose.png"
           alt=""
           className="srs-popup-compass-rose"
           aria-hidden="true"

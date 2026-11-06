@@ -116,14 +116,16 @@
     - **Tỷ lệ giảm băng thông mạng**: **-88,6%**!
 
 ### 5.2. Migration Index Database V10 (Phần 1B)
-Đã bổ sung các composite index và stored generated column `word_norm`:
-- `LIST_DECKS` (`SELECT * FROM vocabulary_sets WHERE user_id = ? ORDER BY created_at DESC`):
-  - Execution Time: **0.395 ms -> 0.197 ms (-50.1%)**.
-  - Plan Node: Loại bỏ hoàn toàn node `Sort`, chuyển sang `Index Scan using idx_vocabulary_sets_user_created`.
-- `DECK_STATS` (`SELECT COUNT(...) FROM study_plan_decks JOIN vocabulary_set_items...`):
-  - Execution Time: **16.928 ms -> 3.196 ms (-81.1%)**.
-  - Buffers: Shared hit giảm mạnh từ 4.887 buffers xuống 964 buffers.
-- `PLAN_AGGREGATE`: Đạt ~13.5 ms execution time với composite index.
+Số liệu đo đạc chuẩn hóa qua `ExplainPlanIntegrationTest` (1 lần khởi động + 5 lần đo lấy trung vị, trên cùng cơ sở dữ liệu đã seed 20 deck, 5.000 vocabularies, 10.000 study progress):
+
+| Truy vấn | Giai đoạn | Planning Time (ms) | Execution Time (ms) | Buffers (Shared Hit / Read) | Ghi chú & Đánh giá thay đổi |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **`LIST_DECKS`** | Trước V10 | **0,056 ms** | **0,036 ms** | Hit: 2 / Read: 0 | `Seq Scan` + `Sort (created_at DESC)` in-memory trên 20 bộ từ. |
+| | Sau V10 | **0,103 ms** | **0,053 ms** | Hit: 2 / Read: 0 | **Loại bỏ hoàn toàn bước Sort**, dùng `Index Scan using idx_vocabulary_sets_user_created`. Với tập dữ liệu nhỏ trong buffer cache, thời gian đo tương đương nhau (~0,04 - 0,05 ms); lợi ích chính là bảo vệ DB không bị Sort in-memory khi số lượng bộ từ tăng cao. |
+| **`DECK_STATS`** | Trước V10 | **0,533 ms** | **1,562 ms** | Hit: 151 / Read: 0 | Dùng `idx_study_plan_decks_plan_order` và `idx_vocabulary_set_items_deck_vocab`. |
+| | Sau V10 | **0,678 ms** | **1,730 ms** | Hit: 151 / Read: 0 | **V10 không thay đổi index nào của query này** (các index đã có từ V9 trở về trước), thời gian thực thi dao động ngẫu nhiên ổn định ~1,56 - 1,73 ms. (Số 3,2 ms trước đây là đo đơn lẻ khi chưa warm-up). |
+| **`PLAN_AGGREGATE`** | Trước V10 | **0,515 ms** | **7,228 ms** | Hit: 41.416 / Read: 0 | `HashAggregate` trên biểu thức chuỗi `LOWER(BTRIM(v.word, ...))`, kích thước tuple 40 bytes. |
+| | Sau V10 | **0,483 ms** | **5,662 ms** | Hit: 41.416 / Read: 0 | **Dùng cột sinh `v.word_norm`**: Execution time giảm **-21,7%** (từ 7,23 ms xuống 5,66 ms), kích thước tuple HashAggregate giảm một nửa (từ 40 bytes xuống 22 bytes), Planning Time giảm nhẹ từ 0,52 ms xuống 0,48 ms. |
 
 ### 5.3. Tối ưu Asset Frontend & Cache Headers (Phần 1C)
 - Dung lượng thư mục `frontend/public`: **72.98 MB -> 9.15 MB (-87.5%)**.

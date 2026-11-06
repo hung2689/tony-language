@@ -90,5 +90,47 @@ public class WordNormTest {
         assertEquals(nfdWord, dbWordNorm, "PostgreSQL word_norm loại bỏ khoảng trắng và chuyển chữ thường trên chuỗi NFD");
         // When normalized in Java, both converge to canonical NFC
         assertEquals(Normalizer.normalize(dbWordNorm, Normalizer.Form.NFC), normalizeWord(nfdWord));
+
+        // Kiểm tra xem dbWordNorm và javaWordNorm có bằng nhau không với input NFD:
+        String javaWordNorm = normalizeWord("  " + nfdWord + "  ");
+        assertNotEquals(javaWordNorm, dbWordNorm, "Với chuỗi NFD, word_norm (NFD) và Java normalizeWord (NFC) KHÔNG BẰNG NHAU!");
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("Kiểm tra khả năng dùng normalize(word, NFC) trong PostgreSQL Generated Column")
+    void testPostgresNormalizeFunctionAndGeneratedColumn() {
+        // 1. Kiểm tra hàm normalize có tồn tại và thuộc tính provolatile
+        try {
+            String provolatile = jdbcTemplate.queryForObject(
+                    "SELECT provolatile::text FROM pg_proc WHERE proname = 'normalize' LIMIT 1",
+                    String.class
+            );
+            System.out.println("=== PostgreSQL normalize() provolatile: " + provolatile + " ('i' = IMMUTABLE) ===");
+        } catch (Exception e) {
+            System.out.println("=== Không tìm thấy hàm normalize trong pg_proc: " + e.getMessage());
+        }
+
+        // 2. Thử tạo bảng với GENERATED ALWAYS AS (normalize(..., NFC)) STORED
+        try {
+            jdbcTemplate.execute(
+                    "CREATE TEMP TABLE temp_vocab_norm (" +
+                    "  id serial primary key, " +
+                    "  word text, " +
+                    "  word_norm text GENERATED ALWAYS AS (normalize(lower(btrim(word, E' \t\n\r')), NFC)) STORED" +
+                    ")"
+            );
+            System.out.println("=== THÀNH CÔNG: PostgreSQL CHO PHÉP dùng normalize(..., NFC) trong GENERATED ALWAYS AS ... STORED ===");
+
+            // Test insert NFD into temp table
+            String nfcWord = "tiếng việt";
+            String nfdWord = Normalizer.normalize(nfcWord, Normalizer.Form.NFD);
+            jdbcTemplate.update("INSERT INTO temp_vocab_norm (word) VALUES (?)", "  " + nfdWord + "  ");
+            String genNorm = jdbcTemplate.queryForObject("SELECT word_norm FROM temp_vocab_norm LIMIT 1", String.class);
+            System.out.println("=== Giá trị sau normalize(...) trong DB: " + genNorm + " (Khớp NFC: " + nfcWord.equals(genNorm) + ") ===");
+            assertEquals(nfcWord, genNorm, "normalize(..., NFC) đã chuyển NFD thành NFC ngay trong DB!");
+        } catch (Exception e) {
+            System.out.println("=== THẤT BẠI: PostgreSQL KHÔNG cho phép: " + e.getMessage());
+        }
     }
 }
