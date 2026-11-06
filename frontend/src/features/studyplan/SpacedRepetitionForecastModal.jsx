@@ -142,26 +142,32 @@ export default function SpacedRepetitionForecastModal({
           aria-label="Đóng cửa sổ"
         >
           <img
-            src="/assets/popup/popup_close_button.png"
+            src="/assets/popup/popup_close_button.webp"
             alt="Đóng"
             className="srs-popup-close-img"
+            loading="lazy"
+            decoding="async"
           />
         </button>
 
         {/* Cutout Asset: Subtle Maritime Waves at bottom-left */}
         <img
-          src="/assets/popup/popup_wave_decor.png"
+          src="/assets/popup/popup_wave_decor.webp"
           alt=""
           className="srs-popup-wave-decor"
           aria-hidden="true"
+          loading="lazy"
+          decoding="async"
         />
 
         {/* Cutout Asset: Subtle Pirate Ship at bottom-right */}
         <img
-          src="/assets/popup/popup_ship_decor.png"
+          src="/assets/popup/popup_ship_decor.webp"
           alt=""
           className="srs-popup-ship-decor"
           aria-hidden="true"
+          loading="lazy"
+          decoding="async"
         />
 
         {/* Header Section */}

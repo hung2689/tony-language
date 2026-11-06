@@ -29,7 +29,7 @@
 .lexicon-profile-shell {
   width: 100%;
   min-height: calc(100vh - 64px);
-  background: var(--profile-paper) url('/assets/nen_texture/texture_parchment_main.png') center / cover no-repeat;
+  background: var(--profile-paper) url('/assets/nen_texture/texture_parchment_panel.webp') center / cover no-repeat;
   color: var(--profile-ink);
 }
 
@@ -45,7 +45,7 @@
       rgba(232, 208, 160, 0.55) 0%,
       rgba(218, 189, 134, 0.65) 100%
     ),
-    url('/assets/nen_texture/texture_parchment_main.png') center / cover no-repeat;
+    url('/assets/nen_texture/texture_parchment_panel.webp') center / cover no-repeat;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -95,7 +95,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  background-image: url("/assets/profile/backgrounds/wanted-poster-bg.png");
+  background-image: url("/assets/profile/backgrounds/wanted-poster-bg.webp");
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -317,7 +317,7 @@
   isolation: isolate;
   width: 100%;
   min-width: 0;
-  background-image: url("/assets/profile/backgrounds/profile-paper-bg.png");
+  background-image: url("/assets/profile/backgrounds/profile-paper-bg.webp");
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;

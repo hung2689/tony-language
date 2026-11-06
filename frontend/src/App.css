@@ -281,7 +281,7 @@
   padding: 18px 16px;
   background:
     linear-gradient(180deg, rgba(11, 14, 20, 0.45) 0%, rgba(11, 14, 20, 0.95) 85%),
-    url('/wallpapers/wallpaper-valley.jpg') center bottom / cover no-repeat;
+    url('/wallpapers/wallpaper-valley.webp') center bottom / cover no-repeat;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.45);
 }

@@ -194,6 +194,7 @@ export default function WallpaperModal() {
                         alt={wp.name}
                         className="wallpaper-thumb-img"
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="wallpaper-thumb-blank">

@@ -32,7 +32,7 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   max-height: 100dvh !important;
   -webkit-overflow-scrolling: touch !important;
   background-color: #F3E6C8 !important;
-  background-image: url('/assets/flashcard/vintage-map-bg.jpg') !important;
+  background-image: url('/assets/flashcard/vintage-map-bg.webp') !important;
   background-size: cover !important;
   background-position: center top !important;
   background-repeat: no-repeat !important;
@@ -484,7 +484,7 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   border-radius: 12px !important;
   box-shadow: none !important;
   background-color: transparent !important;
-  background-image: url('/assets/flashcard/flashcard-page.png') !important;
+  background-image: url('/assets/flashcard/flashcard-page.webp') !important;
   background-repeat: no-repeat !important;
   background-position: center center !important;
   background-size: 100% 100% !important;
@@ -957,7 +957,7 @@ body.flashcard-zen-active .deck-page-shell .deck-detail-content {
   height: 100vh !important;
   height: 100dvh !important;
   z-index: 99999 !important;
-  background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.jpg') no-repeat center center / cover !important;
+  background: #F3E6C8 url('/assets/flashcard/vintage-map-bg.webp') no-repeat center center / cover !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;

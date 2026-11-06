@@ -1,11 +1,11 @@
 // Verified local asset paths from /public/assets/ (extracted from lexicon_assets_named_transparent)
 export const LEXICON_ASSETS = {
   islands: {
-    forest: '/assets/dao_dia_hinh/island_forest_beginnings.png',
-    village: '/assets/dao_dia_hinh/island_village_conversations.png',
-    mountains: '/assets/dao_dia_hinh/island_mountains_discovery.png',
-    harbor: '/assets/dao_dia_hinh/island_harbor_travel.png',
-    citadel: '/assets/dao_dia_hinh/island_citadel_mastery.png',
+    forest: '/assets/dao_dia_hinh/island_forest_beginnings.webp',
+    village: '/assets/dao_dia_hinh/island_village_conversations.webp',
+    mountains: '/assets/dao_dia_hinh/island_mountains_discovery.webp',
+    harbor: '/assets/dao_dia_hinh/island_harbor_travel.webp',
+    citadel: '/assets/dao_dia_hinh/island_citadel_mastery.webp',
   },
   navIcons: {
     map: '/assets/icon_dieu_huong_menu/icon_navigation_map_compass.png',
@@ -53,18 +53,18 @@ export const LEXICON_ASSETS = {
     telescope: '/assets/decor_icon/decor_telescope.png',
   },
   textures: {
-    worldMapBackground: '/assets/background/backgrounddao.png',
-    parchmentPanel: '/assets/nen_texture/texture_parchment_panel.png',
+    worldMapBackground: '/assets/background/backgrounddao.webp',
+    parchmentPanel: '/assets/nen_texture/texture_parchment_panel.webp',
     parchmentEdgeVertical: '/assets/nen_texture/texture_parchment_edge_vertical.png',
     watercolorWashBlue: '/assets/nen_texture/texture_watercolor_wash_blue.png',
     compassRose: '/assets/nen_texture/ornament_compass_rose.png',
     waveDivider: '/assets/nen_texture/ornament_wave_divider.png',
     redCompassStamp: '/assets/nen_texture/ornament_red_compass_stamp.png',
-    noteBetterWords: '/assets/nen_texture/note_better_words_bigger_horizons.png',
+    noteBetterWords: '/assets/nen_texture/note_better_words_bigger_horizons.webp',
     greenRibbon: '/assets/nen_texture/ornament_green_ribbon.png',
     woodenSign: '/assets/nen_texture/sign_wooden_blank.png',
     leafBranch: '/assets/nen_texture/decor_leaf_branch.png',
-    quoteEveryWord: '/assets/dia_danh/note_quote_every_word_opens_world.png',
+    quoteEveryWord: '/assets/dia_danh/note_quote_every_word_opens_world.webp',
   },
 };
 

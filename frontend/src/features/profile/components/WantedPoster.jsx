@@ -52,7 +52,7 @@ export default function WantedPoster({
             }}
           />
           <img
-            src="/assets/profile/wanted-portrait-overlay.png"
+            src="/assets/profile/wanted-portrait-overlay.webp"
             alt=""
             className="lexicon-wanted-portrait-frame-overlay"
             aria-hidden="true"

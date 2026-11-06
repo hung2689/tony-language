@@ -88,6 +88,7 @@ const AvatarFrame = memo(function AvatarFrame({
             alt={`Ảnh đại diện của ${name}`}
             className="avatar-frame-image"
             loading="lazy"
+            decoding="async"
             onError={(e) => {
               // Hide broken image and fall back gracefully to initials
               e.currentTarget.style.display = 'none';
