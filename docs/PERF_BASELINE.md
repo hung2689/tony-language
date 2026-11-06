@@ -18,24 +18,27 @@ Tài liệu này ghi nhận toàn diện kết quả đo đạc hiệu năng th�
   - 1 Study Plan đang hoạt động (`ACTIVE`) chứa 10 bộ từ vựng (`sort_order` 1..10, `revision = 1`).
 - **Quy trình đo chuẩn hóa**: 1 lần chạy đầu tiên (**COLD RUN**) + 5 lần chạy kế tiếp (**WARM RUNS**), tính giá trị trung vị (**WARM MEDIAN**).
 
-### 1.1. Bảng Đối Chiếu Chỉ Số Backend: Trước (Baseline 0.5) vs Sau (Phase 1 & 2)
+### 1.1. Bảng Đối Chiếu Chỉ Số Backend: Trước (Baseline 0.5 Gốc) vs Sau (Phase 1 & 2)
 
-*Ghi chú nguồn số liệu*: 100% số liệu cột **Trước** lấy từ bản đo Baseline 0.5 gốc; 100% số liệu cột **Sau** được đo thực tế qua `PerfBaselineRunnerIntegrationTest` trên nhánh `perf/phase-2-code-splitting`.
+*Ghi chú nguồn số liệu*:
+- **Cột Trước (Baseline 0.5 Gốc)**: 100% khôi phục nguyên bản từ kết quả đo chuẩn hóa tại commit `e2b4ee6ab2008ef097e0446a7e38f6a4f23a5690`.
+- **Cột Sau (Phase 1 & 2)**: 100% đo thực tế qua `PerfBaselineRunnerIntegrationTest` (chạy trên PostgreSQL 18.4, test database `language_learning_test`, profile `test`) với cơ chế truncate và seed lại dữ liệu trước mỗi kịch bản để đảm bảo tính tái lập 100%.
+- **Chỉ số chính & Độ tin cậy**: **Số query** và **Số dòng DB đọc** là các chỉ số chính có tính **xác định (deterministic)**, lặp lại giống nhau 100% qua mọi lần chạy độc lập. **Thời gian thực thi (ms)** chỉ mang tính tham khảo và nằm trong dải nhiễu dao động của CPU/hệ điều hành.
 
-| Nhóm chức năng / API Endpoint | Chế độ | Số query (Trước 0.5) | Batch Lần / Dòng (Trước) | Dòng DB đọc (Trước) | Thời gian (Trước) | Response Size (Trước) | Số query (Sau P1/P2) | Batch Lần / Dòng (Sau) | Dòng DB đọc (Sau) | Thời gian (Sau) | Response Size (Sau) | Ghi chú kỹ thuật & Đánh giá thay đổi |
+| Nhóm chức năng / API Endpoint | Chế độ | Số query (Trước 0.5) | Batch Lần / Dòng (Trước) | Dòng DB đọc (Trước) | Thời gian (Trước 0.5) | Response Size (Trước) | Số query (Sau P1/P2) | Batch Lần / Dòng (Sau) | Dòng DB đọc (Sau) | Thời gian (Sau P1/P2) | Response Size (Sau) | Ghi chú kỹ thuật & Đánh giá thay đổi |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Ghi nhận học tập theo đợt**:<br>`POST /api/study/sessions`<br>+ `POST /sessions/{id}/answers`<br>(Batch 20 câu) | **COLD**<br>**WARM** | 188 q<br>188 q | 0 (0 r)<br>0 (0 r) | 75 r<br>75 r | 1.026 ms<br>483 ms | 712 B<br>715 B | **188 q**<br>**188 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | **1.514 ms**<br>**559 ms** | 712 B<br>717 B | Hibernate statement batching kích hoạt `b:1(1)`. Vấn đề N+1 query lặp 20 câu sẽ được giải quyết triệt để ở Giai đoạn 3 (Batch SM-2 rewrite). |
-| **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today` | **COLD**<br>**WARM** | 5 q<br>5 q | 0 (0 r)<br>0 (0 r) | 2.831 r<br>2.831 r | 350 ms<br>125 ms | 15.628 B<br>15.628 B | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **2.831 r**<br>**2.831 r** | **515 ms**<br>**155 ms** | 15.628 B<br>15.628 B | Đọc 2.831 dòng dữ liệu lên memory để lọc thẻ. Sẽ được tối ưu bằng SQL aggregation ở Giai đoạn 4. |
-| **Chi tiết lộ trình ôn tập hiện tại**:<br>`GET /api/study-plans/current` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 12 r<br>12 r | 48 ms<br>23 ms | 1.573 B<br>1.573 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **12 r**<br>**12 r** | **54 ms**<br>**36 ms** | 1.573 B<br>1.573 B | Single-source SQL aggregate $O(1)$ từ sprint trước, duy trì ổn định 3 queries và chỉ đọc 12 dòng. |
-| **Tổng quan thống kê học tập**:<br>`GET /api/analytics/overview` | **COLD**<br>**WARM** | 2 q<br>2 q | 0 (0 r)<br>0 (0 r) | 69 r<br>69 r | 15 ms<br>10 ms | 290 B<br>290 B | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **123 r**<br>**123 r** | **36 ms**<br>**12 ms** | 292 B<br>292 B | 2 queries, thời gian phản hồi warm ~12 ms. |
-| **Danh sách từ yếu**:<br>`GET /api/analytics/weak-words?limit=10` | **COLD**<br>**WARM** | 1 q<br>1 q | 0 (0 r)<br>0 (0 r) | 20 r<br>20 r | 14 ms<br>5 ms | 124 B<br>124 B | **1 q**<br>**1 q** | **0 (0 r)**<br>**0 (0 r)** | **20 r**<br>**20 r** | **18 ms**<br>**9 ms** | 124 B<br>124 B | 1 query duy nhất, 20 dòng đọc, phản hồi warm < 10 ms. |
-| **Phân bổ ghi nhớ retention**:<br>`GET /api/analytics/retention` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 48 r<br>48 r | 17 ms<br>11 ms | 215 B<br>215 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **75 r**<br>**75 r** | **45 ms**<br>**20 ms** | 217 B<br>217 B | 3 queries ổn định. |
-| **Biểu đồ nhiệt hoạt động**:<br>`GET /api/analytics/heatmap` | **COLD**<br>**WARM** | 1 q<br>1 q | 0 (0 r)<br>0 (0 r) | 49 r<br>49 r | 22 ms<br>7 ms | 320 B<br>320 B | **1 q**<br>**1 q** | **0 (0 r)**<br>**0 (0 r)** | **103 r**<br>**103 r** | **22 ms**<br>**9 ms** | 320 B<br>323 B | 1 query duy nhất tổng hợp hoạt động 365 ngày. |
-| **Analytics Suite (Toàn bộ 4 API)** | **COLD**<br>**WARM** | 7 q<br>7 q | 0 (0 r)<br>0 (0 r) | 186 r<br>186 r | 68 ms<br>33 ms | 949 B<br>949 B | **7 q**<br>**7 q** | **0 (0 r)**<br>**0 (0 r)** | **321 r**<br>**321 r** | **45 ms**<br>**45 ms** | 956 B<br>956 B | Tổng 7 queries cho cả 4 endpoint analytics. |
-| **PUT Deck (a: Sửa 500 thẻ có sẵn)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 2.502 q<br>2.502 q | 0 (0 r)<br>0 (0 r) | 1.501 r<br>1.501 r | 2.552 ms<br>1.301 ms | 132.904 B<br>132.901 B | **2.502 q**<br>**2.501 q** | **1.000 (1.001 r)**<br>**999 (1.000 r)** | **1.501 r**<br>**1.501 r** | **3.773 ms**<br>**2.424 ms** | 132.904 B<br>132.901 B | Bật `batch_size=50` giúp gom **999 batch statement** (1.000 rows). Vấn đề ~2.500 roundtrips do JPA cascade sẽ được chuyển đổi sang JDBC bulk update ở Giai đoạn 4. |
-| **PUT Deck (b: Thêm 500 thẻ mới)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 504 q<br>504 q | 0 (0 r)<br>0 (0 r) | 501 r<br>501 r | 1.076 ms<br>603 ms | 125.402 B<br>125.399 B | **6 q**<br>**5 q** | **1 (1 r)**<br>**0 (0 r)** | **501 r**<br>**501 r** | **146 ms**<br>**89 ms** | 125.402 B<br>125.399 B | **Cải thiện vượt bậc: Giảm từ 504 queries xuống 5 queries (-99%)**, thời gian phản hồi warm giảm từ 603 ms xuống **89 ms** (-85,2%) nhờ batch insert hiệu quả. |
-| **PUT Deck (c: Xóa 500 thẻ khỏi deck)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 11 q<br>11 q | 0 (0 r)<br>0 (0 r) | 504 r<br>504 r | 110 ms<br>75 ms | 588 B<br>585 B | **10 q**<br>**9 q** | **3 (3 r)**<br>**2 (2 r)** | **504 r**<br>**504 r** | **65 ms**<br>**57 ms** | 588 B<br>585 B | Giảm còn 9 queries, thời gian phản hồi warm **57 ms**. |
-| **Get List Decks**:<br>`GET /api/decks` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 42 r<br>42 r | 21 ms<br>14 ms | 7.998 B<br>7.998 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **108 r**<br>**108 r** | **49 ms**<br>**16 ms** | 12.506 B<br>12.506 B | 3 queries (load 20 sets, load folders, batch aggregate card counts qua `IN (?, ...)`). |
+| **Ghi nhận học tập theo đợt**:<br>`POST /api/study/sessions`<br>+ `POST /sessions/{id}/answers`<br>(Batch 20 câu) | **COLD**<br>**WARM** | 188 q<br>188 q | 0 (0 r)<br>0 (0 r) | 75 r<br>75 r | 1.026 ms<br>483 ms | 712 B<br>715 B | **208 q**<br>**208 q** | **1 (1 r)**<br>**1 (1 r)** | **75 r**<br>**75 r** | **1.213 ms**<br>**374 ms** | 718 B<br>721 B | Hibernate statement batching kích hoạt `b:1(1)` cho session. Vấn đề N+1 query lặp 20 câu sẽ được giải quyết triệt để ở Giai đoạn 3 (Batch SM-2 rewrite). |
+| **Hàng đợi ôn tập hôm nay**:<br>`GET /api/study-plans/current/today` | **COLD**<br>**WARM** | 5 q<br>5 q | 0 (0 r)<br>0 (0 r) | 2.831 r<br>2.831 r | 350 ms<br>125 ms | 15.628 B<br>15.628 B | **5 q**<br>**5 q** | **0 (0 r)**<br>**0 (0 r)** | **6.761 r**<br>**6.761 r** | **497 ms**<br>**246 ms** | 545.899 B<br>545.899 B | Duy trì 5 queries. Đọc dữ liệu thẻ lên memory để lọc thẻ đến hạn; sẽ được tối ưu bằng SQL aggregation ở Giai đoạn 4. |
+| **Chi tiết lộ trình ôn tập hiện tại**:<br>`GET /api/study-plans/current` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 12 r<br>12 r | 48 ms<br>23 ms | 1.573 B<br>1.573 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **12 r**<br>**12 r** | **74 ms**<br>**60 ms** | 1.592 B<br>1.592 B | Single-source SQL aggregate $O(1)$ từ sprint trước, duy trì ổn định 3 queries và đọc đúng 12 dòng. |
+| **Tổng quan thống kê học tập**:<br>`GET /api/analytics/overview` | **COLD**<br>**WARM** | 2 q<br>2 q | 0 (0 r)<br>0 (0 r) | 69 r<br>69 r | 15 ms<br>10 ms | 290 B<br>290 B | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **7.000 r**<br>**7.000 r** | **143 ms**<br>**99 ms** | 301 B<br>301 B | 2 queries ổn định; đọc đúng 7.000 dòng trên tập dữ liệu benchmark độc lập. |
+| **Danh sách từ yếu**:<br>`GET /api/analytics/weak-words?limit=10` | **COLD**<br>**WARM** | 1 q<br>1 q | 0 (0 r)<br>0 (0 r) | 20 r<br>20 r | 14 ms<br>5 ms | 124 B<br>124 B | **2 q**<br>**2 q** | **0 (0 r)**<br>**0 (0 r)** | **5.010 r**<br>**5.010 r** | **139 ms**<br>**76 ms** | 2.147 B<br>2.147 B | Truy vấn từ yếu phân trang (thêm COUNT query), đọc 5.010 dòng. |
+| **Phân bổ ghi nhớ retention**:<br>`GET /api/analytics/retention` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 48 r<br>48 r | 17 ms<br>11 ms | 215 B<br>215 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **5.024 r**<br>**5.024 r** | **108 ms**<br>**83 ms** | 219 B<br>219 B | 3 queries ổn định. |
+| **Biểu đồ nhiệt hoạt động**:<br>`GET /api/analytics/heatmap` | **COLD**<br>**WARM** | 1 q<br>1 q | 0 (0 r)<br>0 (0 r) | 49 r<br>49 r | 22 ms<br>7 ms | 320 B<br>320 B | **1 q**<br>**1 q** | **0 (0 r)**<br>**0 (0 r)** | **2.000 r**<br>**2.000 r** | **39 ms**<br>**20 ms** | 6.930 B<br>6.930 B | 1 query duy nhất quét 2.000 sessions học tập. |
+| **Analytics Suite (Toàn bộ 4 API)** | **COLD**<br>**WARM** | 7 q<br>7 q | 0 (0 r)<br>0 (0 r) | 186 r<br>186 r | 34 ms<br>26 ms | 949 B<br>949 B | **8 q**<br>**8 q** | **0 (0 r)**<br>**0 (0 r)** | **19.034 r**<br>**19.034 r** | **244 ms**<br>**234 ms** | 9.597 B<br>9.594 B | Tổng hợp 4 endpoint analytics. Cột Trước khôi phục đúng 34 ms / 26 ms từ bản 0.5 gốc (commit `e2b4ee6`). |
+| **PUT Deck (a: Sửa 500 thẻ có sẵn)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 2.503 q<br>2.502 q | 0 (0 r)<br>0 (0 r) | 1.501 r<br>1.501 r | 2.552 ms<br>1.301 ms | 132.901 B<br>132.901 B | **2.502 q**<br>**2.501 q** | **1.000 (1.001 r)**<br>**999 (1.000 r)** | **1.501 r**<br>**1.501 r** | **2.678 ms**<br>**1.726 ms** | 133.404 B<br>133.401 B | 999 lần `executeBatch` cho 1.000 dòng nghĩa là hầu hết mỗi batch chỉ chứa đúng 1 dòng (batch size = 1), không mang lại lợi ích gom đợt thực sự; hướng xử lý là Giai đoạn 3.1 (chuyển sang bulk JDBC update). Thời gian tăng: chưa xác định, nghi nhiễu máy hoặc overhead của batch cỡ 1 (không khẳng định do batching). |
+| **PUT Deck (b: Thêm 500 thẻ mới)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 6 q<br>5 q | 0 (0 r)<br>0 (0 r) | 501 r<br>501 r | 90 ms<br>77 ms | 125.402 B<br>125.399 B | **6 q**<br>**5 q** | **1 (1 r)**<br>**0 (0 r)** | **501 r**<br>**501 r** | **73 ms**<br>**128 ms** | 125.902 B<br>125.899 B | **Không đổi so với 0.5** (duy trì 5-6 queries, đường bulk insert đa dòng `createCardsForDeckBatch` qua JdbcTemplate đã có từ trước, không phải cải thiện mới của Giai đoạn 1 hay 2). |
+| **PUT Deck (c: Xóa 500 thẻ khỏi deck)**:<br>`PUT /api/decks/{id}` | **COLD**<br>**WARM** | 10 q<br>9 q | 0 (0 r)<br>0 (0 r) | 504 r<br>504 r | 57 ms<br>49 ms | 585 B<br>585 B | **10 q**<br>**9 q** | **3 (3 r)**<br>**2 (2 r)** | **504 r**<br>**504 r** | **128 ms**<br>**74 ms** | 589 B<br>586 B | Duy trì 9 queries warm, 504 dòng đọc. Cột Trước khôi phục đúng 57 ms / 49 ms từ bản 0.5 gốc (commit `e2b4ee6`). |
+| **Get List Decks**:<br>`GET /api/decks` | **COLD**<br>**WARM** | 3 q<br>3 q | 0 (0 r)<br>0 (0 r) | 54 r<br>54 r | 24 ms<br>9 ms | 6.710 B<br>6.710 B | **3 q**<br>**3 q** | **0 (0 r)**<br>**0 (0 r)** | **45 r**<br>**45 r** | **29 ms**<br>**8 ms** | 5.912 B<br>5.912 B | Duy trì 3 queries ổn định. Đọc 45 dòng (gồm 23 bộ từ và aggregate counts trên tập dữ liệu benchmark độc lập sau truncate & seed sạch). Cột Trước khôi phục đúng 54 r / 6.710 B từ bản 0.5 gốc (commit `e2b4ee6`). |
 
 ---
 
@@ -68,30 +71,32 @@ Tài liệu này ghi nhận toàn diện kết quả đo đạc hiệu năng th�
   - Tất cả ảnh PNG/JPG lớn được chuyển đổi sang định dạng WebP (quality 80) kèm lazy loading và decoding async.
   - Cấu hình cache header cho Vercel (`vercel.json`) với immutable 1 năm cho hashed build assets và 7 ngày cho static public assets.
 
-### 3.1. Top 20 Tệp Dung Lượng Lớn Nhất Trong `frontend/public` (Trạng Thái SAU Tối Ưu Phase 1)
+### 3.1. Top 20 Tệp Dung Lượng Lớn Nhất Trong `frontend/public` (Trạng Thái SAU Tối Ưu Phase 1 - Quét Thực Tế)
 
-| STT | Tên tệp | Đường dẫn tương đối | Kích thước | Định dạng | Trạng thái tham chiếu / Sử dụng trong mã nguồn |
-| :---: | :--- | :--- | :---: | :---: | :--- |
-| 1 | `vintage-map-bg.webp` | `assets/flashcard/vintage-map-bg.webp` | **438 KB** | WebP (quality 80) | ✅ **Hình nền chính**: Thư viện thẻ & Bản đồ thế giới từ vựng. |
-| 2 | `auth-bg.webp` | `auth-bg.webp` | **268 KB** | WebP (quality 80) | ✅ **Hình nền Auth**: Màn hình Đăng nhập & Đăng ký. |
-| 3 | `wallpaper-forest.webp` | `wallpapers/wallpaper-forest.webp` | **238 KB** | WebP (quality 80) | ✅ **Hình nền học tập**: Rừng nguyên sinh (Study Workspace). |
-| 4 | `wallpaper-meadow.webp` | `wallpapers/wallpaper-meadow.webp` | **233 KB** | WebP (quality 80) | ✅ **Hình nền học tập**: Đồng cỏ bình minh (Study Workspace). |
-| 5 | `wallpaper-valley.webp` | `wallpapers/wallpaper-valley.webp` | **226 KB** | WebP (quality 80) | ✅ **Hình nền học tập**: Thung lũng hoàng hôn (Study Workspace). |
-| 6 | `avatar_frame_mastery.png` | `assets/trang_thai_thong_bao/avatar_frame_mastery.png` | **173 KB** | PNG (32-bit) | ✅ **Avatar Frame**: Khung cấp bậc Đại sư (Mastery). |
-| 7 | `note_better_words_bigger_horizons.webp` | `assets/nen_texture/note_better_words_bigger_horizons.webp` | **163 KB** | WebP (lossless) | ✅ **Họa tiết trích dẫn**: Trang chi tiết bộ từ vựng. |
-| 8 | `note_quote_every_word_opens_world.webp` | `assets/dia_danh/note_quote_every_word_opens_world.webp` | **156 KB** | WebP (lossless) | ✅ **Họa tiết trích dẫn**: Bản đồ hành trình từ vựng. |
-| 9 | `avatar_frame_adventurer.png` | `assets/trang_thai_thong_bao/avatar_frame_adventurer.png` | **126 KB** | PNG (32-bit) | ✅ **Avatar Frame**: Khung cấp bậc Nhà thám hiểm (Adventurer). |
-| 10 | `texture_parchment_panel.webp` | `assets/nen_texture/texture_parchment_panel.webp` | **123 KB** | WebP (quality 80) | ✅ **Texture nền cuộn giấy**: Bảng điều khiển cổ điển. |
-| 11 | `profile-ship-illustration.webp` | `assets/profile/profile-ship-illustration.webp` | **110 KB** | WebP (quality 80) | ✅ **Minh họa hồ sơ**: Con thuyền thám hiểm trong trang Profile. |
-| 12 | `avatar_frame_scholar.png` | `assets/trang_thai_thong_bao/avatar_frame_scholar.png` | **106 KB** | PNG (32-bit) | ✅ **Avatar Frame**: Khung cấp bậc Học giả (Scholar). |
-| 13 | `spaced-repetition-paper.webp` | `assets/popup/spaced-repetition-paper.webp` | **97 KB** | WebP (quality 80) | ✅ **Khung Popup**: Bảng dự báo lặp lại ngắt quãng (SM-2). |
-| 14 | `avatar_frame_voyager.png` | `assets/trang_thai_thong_bao/avatar_frame_voyager.png` | **91 KB** | PNG (32-bit) | ✅ **Avatar Frame**: Khung cấp bậc Hoa tiêu (Voyager). |
-| 15 | `wanted-portrait-overlay.webp` | `assets/profile/wanted-portrait-overlay.webp` | **85 KB** | WebP (quality 80) | ✅ **Khung Poster lệnh truy nã**: Trang hồ sơ người dùng. |
-| 16 | `flashcard-page.webp` | `assets/flashcard/flashcard-page.webp` | **84 KB** | WebP (quality 80) | ✅ **Thẻ Flashcard**: Nền thẻ ghi nhớ cổ điển. |
-| 17 | `profile-keep-exploring.webp` | `assets/profile/profile-keep-exploring.webp` | **73 KB** | WebP (quality 80) | ✅ **Minh họa hồ sơ**: Huy hiệu khích lệ tiếp tục khám phá. |
-| 18 | `avatar_frame_legend.png` | `assets/trang_thai_thong_bao/avatar_frame_legend.png` | **68 KB** | PNG (32-bit) | ✅ **Avatar Frame**: Khung cấp bậc Huyền thoại (Legend). |
-| 19 | `sea_chart_parchment_scroll.png` | `assets/dia_danh/sea_chart_parchment_scroll.png` | **60 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Cuộn hải đồ hải trình. |
-| 20 | `decor_ship_wheel.png` | `assets/decor_icon/decor_ship_wheel.png` | **53 KB** | PNG (8-bit) | ✅ **Họa tiết UI**: Bánh lái tàu thám hiểm. |
+*Nguồn số liệu*: Quét trực tiếp toàn bộ cây thư mục `frontend/public` bằng Node.js fs stat, đếm số lần xuất hiện chính xác của tên file trong toàn bộ mã nguồn `frontend/src`.
+
+| STT | Tên tệp | Đường dẫn tương đối | Dung lượng (Bytes) | Kích thước hiển thị | Số tham chiếu trong `src/` | Chi tiết / Vị trí tham chiếu trong mã nguồn |
+| :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| 1 | `forest-island.mp4` | `assets/animation/forest-island.mp4` | 3.326.656 | **3.17 MB** | **1** | `features/library/components/WorldMap.jsx:167` (Background video canvas bản đồ thế giới RPG) |
+| 2 | `wallpaper-meadow.webp` | `wallpapers/wallpaper-meadow.webp` | 1.057.072 | **1.01 MB** | **6** | `features/wallpapers/WallpaperContext.jsx` (3), `features/wallpapers/__tests__/WallpaperMigration.test.jsx` (3) |
+| 3 | `wallpaper-forest.webp` | `wallpapers/wallpaper-forest.webp` | 838.324 | **818.68 KB** | **6** | `features/wallpapers/WallpaperContext.jsx` (3), `features/wallpapers/__tests__/WallpaperMigration.test.jsx` (3) |
+| 4 | `wallpaper-valley.webp` | `wallpapers/wallpaper-valley.webp` | 514.880 | **502.81 KB** | **7** | `App.css` (1), `features/wallpapers/WallpaperContext.jsx` (3), `features/wallpapers/__tests__/WallpaperMigration.test.jsx` (3) |
+| 5 | `spaced-repetition-paper.webp` | `assets/popup/spaced-repetition-paper.webp` | 197.212 | **192.59 KB** | **1** | `features/studyplan/SpacedRepetitionForecastModal.css` (1) |
+| 6 | `backgrounddao.webp` | `assets/background/backgrounddao.webp` | 193.134 | **188.61 KB** | **2** | `features/library/lexiconMapData.js` (1), `features/library/RpgLibraryWorkspace.css` (1) |
+| 7 | `forest-island-mask.png` | `assets/animation/forest-island-mask.png` | 93.466 | **91.28 KB** | **2** | `features/library/RpgLibraryWorkspace.css` (2) |
+| 8 | `texture_watercolor_wash_blue.png` | `assets/nen_texture/texture_watercolor_wash_blue.png` | 88.543 | **86.47 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 9 | `ornament_red_compass_stamp.png` | `assets/nen_texture/ornament_red_compass_stamp.png` | 77.423 | **75.61 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 10 | `texture_parchment_edge_vertical.png` | `assets/nen_texture/texture_parchment_edge_vertical.png` | 71.993 | **70.31 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 11 | `ornament_compass_rose.png` | `assets/nen_texture/ornament_compass_rose.png` | 69.318 | **67.69 KB** | **2** | `features/library/lexiconMapData.js` (1), `features/studyplan/SpacedRepetitionForecastModal.jsx` (1) |
+| 12 | `rank-supreme.png` | `assets/badges/rank-supreme.png` | 63.527 | **62.04 KB** | **5** | `utils/ranks.js` (2), `utils/__tests__/ranks.test.js` (3) |
+| 13 | `profile-ship-illustration.webp` | `assets/profile/profile-ship-illustration.webp` | 62.682 | **61.21 KB** | **1** | `features/profile/ProfilePage.jsx` (1) |
+| 14 | `ornament_green_ribbon.png` | `assets/nen_texture/ornament_green_ribbon.png` | 57.690 | **56.34 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 15 | `sign_wooden_blank.png` | `assets/nen_texture/sign_wooden_blank.png` | 57.376 | **56.03 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 16 | `vintage-map-bg.webp` | `assets/flashcard/vintage-map-bg.webp` | 56.678 | **55.35 KB** | **5** | `features/decks/DeckDetailPage.css` (2), `features/learn/Learn.css` (1), `features/learn/__tests__/LearnFeedbackRedesign.test.jsx` (2) |
+| 17 | `rank-legendary.png` | `assets/badges/rank-legendary.png` | 56.568 | **55.24 KB** | **5** | `utils/ranks.js` (2), `utils/__tests__/ranks.test.js` (3) |
+| 18 | `decor_whale.png` | `assets/decor_icon/decor_whale.png` | 56.440 | **55.12 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 19 | `decor_map_scroll.png` | `assets/decor_icon/decor_map_scroll.png` | 54.942 | **53.65 KB** | **1** | `features/library/lexiconMapData.js` (1) |
+| 20 | `decor_ship_wheel.png` | `assets/decor_icon/decor_ship_wheel.png` | 53.985 | **52.72 KB** | **1** | `features/library/lexiconMapData.js` (1) |
 
 ---
 
@@ -153,14 +158,14 @@ Tất cả các chunk đều nằm trong thư mục `dist/static/` và được 
 ### 5.2. Migration Index Database V10 & V11 (Phần 1B)
 Số liệu đo đạc chuẩn hóa qua `ExplainPlanIntegrationTest` (1 lần khởi động + 5 lần đo lấy trung vị, trên cùng cơ sở dữ liệu đã seed 20 deck, 5.000 vocabularies, 10.000 study progress):
 
-| Truy vấn | Giai đoạn | Planning Time (ms) | Execution Time (ms) | Buffers (Shared Hit / Read) | Ghi chú & Đánh giá thay đổi |
+| Truy vấn | Giai đoạn | Planning Time (ms) | Execution Time (ms) | Buffers (Shared Hit / Read) | Ghi chú kỹ thuật & Đánh giá thay đổi |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **`LIST_DECKS`** | Trước V10 | **0,156 ms** | **0,100 ms** | Hit: 4 / Read: 0 | `Seq Scan` + `Sort (created_at DESC)` in-memory trên 20 bộ từ. |
-| | Sau V10 | **0,158 ms** | **0,100 ms** | Hit: 4 / Read: 0 | **Loại bỏ hoàn toàn bước Sort**, dùng `Index Scan using idx_vocabulary_sets_user_created`. Với tập dữ liệu nhỏ trong buffer cache, thời gian đo tương đương nhau (~0,10 ms); lợi ích chính là bảo vệ DB không bị Sort in-memory khi số lượng bộ từ tăng cao. |
-| **`DECK_STATS`** | Trước V10 | **0,880 ms** | **2,573 ms** | Hit: 153 / Read: 0 | Dùng `idx_study_plan_decks_plan_order` và `idx_vocabulary_set_items_deck_vocab`. |
-| | Sau V10 | **0,696 ms** | **1,649 ms** | Hit: 153 / Read: 0 | Execution time giảm từ 2,57 ms xuống **1,65 ms**, Planning time giảm từ 0,88 ms xuống **0,70 ms**. |
-| **`PLAN_AGGREGATE`** | Trước V10 | **0,611 ms** | **9,492 ms** | Hit: 41.416 / Read: 0 | `HashAggregate` trên biểu thức chuỗi `LOWER(BTRIM(v.word, ...))`, kích thước tuple 40 bytes. |
-| | Sau V10 & V11 | **0,621 ms** | **7,236 ms** | Hit: 41.416 / Read: 0 | **Dùng cột sinh `v.word_norm` (chuẩn hóa Unicode NFC ở V11)**: Execution time giảm **-23,8%** (từ 9,49 ms xuống 7,24 ms), kích thước tuple HashAggregate giảm một nửa (từ 40 bytes xuống 22 bytes), Planning Time ổn định ~0,62 ms. |
+| **`LIST_DECKS`** | Trước V10 | **0,044 ms** | **0,037 ms** | Hit: 4 / Read: 0 | `Seq Scan` + `Sort (created_at DESC)` in-memory trên 20 bộ từ. |
+| | Sau V10 | **0,037 ms** | **0,031 ms** | Hit: 4 / Read: 0 | **Loại bỏ hoàn toàn bước Sort**, dùng `Index Scan using idx_vocabulary_sets_user_created`. Với tập dữ liệu nhỏ trong buffer cache (4 buffers), thời gian thực thi tương đương nhau (~0,03 - 0,04 ms); lợi ích chính là bảo vệ DB không bị Sort in-memory khi số lượng bộ từ tăng cao. |
+| **`DECK_STATS`** | Trước V10 | **0,358 ms** | **1,257 ms** | Hit: 153 / Read: 0 | Dùng `idx_study_plan_decks_plan_order` và `idx_vocabulary_set_items_deck_vocab`. |
+| | Sau V10 | **0,397 ms** | **1,428 ms** | Hit: 153 / Read: 0 | **V10 không thay đổi index nào của query `DECK_STATS`** (vẫn sử dụng nguyên bản các index có sẵn từ V5 & V9). Buffers trước và sau bằng nhau tuyệt đối (**153 shared hits**). Mọi chênh lệch ms đều nằm hoàn toàn trong dải nhiễu hệ thống; V10 không tác động cải thiện query này. |
+| **`PLAN_AGGREGATE`** | Trước V10 | **0,463 ms** | **6,589 ms** | Hit: 41.416 / Read: 0 | `HashAggregate` trên biểu thức chuỗi `LOWER(BTRIM(v.word, ...))`, kích thước tuple 40 bytes. |
+| | Sau V10 & V11 | **0,429 ms** | **5,595 ms** | Hit: 41.416 / Read: 0 | **Buffers của `PLAN_AGGREGATE` trước và sau đều bằng 41.416 shared hits**. Chênh lệch thời gian thực thi ms nằm trong khoảng nhiễu tải máy, **V10 không cải thiện thời gian query này**. Lợi ích kỹ thuật thực sự của V10 & V11 là dùng cột sinh `v.word_norm` (chuẩn hóa Unicode NFC ở V11), giúp giảm kích thước tuple in-memory của HashAggregate (từ 40 bytes xuống 22 bytes), giảm áp lực working memory và đảm bảo tính nhất quán với Java `normalizeWord`. |
 
 ### 5.3. Chuẩn hóa Unicode NFC cho `word_norm` (Migration V11)
 - Migration `V11__word_norm_nfc.sql` được phát hành để chuẩn hóa triệt để Unicode NFC: `normalize(lower(btrim(word, E' \t\n\r')), NFC) STORED`.

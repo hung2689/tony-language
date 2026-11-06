@@ -169,8 +169,32 @@ public class PerfBaselineRunnerIntegrationTest {
                 .webAppContextSetup(webApplicationContext)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
                 .build();
+    }
 
-        log.info("Ensuring PerfDataSeeder runs on test database...");
+    private void printDatabaseRowCounts() {
+        long vocabs = jdbcTemplate.queryForObject("SELECT count(*) FROM vocabularies", Long.class);
+        long sets = jdbcTemplate.queryForObject("SELECT count(*) FROM vocabulary_sets", Long.class);
+        long progress = jdbcTemplate.queryForObject("SELECT count(*) FROM study_progress", Long.class);
+        long sessions = jdbcTemplate.queryForObject("SELECT count(*) FROM study_sessions", Long.class);
+        long answers = jdbcTemplate.queryForObject("SELECT count(*) FROM study_answers", Long.class);
+
+        System.out.println("=========================================================================");
+        System.out.println("BENCHMARK BASELINE - INITIAL DATABASE ROW COUNTS (VERIFICATION):");
+        System.out.printf("  1. vocabularies       : %,d rows (5,000 seeder baseline + 501 dedicated PUT benchmark cards)%n", vocabs);
+        System.out.printf("  2. vocabulary_sets    : %,d rows (20 seeder baseline + 3 dedicated PUT benchmark decks)%n", sets);
+        System.out.printf("  3. study_progress     : %,d rows%n", progress);
+        System.out.printf("  4. study_sessions     : %,d rows%n", sessions);
+        System.out.printf("  5. study_answers      : %,d rows%n", answers);
+        System.out.println("=========================================================================");
+    }
+
+    private void resetDatabase() {
+        jdbcTemplate.execute(
+                "TRUNCATE TABLE study_answers, study_sessions, study_progress, " +
+                "study_plan_decks, study_plans, vocabulary_synonyms, vocabulary_set_items, " +
+                "vocabularies, vocabulary_sets, folders, xp_events, user_xp, " +
+                "synonym_challenge_history, user_wallpapers CASCADE"
+        );
         PerfDataSeeder seeder = new PerfDataSeeder(jdbcTemplate, passwordEncoder);
         seeder.run(new DefaultApplicationArguments());
 
@@ -382,6 +406,9 @@ public class PerfBaselineRunnerIntegrationTest {
     @Test
     @DisplayName("Run comprehensive benchmark across all APIs with proxy metrics (Cold + 5 Warm runs)")
     void runBenchmarkAcrossAllApis() throws Exception {
+        resetDatabase();
+        printDatabaseRowCounts();
+
         int totalRuns = 6; // 1 Cold + 5 Warm
         List<BenchmarkResult> results = new ArrayList<>();
 
@@ -437,6 +464,9 @@ public class PerfBaselineRunnerIntegrationTest {
                     );
                 }
         ));
+
+        // Reset before read-only study plan & analytics endpoints to prevent contamination from session answers
+        resetDatabase();
 
         // 2. GET today-queue (/api/study-plans/current/today)
         results.add(executeBenchmark(
@@ -531,6 +561,9 @@ public class PerfBaselineRunnerIntegrationTest {
                 null
         ));
 
+        // Reset before PUT Scenario A to ensure updateDeck is fresh
+        resetDatabase();
+
         // 9. PUT /api/decks/{id} Scenario A: Sửa 500 thẻ có sẵn (cards kèm ID của thẻ hiện có)
         results.add(executeBenchmark(
                 "PUT /api/decks/{id} (a: Sửa 500 thẻ có sẵn)",
@@ -562,6 +595,9 @@ public class PerfBaselineRunnerIntegrationTest {
                 null
         ));
 
+        // Reset before PUT Scenario B to ensure addDeck is fresh
+        resetDatabase();
+
         // 10. PUT /api/decks/{id} Scenario B: Thêm 500 thẻ mới (id = null)
         results.add(executeBenchmark(
                 "PUT /api/decks/{id} (b: Thêm 500 thẻ mới)",
@@ -591,6 +627,9 @@ public class PerfBaselineRunnerIntegrationTest {
                 },
                 (runIndex) -> cleanupDeckCards(addDeckId) // Reset to 0 cards before each iteration
         ));
+
+        // Reset before PUT Scenario C to ensure deleteDeck is fresh
+        resetDatabase();
 
         // 11. PUT /api/decks/{id} Scenario C: Xóa 500 thẻ (gửi 1 thẻ giữ lại, 500 thẻ bị xóa)
         results.add(executeBenchmark(
@@ -639,6 +678,9 @@ public class PerfBaselineRunnerIntegrationTest {
                     insertCardsIntoDeck(deleteDeckId, 500, "bench_temp_del_r" + runIndex + "_");
                 }
         ));
+
+        // Reset before GET /api/decks to ensure clean deck list
+        resetDatabase();
 
         // 12. GET /api/decks (List decks)
         results.add(executeBenchmark(
