@@ -155,6 +155,7 @@ public class PerfBaselineRunnerIntegrationTest {
     private User perfUser;
     private Long targetDeckId;
     private List<Long> deckVocabularyIds = new ArrayList<>();
+    private List<Long> deckVocabularyIds100 = new ArrayList<>();
 
     // Dedicated decks for PUT scenarios
     private Long updateDeckId;
@@ -213,6 +214,12 @@ public class PerfBaselineRunnerIntegrationTest {
 
         deckVocabularyIds = jdbcTemplate.query(
                 "SELECT vocabulary_id FROM vocabulary_set_items WHERE vocabulary_set_id = ? LIMIT 20",
+                (rs, rowNum) -> rs.getLong("vocabulary_id"),
+                targetDeckId
+        );
+
+        deckVocabularyIds100 = jdbcTemplate.query(
+                "SELECT vocabulary_id FROM vocabulary_set_items WHERE vocabulary_set_id = ? LIMIT 100",
                 (rs, rowNum) -> rs.getLong("vocabulary_id"),
                 targetDeckId
         );
@@ -523,6 +530,120 @@ public class PerfBaselineRunnerIntegrationTest {
                     jdbcTemplate.update(
                             "INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) " +
                                     "VALUES (?, 'DAILY_CAP_FIXTURE', 'cap_preseed_' || ?, 500, NOW()) " +
+                                    "ON CONFLICT DO NOTHING",
+                            perfUser.getId(), runIndex
+                    );
+                }
+        ));
+
+        // 1c. POST /api/study/sessions + POST /api/study/sessions/{id}/answers (Batch 100 answers) [Chưa chạm cap XP]
+        results.add(executeBenchmark(
+                "POST /api/study/sessions + POST /answers (100) [Chưa chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 100, "SEQUENTIAL");
+                    MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(createReq)))
+                            .andExpect(status().isCreated())
+                            .andReturn();
+
+                    Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                    Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                    Long sessionId = ((Number) dataMap.get("id")).longValue();
+
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds100) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + sessionId + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+
+                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                },
+                (runIndex) -> {
+                    String placeholders = deckVocabularyIds100.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds100);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 0 WHERE user_id = ?", perfUser.getId());
+                }
+        ));
+
+        // 1d. POST /api/study/sessions + POST /api/study/sessions/{id}/answers (Batch 100 answers) [Đã chạm cap XP]
+        results.add(executeBenchmark(
+                "POST /api/study/sessions + POST /answers (100) [Đã chạm cap XP]",
+                totalRuns,
+                (runIndex) -> {
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 100, "SEQUENTIAL");
+                    MvcResult createRes = mockMvc.perform(post("/api/study/sessions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(createReq)))
+                            .andExpect(status().isCreated())
+                            .andReturn();
+
+                    Map<?, ?> resMap = objectMapper.readValue(createRes.getResponse().getContentAsString(), Map.class);
+                    Map<?, ?> dataMap = (Map<?, ?>) resMap.get("data");
+                    Long sessionId = ((Number) dataMap.get("id")).longValue();
+
+                    List<AnswerItemDto> answers = new ArrayList<>();
+                    for (Long vId : deckVocabularyIds100) {
+                        answers.add(new AnswerItemDto(
+                                UUID.randomUUID().toString(),
+                                vId,
+                                "EN_TO_VI",
+                                "CORRECT",
+                                false,
+                                "test",
+                                1
+                        ));
+                    }
+                    AnswerBatchRequest batchReq = new AnswerBatchRequest(answers);
+
+                    MvcResult answerRes = mockMvc.perform(post("/api/study/sessions/" + sessionId + "/answers")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(batchReq)))
+                            .andExpect(status().isOk())
+                            .andReturn();
+
+                    return createRes.getResponse().getContentAsByteArray().length + answerRes.getResponse().getContentAsByteArray().length;
+                },
+                (runIndex) -> {
+                    String placeholders = deckVocabularyIds100.stream().map(id -> "?").collect(Collectors.joining(", "));
+                    List<Object> params = new ArrayList<>();
+                    params.add(perfUser.getId());
+                    params.addAll(deckVocabularyIds100);
+                    jdbcTemplate.update(
+                            "UPDATE study_progress SET repetitions = 1, interval_days = 1, ease_factor = 2.50, " +
+                                    "next_review_at = NOW(), last_reviewed_at = NOW(), updated_at = NOW() " +
+                                    "WHERE user_id = ? AND vocabulary_id IN (" + placeholders + ")",
+                            params.toArray()
+                    );
+                    jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update("UPDATE user_xp SET total_xp = 500 WHERE user_id = ?", perfUser.getId());
+                    jdbcTemplate.update(
+                            "INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) " +
+                                    "VALUES (?, 'DAILY_CAP_FIXTURE', 'cap_preseed_100_' || ?, 500, NOW()) " +
                                     "ON CONFLICT DO NOTHING",
                             perfUser.getId(), runIndex
                     );
