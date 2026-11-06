@@ -159,6 +159,9 @@ export function MapLocation({
             alt={destination.title}
             className={`lexicon-island-art-img ${isForest && isAnimating ? 'is-animating' : ''}`}
             draggable={false}
+            loading={isForest ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={isForest ? 'high' : 'auto'}
           />
           {isForest && !hasVideoError && (
             <video

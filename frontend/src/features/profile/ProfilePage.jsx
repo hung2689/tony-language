@@ -32,7 +32,7 @@ const TABS = [
   { id: 'levels', path: '/profile/levels', label: 'Cấp bậc', icon: Award },
 ];
 
-const DEFAULT_AVATAR = '/assets/profile/default-avatar.png';
+const DEFAULT_AVATAR = '/assets/profile/default-avatar.webp';
 const DEFAULT_BIO = 'Small steps every day, big dreams one day.';
 
 function validateDisplayName(name) {
@@ -389,7 +389,7 @@ export default function ProfilePage() {
 
                   <div className="lexicon-profile-ship-art" aria-hidden="true">
                     <img
-                      src="/assets/profile/profile-ship-illustration.png"
+                      src="/assets/profile/profile-ship-illustration.webp"
                       alt=""
                       className="lexicon-profile-ship-img"
                       draggable="false"
@@ -807,7 +807,7 @@ export default function ProfilePage() {
                           aria-hidden="true"
                         >
                           <img
-                            src="/assets/profile/profile-keep-exploring.png"
+                            src="/assets/profile/profile-keep-exploring.webp"
                             alt=""
                             className="lexicon-keep-exploring-img"
                             draggable="false"

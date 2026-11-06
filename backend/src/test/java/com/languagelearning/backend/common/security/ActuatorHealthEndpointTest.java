@@ -7,6 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -30,6 +35,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @ActiveProfiles("test")
 class ActuatorHealthEndpointTest {
+
+    @TestConfiguration
+    static class ActuatorTestSecurityConfig {
+        @Bean
+        @Order(1)
+        public SecurityFilterChain actuatorTestSecurityFilterChain(HttpSecurity http) throws Exception {
+            http
+                    .securityMatcher("/actuator/**")
+                    .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                    .csrf(org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer::disable);
+            return http.build();
+        }
+    }
 
     @Autowired
     private WebApplicationContext webApplicationContext;

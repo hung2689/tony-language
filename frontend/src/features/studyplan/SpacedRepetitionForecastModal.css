@@ -29,7 +29,7 @@
   width: 100%;
   max-width: 620px;
   background-color: transparent;
-  background-image: url("/assets/popup/spaced-repetition-paper.png");
+  background-image: url("/assets/popup/spaced-repetition-paper.webp");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -211,7 +211,7 @@
   align-items: center;
   justify-content: space-between;
   background-color: transparent;
-  background-image: url("/assets/spaced-repetition/stat-parchment-frame.png");
+  background-image: url("/assets/spaced-repetition/stat-parchment-frame.webp");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -290,7 +290,7 @@
   justify-content: center;
   gap: 8px;
   background-color: transparent;
-  background-image: url("/assets/spaced-repetition/ornament-ribbon-banner.png");
+  background-image: url("/assets/spaced-repetition/ornament-ribbon-banner.webp");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -322,7 +322,7 @@
    -------------------------------------------------------------------------- */
 .srs-popup-chart-card {
   background-color: transparent;
-  background-image: url("/assets/spaced-repetition/forecast-parchment-frame.png");
+  background-image: url("/assets/spaced-repetition/forecast-parchment-frame.webp");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -465,7 +465,7 @@
   max-width: 360px;
   height: 52px;
   background-color: transparent;
-  background-image: url("/assets/spaced-repetition/action-button-pill.png");
+  background-image: url("/assets/spaced-repetition/action-button-pill.webp");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;

@@ -50,6 +50,9 @@ class StudyServiceTest {
     @Mock
     private StudyPlanService studyPlanService;
 
+    @Mock
+    private com.languagelearning.backend.level.service.XpService xpService;
+
     @InjectMocks
     private StudyService studyService;
 
@@ -216,6 +219,9 @@ class StudyServiceTest {
 
         when(studySessionRepository.findByIdAndUserId(sessionId, userId)).thenReturn(Optional.of(session));
         when(studySessionRepository.save(any(StudySession.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(xpService.getLevelInfo(userId)).thenReturn(new com.languagelearning.backend.level.dto.LevelInfoDto(
+                1, 0L, 0L, 100L, 1, "Đồng", false
+        ));
 
         FinishSessionRequest req = new FinishSessionRequest(10, 8, 2);
         StudySessionResponse res1 = studyService.finishSession(userId, sessionId, req);

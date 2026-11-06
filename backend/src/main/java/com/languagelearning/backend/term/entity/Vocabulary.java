@@ -29,6 +29,9 @@ public class Vocabulary {
     @Column(name = "example_paragraph", columnDefinition = "TEXT")
     private String exampleParagraph;
 
+    @Column(name = "word_norm", insertable = false, updatable = false)
+    private String wordNorm;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -116,6 +119,10 @@ public class Vocabulary {
 
     public void setExampleParagraph(String exampleParagraph) {
         this.exampleParagraph = exampleParagraph;
+    }
+
+    public String getWordNorm() {
+        return wordNorm;
     }
 
     public Instant getCreatedAt() {

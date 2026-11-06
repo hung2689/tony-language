@@ -77,6 +77,7 @@ const RankBadge = memo(function RankBadge({
             alt={alt || defaultAlt}
             className="rank-badge-image"
             loading="lazy"
+            decoding="async"
             onError={() => setImgError(true)}
             draggable="false"
           />

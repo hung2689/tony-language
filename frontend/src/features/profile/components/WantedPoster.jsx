@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DEFAULT_WANTED_AVATAR = '/assets/profile/default-avatar.png';
+const DEFAULT_WANTED_AVATAR = '/assets/profile/default-avatar.webp';
 
 export function formatBounty(bountyValue) {
   if (bountyValue === null || bountyValue === undefined || bountyValue === '') {
@@ -52,7 +52,7 @@ export default function WantedPoster({
             }}
           />
           <img
-            src="/assets/profile/wanted-portrait-overlay.png"
+            src="/assets/profile/wanted-portrait-overlay.webp"
             alt=""
             className="lexicon-wanted-portrait-frame-overlay"
             aria-hidden="true"
