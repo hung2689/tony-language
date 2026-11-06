@@ -43,22 +43,26 @@
 - **Bundle Analyzer**: `rollup-plugin-visualizer` (kích hoạt qua `ANALYZE=true`).
 - **Cảnh báo từ bundler**: Rollup phát cảnh báo kích thước chunk JS vượt ngưỡng khuyến nghị (> 500 kB sau minification) do chưa phân tách code động (`dynamic import() / codeSplitting`).
 
-| Asset File / Chunk | Kích thước thô (Raw) | Kích thước nén Gzip | Kích thước sau tối ưu (Sau) | Ghi chú phân tích |
+| Asset File / Chunk | Kích thước thô (Raw) | Kích thước nén Gzip | Kích thước sau Phase 1 | Ghi chú phân tích |
 | :--- | :---: | :---: | :---: | :--- |
-| **HTML Entry**: `dist/index.html` | 1.08 kB | **0.57 kB** | *(để trống)* | File HTML gốc. |
-| **CSS Bundle**: `dist/assets/index-BWUbR0wf.css` | 366.56 kB | **62.44 kB** | *(để trống)* | Toàn bộ style sheet toàn app gộp vào 1 file duy nhất. |
-| **Main JS Bundle**: `dist/assets/index-C92dgrrB.js` | 711.64 kB | **195.26 kB** | *(để trống)* | Gộp toàn bộ React 19, Lucide icons, Canvas confetti, Router và tất cả feature pages vào một monolithic chunk (chưa lazy load). |
-| **Tổng dung lượng tải về ban đầu (Initial Download)** | **1.079,28 kB** | **258,27 kB** | *(để trống)* | Tổng kích thước tài nguyên tải về lúc trang chủ khởi động (chưa tính assets tĩnh). |
+| **HTML Entry**: `dist/index.html` | 1.08 kB | **0.57 kB** | **0.57 kB** | File HTML gốc. |
+| **CSS Bundle**: `dist/assets/index-*.css` | 366.56 kB | **62.44 kB** | **62.45 kB** | Toàn bộ style sheet toàn app gộp vào 1 file duy nhất (đã trỏ WebP). |
+| **Main JS Bundle**: `dist/assets/index-*.js` | 711.64 kB | **195.26 kB** | **195.35 kB** | Monolithic bundle (sẽ được code-split ở Giai đoạn 4). |
+| **Tổng dung lượng tải về ban đầu (Initial Download)** | **1.079,28 kB** | **258,27 kB** | **258,37 kB** | Tổng kích thước tài nguyên tải về lúc trang chủ khởi động (chưa tính assets tĩnh). |
 
 ---
 
 ## 3. Audit Tài Nguyên Tĩnh (`frontend/public`)
 
-- **Tổng số lượng tệp**: **391** tệp.
-- **Tổng dung lượng thư mục**: **76.521.373 bytes (~72,98 MB)**.
-- **Audit tham chiếu trong `frontend/src` & `frontend/index.html`**:
-  - Hơn **40,95 MB (chiếm > 56% tổng dung lượng `public/`)** là các tệp **hoàn toàn không được sử dụng**, tệp bản nháp thô (raw), hoặc tệp trùng lặp 100% (duplicate) giữa nhiều thư mục!
-  - Đặc biệt, tệp video 4K **`13772604_3840_2160_60fps.mp4`** có dung lượng **22,84 MB** (chiếm gần 1/3 toàn bộ thư mục `public/`) **không có bất kỳ một tham chiếu nào trong toàn bộ mã nguồn** (dead asset).
+- **Trước tối ưu (Phase 0.5)**:
+  - Tổng số lượng tệp: **391** tệp.
+  - Tổng dung lượng thư mục: **76.521.373 bytes (~72,98 MB)**.
+- **Sau tối ưu (Phase 1C)**:
+  - Tổng dung lượng thư mục: **9.596.542 bytes (~9,15 MB)**.
+  - **Tỷ lệ giảm**: **-87,5%** (-63,83 MB), vượt xa chỉ tiêu $\ge 70\%$.
+  - Toàn bộ tài nguyên gốc, sprite sheets, mockup được di chuyển an toàn vào `design-assets/` ở thư mục gốc (không bundle vào production).
+  - Tất cả ảnh PNG/JPG lớn được chuyển đổi sang định dạng WebP (quality 80) kèm lazy loading và decoding async.
+  - Cấu hình cache header cho Vercel (`vercel.json`) với immutable 1 năm cho hashed build assets và 7 ngày cho static public assets.
 
 ### Top 20 Tệp Dung Lượng Lớn Nhất & Trạng Thái Tham Chiếu Trong Code
 
@@ -96,4 +100,35 @@
 
 2. **Điểm nghẽn Frontend & Tài nguyên tĩnh**:
    - Monolithic bundle `index.js` có dung lượng gzip **195,26 kB** (711,64 kB raw) chưa được code-split.
-   - Thư mục `frontend/public` chứa **40,95 MB** tệp rác (dead asset, raw design, duplicate) trong Top 20 tệp lớn nhất, đặc biệt video `13772604_3840_2160_60fps.mp4` nặng **22,84 MB** hoàn toàn không có tham chiếu.
+   - Thư mục `frontend/public` ban đầu chứa **40,95 MB** tệp rác (dead asset, raw design, duplicate) trong Top 20 tệp lớn nhất, đặc biệt video `13772604_3840_2160_60fps.mp4` nặng **22,84 MB** hoàn toàn không có tham chiếu.
+
+---
+
+## 5. Kết Quả Sau Giai Đoạn 1 (Quick Wins: 1A, 1B, 1C)
+
+### 5.1. Cấu hình Backend & Nén Gzip (Phần 1A)
+- **`spring.jpa.open-in-view=false`**: Đã tắt thành công, không phát sinh bất kỳ lỗi `LazyInitializationException` nào trên toàn bộ 10 API core do Service layer đều thực hiện DTO projection trong `@Transactional`.
+- **JDBC Statement Batching**: Cấu hình `batch_size=50`, `order_inserts=true`, `order_updates=true` đã được Hibernate kích hoạt (`HHH100501: Automatic JDBC statement batching enabled (maximum batch size 50)`).
+- **HTTP Gzip Response Compression**:
+  - Endpoint `GET /api/decks` (20 bộ từ, 5.000 thẻ):
+    - Kích thước thô chưa nén: **7.998 bytes**.
+    - Kích thước sau nén Gzip: **915 bytes** (Header `Content-Encoding: gzip`).
+    - **Tỷ lệ giảm băng thông mạng**: **-88,6%**!
+
+### 5.2. Migration Index Database V10 (Phần 1B)
+Đã bổ sung các composite index và stored generated column `word_norm`:
+- `LIST_DECKS` (`SELECT * FROM vocabulary_sets WHERE user_id = ? ORDER BY created_at DESC`):
+  - Execution Time: **0.395 ms -> 0.197 ms (-50.1%)**.
+  - Plan Node: Loại bỏ hoàn toàn node `Sort`, chuyển sang `Index Scan using idx_vocabulary_sets_user_created`.
+- `DECK_STATS` (`SELECT COUNT(...) FROM study_plan_decks JOIN vocabulary_set_items...`):
+  - Execution Time: **16.928 ms -> 3.196 ms (-81.1%)**.
+  - Buffers: Shared hit giảm mạnh từ 4.887 buffers xuống 964 buffers.
+- `PLAN_AGGREGATE`: Đạt ~13.5 ms execution time với composite index.
+
+### 5.3. Tối ưu Asset Frontend & Cache Headers (Phần 1C)
+- Dung lượng thư mục `frontend/public`: **72.98 MB -> 9.15 MB (-87.5%)**.
+- Dọn sạch 22.84 MB video stock 4K không dùng và các bản raw/duplicate.
+- Bảo toàn toàn bộ tài nguyên thiết kế tại thư mục gốc `design-assets/`.
+- Chuyển đổi toàn bộ hình nền, bản đồ, thẻ bài, popup sang định dạng WebP (quality 80).
+- Cấu hình cache header tại `vercel.json` (max-age 1 năm cho hashed build assets, 7 ngày cho public assets).
+
