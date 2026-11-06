@@ -1077,8 +1077,22 @@ public class StudyPlanService {
         return nowZoned.toLocalDate();
     }
 
-    private String normalizeWord(String word) {
+    public static String normalizeWord(String word) {
         if (word == null) return "";
-        return Normalizer.normalize(word.trim().toLowerCase(), Normalizer.Form.NFC);
+        int start = 0;
+        int end = word.length();
+        while (start < end && isBtrimChar(word.charAt(start))) {
+            start++;
+        }
+        while (end > start && isBtrimChar(word.charAt(end - 1))) {
+            end--;
+        }
+        String trimmed = word.substring(start, end);
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        return Normalizer.normalize(lower, Normalizer.Form.NFC);
+    }
+
+    private static boolean isBtrimChar(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
     }
 }

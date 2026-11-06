@@ -1,5 +1,6 @@
 package com.languagelearning.backend.term;
 
+import com.languagelearning.backend.study.service.StudyPlanService;
 import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,18 +26,36 @@ public class WordNormTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    /**
-     * Replicates StudyPlanService.normalizeWord logic:
-     * Normalizer.normalize(word.trim().toLowerCase(), Normalizer.Form.NFC)
-     */
-    private String normalizeWord(String word) {
-        if (word == null) return "";
-        return Normalizer.normalize(word.trim().toLowerCase(), Normalizer.Form.NFC);
+    @Test
+    @DisplayName("1. Báo cáo encoding, collation của DB và khả năng normalize của PostgreSQL")
+    void testDatabaseEncodingCollationAndPostgresFunctions() {
+        String serverEncoding = jdbcTemplate.queryForObject("SHOW server_encoding", String.class);
+        Map<String, Object> dbInfo = jdbcTemplate.queryForMap(
+                "SELECT datcollate, datctype FROM pg_database WHERE datname = current_database()"
+        );
+        String datcollate = String.valueOf(dbInfo.get("datcollate"));
+        String datctype = String.valueOf(dbInfo.get("datctype"));
+
+        System.out.println("=========================================================================");
+        System.out.println("DATABASE ENCODING & COLLATION INFO:");
+        System.out.println("  server_encoding: " + serverEncoding);
+        System.out.println("  datcollate:      " + datcollate);
+        System.out.println("  datctype:        " + datctype);
+        System.out.println("=========================================================================");
+
+        assertNotNull(serverEncoding);
+        assertEquals("UTF8", serverEncoding.toUpperCase());
+
+        String provolatile = jdbcTemplate.queryForObject(
+                "SELECT provolatile::text FROM pg_proc WHERE proname = 'normalize' LIMIT 1",
+                String.class
+        );
+        assertEquals("i", provolatile, "PostgreSQL normalize() phải là IMMUTABLE ('i')");
     }
 
     @Test
     @Transactional
-    @DisplayName("Đối chiếu word_norm trong DB và Java normalizeWord: Chuẩn hóa khoảng trắng, chữ hoa thường và Tiếng Việt NFC")
+    @DisplayName("2. Đối chiếu word_norm trong DB và Java normalizeWord: Chuẩn hóa khoảng trắng, chữ hoa thường và Tiếng Việt NFC")
     void testWordNormMatchesJavaNormalizeWord_StandardNfcCases() {
         String[] testWords = {
                 "  Hello World  ",
@@ -50,14 +70,13 @@ public class WordNormTest {
             Vocabulary vocab = new Vocabulary(inputWord, "nghĩa test", "noun", "/test/", "example sentence");
             vocab = vocabularyRepository.saveAndFlush(vocab);
 
-            // Fetch stored word_norm directly from database
             String dbWordNorm = jdbcTemplate.queryForObject(
                     "SELECT word_norm FROM vocabularies WHERE id = ?",
                     String.class,
                     vocab.getId()
             );
 
-            String javaWordNorm = normalizeWord(inputWord);
+            String javaWordNorm = StudyPlanService.normalizeWord(inputWord);
 
             assertNotNull(dbWordNorm, "DB word_norm must not be null");
             assertEquals(javaWordNorm, dbWordNorm, "PostgreSQL word_norm phải khớp 100% với Java normalizeWord cho từ: " + inputWord);
@@ -66,15 +85,15 @@ public class WordNormTest {
 
     @Test
     @Transactional
-    @DisplayName("Đối chiếu xử lý NFD (Decomposed Unicode) giữa Java và PostgreSQL word_norm")
+    @DisplayName("3. Đối chiếu xử lý NFD (Decomposed Unicode): Sau V11 DB word_norm và Java normalizeWord KHỚP NHAU 100% dạng NFC")
     void testWordNormComparison_NfdCase() {
         // "tiếng việt" in composed NFC
         String nfcWord = "tiếng việt";
         // "tiếng việt" in decomposed NFD
         String nfdWord = Normalizer.normalize(nfcWord, Normalizer.Form.NFD);
 
-        assertNotEquals(nfcWord, nfdWord, "NFC và NFD có chuỗi byte khác nhau");
-        assertEquals(nfcWord, normalizeWord(nfdWord), "Java normalizeWord chuẩn hóa NFD về NFC thành công");
+        assertNotEquals(nfcWord, nfdWord, "NFC và NFD có chuỗi byte khác nhau trước khi chuẩn hóa");
+        assertEquals(nfcWord, StudyPlanService.normalizeWord(nfdWord), "Java normalizeWord chuẩn hóa NFD về NFC thành công");
 
         Vocabulary vocab = new Vocabulary("  " + nfdWord + "  ", "NFD test", "noun", "/ipa/", "example sentence");
         vocab = vocabularyRepository.saveAndFlush(vocab);
@@ -85,52 +104,57 @@ public class WordNormTest {
                 vocab.getId()
         );
 
-        // PostgreSQL lower(btrim(...)) strips whitespace and lowercases, preserving UTF-8 code points
-        assertNotNull(dbWordNorm);
-        assertEquals(nfdWord, dbWordNorm, "PostgreSQL word_norm loại bỏ khoảng trắng và chuyển chữ thường trên chuỗi NFD");
-        // When normalized in Java, both converge to canonical NFC
-        assertEquals(Normalizer.normalize(dbWordNorm, Normalizer.Form.NFC), normalizeWord(nfdWord));
+        String javaWordNorm = StudyPlanService.normalizeWord("  " + nfdWord + "  ");
 
-        // Kiểm tra xem dbWordNorm và javaWordNorm có bằng nhau không với input NFD:
-        String javaWordNorm = normalizeWord("  " + nfdWord + "  ");
-        assertNotEquals(javaWordNorm, dbWordNorm, "Với chuỗi NFD, word_norm (NFD) và Java normalizeWord (NFC) KHÔNG BẰNG NHAU!");
+        assertNotNull(dbWordNorm);
+        // Sau V11: cột sinh dùng normalize(..., NFC) nên dbWordNorm đã được chuẩn hóa về canonical NFC!
+        assertEquals(nfcWord, dbWordNorm, "PostgreSQL word_norm dưới V11 phải chuyển NFD thành canonical NFC");
+        assertEquals(javaWordNorm, dbWordNorm, "Sau V11, DB word_norm và Java normalizeWord phải KHỚP NHAU 100% (cùng dạng NFC)");
     }
 
     @Test
     @Transactional
-    @DisplayName("Kiểm tra khả năng dùng normalize(word, NFC) trong PostgreSQL Generated Column")
-    void testPostgresNormalizeFunctionAndGeneratedColumn() {
-        // 1. Kiểm tra hàm normalize có tồn tại và thuộc tính provolatile
-        try {
-            String provolatile = jdbcTemplate.queryForObject(
-                    "SELECT provolatile::text FROM pg_proc WHERE proname = 'normalize' LIMIT 1",
-                    String.class
-            );
-            System.out.println("=== PostgreSQL normalize() provolatile: " + provolatile + " ('i' = IMMUTABLE) ===");
-        } catch (Exception e) {
-            System.out.println("=== Không tìm thấy hàm normalize trong pg_proc: " + e.getMessage());
-        }
+    @DisplayName("4. Ca test CHỮ HOA tiếng Việt (TIẾNG VIỆT, ĐƯỜNG, HỌC TẬP) cả dạng NFC lẫn NFD")
+    void testVietnameseUppercase_NfcAndNfd() {
+        String[][] cases = {
+                {"TIẾNG VIỆT", "tiếng việt"},
+                {"ĐƯỜNG", "đường"},
+                {"HỌC TẬP", "học tập"},
+                {"TRƯỜNG HỌC", "trường học"}
+        };
 
-        // 2. Thử tạo bảng với GENERATED ALWAYS AS (normalize(..., NFC)) STORED
-        try {
-            jdbcTemplate.execute(
-                    "CREATE TEMP TABLE temp_vocab_norm (" +
-                    "  id serial primary key, " +
-                    "  word text, " +
-                    "  word_norm text GENERATED ALWAYS AS (normalize(lower(btrim(word, E' \t\n\r')), NFC)) STORED" +
-                    ")"
-            );
-            System.out.println("=== THÀNH CÔNG: PostgreSQL CHO PHÉP dùng normalize(..., NFC) trong GENERATED ALWAYS AS ... STORED ===");
+        for (String[] pair : cases) {
+            String upperNfc = pair[0];
+            String expectedLowerNfc = pair[1];
 
-            // Test insert NFD into temp table
-            String nfcWord = "tiếng việt";
-            String nfdWord = Normalizer.normalize(nfcWord, Normalizer.Form.NFD);
-            jdbcTemplate.update("INSERT INTO temp_vocab_norm (word) VALUES (?)", "  " + nfdWord + "  ");
-            String genNorm = jdbcTemplate.queryForObject("SELECT word_norm FROM temp_vocab_norm LIMIT 1", String.class);
-            System.out.println("=== Giá trị sau normalize(...) trong DB: " + genNorm + " (Khớp NFC: " + nfcWord.equals(genNorm) + ") ===");
-            assertEquals(nfcWord, genNorm, "normalize(..., NFC) đã chuyển NFD thành NFC ngay trong DB!");
-        } catch (Exception e) {
-            System.out.println("=== THẤT BẠI: PostgreSQL KHÔNG cho phép: " + e.getMessage());
+            // 1. Kiểm tra ca chữ hoa dạng NFC
+            Vocabulary vocabNfc = new Vocabulary("  " + upperNfc + " \n", "NFC upper test", "noun", "/ipa/", "example sentence");
+            vocabNfc = vocabularyRepository.saveAndFlush(vocabNfc);
+            String dbWordNormNfc = jdbcTemplate.queryForObject(
+                    "SELECT word_norm FROM vocabularies WHERE id = ?",
+                    String.class,
+                    vocabNfc.getId()
+            );
+            String javaNormNfc = StudyPlanService.normalizeWord("  " + upperNfc + " \n");
+
+            assertEquals(expectedLowerNfc, javaNormNfc, "Java normalizeWord phải ra chữ thường NFC");
+            assertEquals(expectedLowerNfc, dbWordNormNfc, "DB word_norm phải ra chữ thường NFC cho từ hoa NFC: " + upperNfc);
+            assertEquals(javaNormNfc, dbWordNormNfc, "DB word_norm và Java normalizeWord phải bằng nhau cho từ hoa NFC: " + upperNfc);
+
+            // 2. Kiểm tra ca chữ hoa dạng NFD
+            String upperNfd = Normalizer.normalize(upperNfc, Normalizer.Form.NFD);
+            Vocabulary vocabNfd = new Vocabulary("\t" + upperNfd + "\r\n", "NFD upper test", "noun", "/ipa/", "example sentence");
+            vocabNfd = vocabularyRepository.saveAndFlush(vocabNfd);
+            String dbWordNormNfd = jdbcTemplate.queryForObject(
+                    "SELECT word_norm FROM vocabularies WHERE id = ?",
+                    String.class,
+                    vocabNfd.getId()
+            );
+            String javaNormNfd = StudyPlanService.normalizeWord("\t" + upperNfd + "\r\n");
+
+            assertEquals(expectedLowerNfc, javaNormNfd, "Java normalizeWord phải ra chữ thường NFC từ input NFD hoa");
+            assertEquals(expectedLowerNfc, dbWordNormNfd, "DB word_norm phải ra chữ thường NFC cho từ hoa NFD: " + upperNfc);
+            assertEquals(javaNormNfd, dbWordNormNfd, "DB word_norm và Java normalizeWord phải bằng nhau cho từ hoa NFD: " + upperNfc);
         }
     }
 }
