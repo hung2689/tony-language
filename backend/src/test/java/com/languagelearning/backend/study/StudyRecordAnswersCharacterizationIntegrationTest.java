@@ -83,6 +83,9 @@ public class StudyRecordAnswersCharacterizationIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private com.languagelearning.backend.level.service.XpService xpService;
+
     private User testUser;
     private VocabularySet testDeck;
     private Vocabulary v1;
@@ -366,5 +369,113 @@ public class StudyRecordAnswersCharacterizationIntegrationTest {
 
         long totalXp3 = jdbcTemplate.queryForObject("SELECT total_xp FROM user_xp WHERE user_id = ?", Long.class, testUser.getId());
         assertEquals(500L, totalXp3); // Cap maintained at 500
+    }
+
+    @Test
+    @DisplayName("11. Vượt Daily Cap giữa batch: câu thứ k làm vượt cap, các câu sau nhận 0 XP, tổng XP đúng từng đồng")
+    void testMidBatchDailyXpCapExceededExactAccounting() {
+        StudySessionResponse sessionRes = studyService.createSession(testUser.getId(), new CreateSessionRequest(testDeck.getId(), "VI_TO_EN", 10, "RANDOM"));
+        Long sessionId = sessionRes.getId();
+
+        Instant now = Instant.now();
+        ZoneOffset offset = ZoneOffset.UTC;
+        LocalDate today = now.atOffset(offset).toLocalDate();
+        Instant todayStart = today.atStartOfDay().toInstant(offset);
+
+        // Pre-seed user with 492 XP in events today -> quota remaining = 8 XP
+        jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", testUser.getId());
+        jdbcTemplate.update("INSERT INTO xp_events (user_id, source_type, source_key, xp, created_at) VALUES (?, 'TEST', 'pre_cap_8', 492, ?)",
+                testUser.getId(), java.sql.Timestamp.from(todayStart.plusSeconds(30)));
+        jdbcTemplate.update("UPDATE user_xp SET total_xp = 492 WHERE user_id = ?", testUser.getId());
+
+        // Batch of 3 correct 1st-attempt answers (each normally requests 5 XP)
+        // Item 1: requests 5, gets 5 (quota remaining = 3)
+        // Item 2: requests 5, gets min(5, 3) = 3 (quota remaining = 0)
+        // Item 3: requests 5, gets min(5, 0) = 0 (quota remaining = 0)
+        String c1 = "midcap-1-" + UUID.randomUUID();
+        String c2 = "midcap-2-" + UUID.randomUUID();
+        String c3 = "midcap-3-" + UUID.randomUUID();
+        AnswerItemDto a1 = new AnswerItemDto(c1, v1.getId(), "VI_TO_EN", "CORRECT", false, "ans1", 1);
+        AnswerItemDto a2 = new AnswerItemDto(c2, v2.getId(), "VI_TO_EN", "CORRECT", false, "ans2", 1);
+        AnswerItemDto a3 = new AnswerItemDto(c3, v3.getId(), "VI_TO_EN", "CORRECT", false, "ans3", 1);
+
+        studyService.recordAnswers(testUser.getId(), sessionId, new AnswerBatchRequest(List.of(a1, a2, a3)));
+
+        // Total XP in user_xp must be exactly 492 + 8 = 500
+        long finalTotalXp = jdbcTemplate.queryForObject("SELECT total_xp FROM user_xp WHERE user_id = ?", Long.class, testUser.getId());
+        assertEquals(500L, finalTotalXp);
+
+        // Check individual xp_events
+        Integer xpEvent1 = jdbcTemplate.queryForObject("SELECT xp FROM xp_events WHERE user_id = ? AND source_key = ?", Integer.class, testUser.getId(), c1);
+        Integer xpEvent2 = jdbcTemplate.queryForObject("SELECT xp FROM xp_events WHERE user_id = ? AND source_key = ?", Integer.class, testUser.getId(), c2);
+        Integer xpEvent3 = jdbcTemplate.queryForObject("SELECT xp FROM xp_events WHERE user_id = ? AND source_key = ?", Integer.class, testUser.getId(), c3);
+
+        assertEquals(5, xpEvent1, "Item 1 receives full 5 XP");
+        assertEquals(3, xpEvent2, "Item 2 receives exactly remaining 3 XP");
+        assertEquals(0, xpEvent3, "Item 3 receives 0 XP after cap is reached");
+    }
+
+    @Test
+    @DisplayName("12. Tính toán cấp độ (Level info) sau khi batch XP làm vượt ngưỡng")
+    void testBatchLevelProgressCalculation() {
+        StudySessionResponse sessionRes = studyService.createSession(testUser.getId(), new CreateSessionRequest(testDeck.getId(), "VI_TO_EN", 10, "RANDOM"));
+        Long sessionId = sessionRes.getId();
+
+        // Level 1 threshold is 0..79 XP, Level 2 starts at 80 XP (40 * 2 * 1 = 80)
+        jdbcTemplate.update("DELETE FROM xp_events WHERE user_id = ?", testUser.getId());
+        jdbcTemplate.update("UPDATE user_xp SET total_xp = 75 WHERE user_id = ?", testUser.getId());
+
+        assertEquals(1, xpService.getLevelInfo(testUser.getId()).level());
+
+        // Answer 2 correct items (+10 XP) -> total 85 XP -> crosses into Level 2
+        AnswerItemDto a1 = new AnswerItemDto("lvl-1-" + UUID.randomUUID(), v1.getId(), "VI_TO_EN", "CORRECT", false, "ans", 1);
+        AnswerItemDto a2 = new AnswerItemDto("lvl-2-" + UUID.randomUUID(), v2.getId(), "VI_TO_EN", "CORRECT", false, "ans", 1);
+        studyService.recordAnswers(testUser.getId(), sessionId, new AnswerBatchRequest(List.of(a1, a2)));
+
+        long updatedXp = jdbcTemplate.queryForObject("SELECT total_xp FROM user_xp WHERE user_id = ?", Long.class, testUser.getId());
+        assertEquals(85L, updatedXp);
+
+        com.languagelearning.backend.level.dto.LevelInfoDto levelInfo = xpService.getLevelInfo(testUser.getId());
+        assertEquals(2, levelInfo.level());
+        assertEquals(85L, levelInfo.totalXp());
+    }
+
+    @Test
+    @DisplayName("13. Idempotency khi retry đúng batch trước: trạng thái DB được bảo toàn nguyên trạng")
+    void testIdempotentBatchRetryPreservesExactState() {
+        StudySessionResponse sessionRes = studyService.createSession(testUser.getId(), new CreateSessionRequest(testDeck.getId(), "VI_TO_EN", 10, "RANDOM"));
+        Long sessionId = sessionRes.getId();
+
+        String k1 = "idem-1-" + UUID.randomUUID();
+        String k2 = "idem-2-" + UUID.randomUUID();
+        AnswerItemDto a1 = new AnswerItemDto(k1, v1.getId(), "VI_TO_EN", "CORRECT", false, "ans1", 1);
+        AnswerItemDto a2 = new AnswerItemDto(k2, v2.getId(), "VI_TO_EN", "WRONG", false, "ans2", 1);
+        AnswerBatchRequest batch = new AnswerBatchRequest(List.of(a1, a2));
+
+        // 1st call
+        studyService.recordAnswers(testUser.getId(), sessionId, batch);
+
+        int countAnswers1 = jdbcTemplate.queryForObject("SELECT count(*) FROM study_answers WHERE session_id = ?", Integer.class, sessionId);
+        int countEvents1 = jdbcTemplate.queryForObject("SELECT count(*) FROM xp_events WHERE user_id = ?", Integer.class, testUser.getId());
+        long totalXp1 = jdbcTemplate.queryForObject("SELECT total_xp FROM user_xp WHERE user_id = ?", Long.class, testUser.getId());
+        int v1Correct1 = jdbcTemplate.queryForObject("SELECT correct_count FROM study_progress WHERE user_id = ? AND vocabulary_id = ?", Integer.class, testUser.getId(), v1.getId());
+        int v2Wrong1 = jdbcTemplate.queryForObject("SELECT wrong_count FROM study_progress WHERE user_id = ? AND vocabulary_id = ?", Integer.class, testUser.getId(), v2.getId());
+
+        assertEquals(2, countAnswers1);
+
+        // 2nd call: exact same batch (retry)
+        studyService.recordAnswers(testUser.getId(), sessionId, batch);
+
+        int countAnswers2 = jdbcTemplate.queryForObject("SELECT count(*) FROM study_answers WHERE session_id = ?", Integer.class, sessionId);
+        int countEvents2 = jdbcTemplate.queryForObject("SELECT count(*) FROM xp_events WHERE user_id = ?", Integer.class, testUser.getId());
+        long totalXp2 = jdbcTemplate.queryForObject("SELECT total_xp FROM user_xp WHERE user_id = ?", Long.class, testUser.getId());
+        int v1Correct2 = jdbcTemplate.queryForObject("SELECT correct_count FROM study_progress WHERE user_id = ? AND vocabulary_id = ?", Integer.class, testUser.getId(), v1.getId());
+        int v2Wrong2 = jdbcTemplate.queryForObject("SELECT wrong_count FROM study_progress WHERE user_id = ? AND vocabulary_id = ?", Integer.class, testUser.getId(), v2.getId());
+
+        assertEquals(countAnswers1, countAnswers2, "Retry must not insert duplicate study_answers");
+        assertEquals(countEvents1, countEvents2, "Retry must not insert duplicate xp_events");
+        assertEquals(totalXp1, totalXp2, "Retry must not award duplicate XP");
+        assertEquals(v1Correct1, v1Correct2, "Retry must not alter correct_count in study_progress");
+        assertEquals(v2Wrong1, v2Wrong2, "Retry must not alter wrong_count in study_progress");
     }
 }

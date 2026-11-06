@@ -20,6 +20,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
@@ -47,6 +49,9 @@ public class StudyService {
 
     @Autowired(required = false)
     private Sm2Service sm2Service;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     public StudyService(StudySessionRepository studySessionRepository,
@@ -138,8 +143,9 @@ public class StudyService {
     }
 
     private StudySessionResponse recordAnswersBatch(Long userId, Long sessionId, AnswerBatchRequest request) {
-        StudySession session = studySessionRepository.findByIdAndUserId(sessionId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("SESSION_NOT_FOUND", "Không tìm thấy phiên học"));
+        StudySession session = studySessionRepository.findByIdAndUserIdForUpdate(sessionId, userId)
+                .orElseGet(() -> studySessionRepository.findByIdAndUserId(sessionId, userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("SESSION_NOT_FOUND", "Không tìm thấy phiên học")));
 
         if (request == null || request.getAnswers() == null || request.getAnswers().isEmpty()) {
             return toResponse(session);
@@ -148,6 +154,7 @@ public class StudyService {
         Long deckId = session.getVocabularySetId();
 
         // 1. Upfront deck vocabulary validation
+        // Parameter note: PostgreSQL limit is 32,767. Batches here are <= 1,000 items.
         if (deckId != null) {
             Set<Long> vocabIds = request.getAnswers().stream()
                     .map(AnswerItemDto::getVocabularyId)
@@ -200,21 +207,136 @@ public class StudyService {
             );
         }
 
-        // 3. Pre-fetch existing study_progress for all involved vocabularies
-        Set<Long> allVocabIds = request.getAnswers().stream()
-                .map(AnswerItemDto::getVocabularyId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        Instant now = Instant.now();
+        Timestamp nowTimestamp = Timestamp.from(now);
 
+        // 3. Separate candidate items into new inserts vs overrides (deduplicating in-batch)
+        Set<String> seenClientIdsInBatch = new HashSet<>();
+        List<Object[]> answersToInsert = new ArrayList<>();
+        List<AnswerItemDto> candidateInsertItems = new ArrayList<>();
+        List<String> overrideClientIds = new ArrayList<>();
+        List<AnswerItemDto> candidateOverrideItems = new ArrayList<>();
+
+        for (AnswerItemDto item : request.getAnswers()) {
+            String clientAnswerId = item.getClientAnswerId() != null && !item.getClientAnswerId().isBlank()
+                    ? item.getClientAnswerId().trim()
+                    : null;
+
+            if (clientAnswerId != null) {
+                if (seenClientIdsInBatch.contains(clientAnswerId)) {
+                    continue; // Skip duplicate within current batch
+                }
+                seenClientIdsInBatch.add(clientAnswerId);
+
+                ExistingAnswerInfo existing = existingAnswers.get(clientAnswerId);
+                if (existing != null) {
+                    if (item.isOverride() && !existing.override()) {
+                        overrideClientIds.add(clientAnswerId);
+                        candidateOverrideItems.add(item);
+                    }
+                    continue; // Handled override candidate or sequential duplicate
+                }
+            }
+
+            boolean isCorrect = "CORRECT".equalsIgnoreCase(item.getResult()) || item.isOverride();
+            String trimmedAnswer = item.getUserAnswer() != null ? item.getUserAnswer().trim() : null;
+            if (trimmedAnswer != null && trimmedAnswer.length() > 500) {
+                trimmedAnswer = trimmedAnswer.substring(0, 500);
+            }
+
+            int attemptNo = item.getAttemptNo() > 0 ? item.getAttemptNo() : 1;
+            answersToInsert.add(new Object[]{
+                    sessionId,
+                    item.getVocabularyId(),
+                    item.getDirection(),
+                    trimmedAnswer,
+                    isCorrect,
+                    clientAnswerId,
+                    item.isOverride(),
+                    attemptNo,
+                    nowTimestamp
+            });
+            candidateInsertItems.add(item);
+        }
+
+        // 4. Execute atomic inserts and overrides with ON CONFLICT DO NOTHING to prevent race conditions
+        Set<String> newlyInsertedClientIds = new HashSet<>();
+        if (!answersToInsert.isEmpty()) {
+            StringBuilder sql = new StringBuilder("INSERT INTO study_answers (" +
+                    "session_id, vocabulary_id, question_type, user_answer, is_correct, " +
+                    "client_answer_id, override, attempt_no, answered_at) VALUES ");
+            List<Object> insertParams = new ArrayList<>(answersToInsert.size() * 9);
+            for (int i = 0; i < answersToInsert.size(); i++) {
+                if (i > 0) sql.append(", ");
+                sql.append("(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                for (Object param : answersToInsert.get(i)) {
+                    insertParams.add(param);
+                }
+            }
+            sql.append(" ON CONFLICT (session_id, client_answer_id) WHERE client_answer_id IS NOT NULL DO NOTHING RETURNING client_answer_id");
+
+            List<String> returnedClientIds = jdbcTemplate.query(
+                    sql.toString(),
+                    (rs, rowNum) -> rs.getString("client_answer_id"),
+                    insertParams.toArray()
+            );
+            for (String rId : returnedClientIds) {
+                if (rId != null) {
+                    newlyInsertedClientIds.add(rId);
+                }
+            }
+        }
+
+        Set<String> successfulOverrideClientIds = new HashSet<>();
+        for (String ovId : overrideClientIds) {
+            List<String> ovReturned = jdbcTemplate.query(
+                    "UPDATE study_answers SET override = TRUE, is_correct = TRUE " +
+                    "WHERE session_id = ? AND client_answer_id = ? AND override = FALSE RETURNING client_answer_id",
+                    (rs, rowNum) -> rs.getString("client_answer_id"),
+                    sessionId, ovId
+            );
+            if (!ovReturned.isEmpty()) {
+                successfulOverrideClientIds.add(ovId);
+            }
+        }
+
+        // Filter effective items that were actually inserted or overridden
+        List<AnswerItemDto> effectiveOverrides = new ArrayList<>();
+        for (AnswerItemDto item : candidateOverrideItems) {
+            String cId = item.getClientAnswerId() != null ? item.getClientAnswerId().trim() : null;
+            if (cId != null && successfulOverrideClientIds.contains(cId)) {
+                effectiveOverrides.add(item);
+            }
+        }
+
+        List<AnswerItemDto> effectiveNewAnswers = new ArrayList<>();
+        for (AnswerItemDto item : candidateInsertItems) {
+            String cId = item.getClientAnswerId() != null ? item.getClientAnswerId().trim() : null;
+            if (cId == null || newlyInsertedClientIds.contains(cId)) {
+                effectiveNewAnswers.add(item);
+            }
+        }
+
+        if (effectiveOverrides.isEmpty() && effectiveNewAnswers.isEmpty()) {
+            return toResponse(session);
+        }
+
+        // 5. Pre-fetch and lock study_progress for involved vocabularies in ascending vocabulary_id order (deadlock prevention)
+        Set<Long> involvedVocabIds = new HashSet<>();
+        effectiveOverrides.forEach(i -> involvedVocabIds.add(i.getVocabularyId()));
+        effectiveNewAnswers.forEach(i -> involvedVocabIds.add(i.getVocabularyId()));
+
+        List<Long> sortedVocabIds = involvedVocabIds.stream().filter(Objects::nonNull).distinct().sorted().toList();
         Map<Long, ProgressState> progressMap = new HashMap<>();
-        if (!allVocabIds.isEmpty()) {
-            String pPlaceholders = allVocabIds.stream().map(id -> "?").collect(Collectors.joining(", "));
-            List<Object> pParams = new ArrayList<>(allVocabIds.size() + 1);
+
+        if (!sortedVocabIds.isEmpty()) {
+            String pPlaceholders = sortedVocabIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+            List<Object> pParams = new ArrayList<>(sortedVocabIds.size() + 1);
             pParams.add(userId);
-            pParams.addAll(allVocabIds);
+            pParams.addAll(sortedVocabIds);
 
             jdbcTemplate.query(
-                    "SELECT * FROM study_progress WHERE user_id = ? AND vocabulary_id IN (" + pPlaceholders + ")",
+                    "SELECT * FROM study_progress WHERE user_id = ? AND vocabulary_id IN (" + pPlaceholders + ") ORDER BY vocabulary_id FOR UPDATE",
                     rs -> {
                         Long vId = rs.getLong("vocabulary_id");
                         ProgressState s = new ProgressState(rs.getLong("user_id"), vId);
@@ -236,61 +358,81 @@ public class StudyService {
                     },
                     pParams.toArray()
             );
+
+            // If any vocabulary does not have a study_progress row yet, insert initial placeholder row and lock it
+            if (progressMap.size() < sortedVocabIds.size()) {
+                List<Long> missingIds = sortedVocabIds.stream()
+                        .filter(id -> !progressMap.containsKey(id))
+                        .toList();
+
+                List<Object[]> missingInsertArgs = new ArrayList<>(missingIds.size());
+                for (Long mId : missingIds) {
+                    missingInsertArgs.add(new Object[]{userId, mId, nowTimestamp, nowTimestamp, nowTimestamp});
+                }
+                jdbcTemplate.batchUpdate(
+                        "INSERT INTO study_progress (user_id, vocabulary_id, correct_count, wrong_count, accuracy, current_streak, difficulty, memory_level, last_reviewed_at, next_review_at, interval_days, ease_factor, repetitions, created_at, updated_at) " +
+                        "VALUES (?, ?, 0, 0, 0.00, 0, 0.00, 0, ?, NULL, 0, 2.50, 0, ?, ?) " +
+                        "ON CONFLICT (user_id, vocabulary_id) DO NOTHING",
+                        missingInsertArgs
+                );
+
+                String mPlaceholders = missingIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+                List<Object> mParams = new ArrayList<>(missingIds.size() + 1);
+                mParams.add(userId);
+                mParams.addAll(missingIds);
+
+                jdbcTemplate.query(
+                        "SELECT * FROM study_progress WHERE user_id = ? AND vocabulary_id IN (" + mPlaceholders + ") ORDER BY vocabulary_id FOR UPDATE",
+                        rs -> {
+                            Long vId = rs.getLong("vocabulary_id");
+                            if (!progressMap.containsKey(vId)) {
+                                ProgressState s = new ProgressState(rs.getLong("user_id"), vId);
+                                s.correctCount = rs.getInt("correct_count");
+                                s.wrongCount = rs.getInt("wrong_count");
+                                s.accuracy = rs.getBigDecimal("accuracy");
+                                s.currentStreak = rs.getInt("current_streak");
+                                s.memoryLevel = rs.getInt("memory_level");
+                                Timestamp lastRev = rs.getTimestamp("last_reviewed_at");
+                                if (lastRev != null) s.lastReviewedAt = lastRev.toInstant();
+                                Timestamp nextRev = rs.getTimestamp("next_review_at");
+                                if (nextRev != null) s.nextReviewAt = nextRev.toInstant();
+                                s.intervalDays = rs.getInt("interval_days");
+                                s.easeFactor = rs.getBigDecimal("ease_factor");
+                                s.repetitions = rs.getInt("repetitions");
+                                Timestamp created = rs.getTimestamp("created_at");
+                                if (created != null) s.createdAt = created.toInstant();
+                                progressMap.put(vId, s);
+                            }
+                        },
+                        mParams.toArray()
+                );
+            }
         }
 
-        // 4. In-memory processing loop
-        Instant now = Instant.now();
-        Timestamp nowTimestamp = Timestamp.from(now);
-
+        // 6. In-memory computation loop for effective answers
         int correctDelta = 0;
         int wrongDelta = 0;
         int totalDelta = 0;
-
-        Set<String> seenClientIdsInBatch = new HashSet<>();
-        List<Object[]> answersToInsert = new ArrayList<>();
-        List<Object[]> answersToOverride = new ArrayList<>();
         List<XpService.AnswerXpItem> xpItems = new ArrayList<>();
 
-        for (AnswerItemDto item : request.getAnswers()) {
-            String clientAnswerId = item.getClientAnswerId() != null && !item.getClientAnswerId().isBlank()
-                    ? item.getClientAnswerId().trim()
-                    : null;
+        for (AnswerItemDto item : effectiveOverrides) {
+            correctDelta++;
+            wrongDelta--;
 
-            if (clientAnswerId != null) {
-                if (seenClientIdsInBatch.contains(clientAnswerId)) {
-                    continue; // Skip duplicate within current batch
-                }
+            ProgressState state = progressMap.computeIfAbsent(item.getVocabularyId(), id -> new ProgressState(userId, id));
+            state.correctCount++;
+            state.wrongCount = Math.max(0, state.wrongCount - 1);
+            int total = state.correctCount + state.wrongCount;
+            state.accuracy = total > 0
+                    ? BigDecimal.valueOf(state.correctCount * 100.0 / total).setScale(2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            state.currentStreak++;
+            state.lastReviewedAt = now;
+            state.dirty = true;
+        }
 
-                ExistingAnswerInfo existing = existingAnswers.get(clientAnswerId);
-                if (existing != null) {
-                    if (item.isOverride() && !existing.override()) {
-                        answersToOverride.add(new Object[]{sessionId, clientAnswerId});
-                        correctDelta++;
-                        wrongDelta--;
-
-                        ProgressState state = progressMap.computeIfAbsent(item.getVocabularyId(), id -> new ProgressState(userId, id));
-                        state.correctCount++;
-                        state.wrongCount = Math.max(0, state.wrongCount - 1);
-                        int total = state.correctCount + state.wrongCount;
-                        state.accuracy = total > 0
-                                ? BigDecimal.valueOf(state.correctCount * 100.0 / total).setScale(2, RoundingMode.HALF_UP)
-                                : BigDecimal.ZERO;
-                        state.currentStreak++;
-                        state.lastReviewedAt = now;
-                        state.dirty = true;
-                    }
-                    continue; // Handled override or duplicate
-                }
-
-                seenClientIdsInBatch.add(clientAnswerId);
-            }
-
+        for (AnswerItemDto item : effectiveNewAnswers) {
             boolean isCorrect = "CORRECT".equalsIgnoreCase(item.getResult()) || item.isOverride();
-            String trimmedAnswer = item.getUserAnswer() != null ? item.getUserAnswer().trim() : null;
-            if (trimmedAnswer != null && trimmedAnswer.length() > 500) {
-                trimmedAnswer = trimmedAnswer.substring(0, 500);
-            }
-
             int attemptNo = item.getAttemptNo() > 0 ? item.getAttemptNo() : 1;
             totalDelta++;
             if (isCorrect) {
@@ -299,18 +441,9 @@ public class StudyService {
                 wrongDelta++;
             }
 
-            answersToInsert.add(new Object[]{
-                    sessionId,
-                    item.getVocabularyId(),
-                    item.getDirection(),
-                    trimmedAnswer,
-                    isCorrect,
-                    clientAnswerId,
-                    item.isOverride(),
-                    attemptNo,
-                    nowTimestamp
-            });
-
+            String clientAnswerId = item.getClientAnswerId() != null && !item.getClientAnswerId().isBlank()
+                    ? item.getClientAnswerId().trim()
+                    : null;
             String xpKey = clientAnswerId != null ? clientAnswerId : UUID.randomUUID().toString();
             xpItems.add(new XpService.AnswerXpItem(xpKey, isCorrect, attemptNo, item.isOverride()));
 
@@ -352,25 +485,7 @@ public class StudyService {
             state.dirty = true;
         }
 
-        // 5. Batch database updates
-        // 5a. Insert new study answers
-        if (!answersToInsert.isEmpty()) {
-            jdbcTemplate.batchUpdate(
-                    "INSERT INTO study_answers (session_id, vocabulary_id, question_type, user_answer, is_correct, client_answer_id, override, attempt_no, answered_at) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    answersToInsert
-            );
-        }
-
-        // 5b. Update overridden study answers
-        if (!answersToOverride.isEmpty()) {
-            jdbcTemplate.batchUpdate(
-                    "UPDATE study_answers SET override = TRUE, is_correct = TRUE WHERE session_id = ? AND client_answer_id = ?",
-                    answersToOverride
-            );
-        }
-
-        // 5c. Bulk UPSERT study_progress
+        // 7. Bulk UPSERT study_progress
         List<Object[]> progressToUpsert = new ArrayList<>();
         for (ProgressState s : progressMap.values()) {
             if (!s.dirty) continue;
@@ -419,16 +534,22 @@ public class StudyService {
             );
         }
 
-        // 5d. Consolidated XP award
+        // 8. Consolidated XP award
         if (!xpItems.isEmpty()) {
             xpService.awardAnswersBatchXp(userId, xpItems, now);
         }
 
-        // 5e. Update session counters
+        // 9. Update session counters
         session.setTotalQuestions(session.getTotalQuestions() + totalDelta);
         session.setCorrectAnswers(session.getCorrectAnswers() + correctDelta);
         session.setWrongAnswers(session.getWrongAnswers() + wrongDelta);
         StudySession saved = studySessionRepository.save(session);
+
+        // 10. Flush and clear persistence context to detach stale entities
+        if (entityManager != null) {
+            entityManager.flush();
+            entityManager.clear();
+        }
 
         return toResponse(saved);
     }

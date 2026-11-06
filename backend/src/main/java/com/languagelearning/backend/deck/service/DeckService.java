@@ -27,6 +27,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.sql.PreparedStatement;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,6 +47,9 @@ public class DeckService {
 
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public DeckService(VocabularySetRepository vocabularySetRepository,
                        VocabularySetItemRepository vocabularySetItemRepository,
@@ -415,6 +421,9 @@ public class DeckService {
                                   List<Integer> updateIndices,
                                   List<TermCardDto> updatedCardDtos) {
         // 1. Fetch current vocabulary records in ONE query
+        // Note on parameter limit: PostgreSQL wire protocol uses a 16-bit integer for parameter count (max 32,767 parameters).
+        // Since updateDeck limits cards to <= 1,000 upfront, updateVocabIds never exceeds 1,000 parameters.
+        // If operations exceed 10,000 items in future extensions, partition/chunking into sub-batches of 1,000 is required.
         String placeholders = updateVocabIds.stream().map(id -> "?").collect(Collectors.joining(", "));
         String selectSql = "SELECT id, word, meaning, word_type, pronunciation, example_sentence " +
                            "FROM vocabularies WHERE id IN (" + placeholders + ")";
@@ -501,17 +510,26 @@ public class DeckService {
             jdbcTemplate.batchUpdate(updateSql, vocabUpdateBatchArgs);
         }
 
-        // 5. Execute batch DELETE on synonyms for cards whose synonyms changed
+        // 5. Execute batch DELETE on synonyms for cards whose synonyms changed using vocabulary_id = ANY(?)
         if (!vocabsNeedingSynonymDelete.isEmpty()) {
-            String delPlaceholders = vocabsNeedingSynonymDelete.stream().map(id -> "?").collect(Collectors.joining(", "));
-            String deleteSynSql = "DELETE FROM vocabulary_synonyms WHERE vocabulary_id IN (" + delPlaceholders + ")";
-            jdbcTemplate.update(deleteSynSql, vocabsNeedingSynonymDelete.toArray());
+            Long[] vocabIdsArray = vocabsNeedingSynonymDelete.toArray(new Long[0]);
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement("DELETE FROM vocabulary_synonyms WHERE vocabulary_id = ANY(?)");
+                ps.setArray(1, connection.createArrayOf("int8", vocabIdsArray));
+                return ps;
+            });
         }
 
         // 6. Execute batch INSERT on synonyms
         if (!synonymInsertBatchArgs.isEmpty()) {
             String insertSynSql = "INSERT INTO vocabulary_synonyms (vocabulary_id, synonym) VALUES (?, ?) ON CONFLICT DO NOTHING";
             jdbcTemplate.batchUpdate(insertSynSql, synonymInsertBatchArgs);
+        }
+
+        // 7. Flush and clear persistence context to avoid any stale entity caches
+        if (entityManager != null) {
+            entityManager.flush();
+            entityManager.clear();
         }
     }
 

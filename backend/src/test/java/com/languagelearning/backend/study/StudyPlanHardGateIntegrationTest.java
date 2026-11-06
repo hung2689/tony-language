@@ -165,4 +165,56 @@ public class StudyPlanHardGateIntegrationTest {
         StudySessionResponse res = studyService.createSession(testUser.getId(), new CreateSessionRequest(otherDeck.getId(), "VI_TO_EN", 10, "RANDOM"));
         assertNotNull(res);
     }
+
+    @Test
+    @DisplayName("5. Ranh giới ngày 4h sáng: Thẻ đến hạn lúc 03:59 (trước mốc 04:00 AM) được coi là đến hạn hôm nay -> Hard Gate chặn")
+    void testBoundaryDueAt0359BeforeCutoffBlocks() {
+        StudyPlan plan = new StudyPlan(testUser.getId(), "Boundary Plan 1", LocalDate.now().plusMonths(1), 20, 0, "Asia/Ho_Chi_Minh");
+        plan.setHardGateEnabled(true);
+        plan.setStatus(StudyPlan.Status.ACTIVE);
+        plan = studyPlanRepository.save(plan);
+        studyPlanDeckRepository.save(new StudyPlanDeck(plan.getId(), planDeck.getId(), 1));
+
+        java.time.ZoneId zoneId = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        java.time.ZonedDateTime nowZoned = java.time.ZonedDateTime.now(zoneId);
+        java.time.LocalDate studyDay = nowZoned.getHour() < 4 ? nowZoned.toLocalDate().minusDays(1) : nowZoned.toLocalDate();
+        Instant endOfStudyDay = studyDay.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        // nextReviewAt is 1 second before cutoff (e.g. 03:59:58 AM)
+        StudyProgress sp = new StudyProgress(testUser.getId(), v1.getId());
+        sp.setCorrectCount(5);
+        sp.setWrongCount(0);
+        sp.setNextReviewAt(endOfStudyDay.minusSeconds(1));
+        sp.setMemoryLevel(2);
+        sp.setIntervalDays(1);
+        studyProgressRepository.save(sp);
+
+        assertTrue(studyPlanService.isHardGateBlocking(testUser.getId()), "Card due before 04:00 AM cutoff must block hard gate");
+    }
+
+    @Test
+    @DisplayName("6. Ranh giới ngày 4h sáng: Thẻ đến hạn lúc 04:01 (sau mốc 04:00 AM) thuộc ngày hôm sau -> Hard Gate không chặn")
+    void testBoundaryDueAt0401AfterCutoffDoesNotBlock() {
+        StudyPlan plan = new StudyPlan(testUser.getId(), "Boundary Plan 2", LocalDate.now().plusMonths(1), 20, 0, "Asia/Ho_Chi_Minh");
+        plan.setHardGateEnabled(true);
+        plan.setStatus(StudyPlan.Status.ACTIVE);
+        plan = studyPlanRepository.save(plan);
+        studyPlanDeckRepository.save(new StudyPlanDeck(plan.getId(), planDeck.getId(), 1));
+
+        java.time.ZoneId zoneId = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+        java.time.ZonedDateTime nowZoned = java.time.ZonedDateTime.now(zoneId);
+        java.time.LocalDate studyDay = nowZoned.getHour() < 4 ? nowZoned.toLocalDate().minusDays(1) : nowZoned.toLocalDate();
+        Instant endOfStudyDay = studyDay.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        // nextReviewAt is 2 seconds after cutoff (e.g. 04:00:01 AM)
+        StudyProgress sp = new StudyProgress(testUser.getId(), v1.getId());
+        sp.setCorrectCount(5);
+        sp.setWrongCount(0);
+        sp.setNextReviewAt(endOfStudyDay.plusSeconds(2));
+        sp.setMemoryLevel(2);
+        sp.setIntervalDays(2);
+        studyProgressRepository.save(sp);
+
+        assertFalse(studyPlanService.isHardGateBlocking(testUser.getId()), "Card due after 04:00 AM cutoff belongs to next study day and must not block");
+    }
 }

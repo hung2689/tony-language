@@ -650,6 +650,42 @@ public class PerfBaselineRunnerIntegrationTest {
                 }
         ));
 
+        // 1e. POST /api/study/sessions (Đo độc lập createSession: Không plan / không hard gate)
+        results.add(executeBenchmark(
+                "POST /api/study/sessions (Khởi tạo session, không hard gate)",
+                totalRuns,
+                (runIndex) -> {
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 20, "SEQUENTIAL");
+                    MvcResult res = mockMvc.perform(post("/api/study/sessions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(createReq)))
+                            .andExpect(status().isCreated())
+                            .andReturn();
+                    return res.getResponse().getContentAsByteArray().length;
+                },
+                (runIndex) -> {
+                    jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = FALSE WHERE user_id = ?", perfUser.getId());
+                }
+        ));
+
+        // 1f. POST /api/study/sessions (Đo độc lập createSession: Có plan bật hard gate còn thẻ cần học)
+        results.add(executeBenchmark(
+                "POST /api/study/sessions (Bật hard gate, còn thẻ cần học -> chặn)",
+                totalRuns,
+                (runIndex) -> {
+                    CreateSessionRequest createReq = new CreateSessionRequest(targetDeckId, "EN_TO_VI", 20, "SEQUENTIAL");
+                    MvcResult res = mockMvc.perform(post("/api/study/sessions")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(createReq)))
+                            .andExpect(status().isBadRequest())
+                            .andReturn();
+                    return res.getResponse().getContentAsByteArray().length;
+                },
+                (runIndex) -> {
+                    jdbcTemplate.update("UPDATE study_plans SET hard_gate_enabled = TRUE, status = 'ACTIVE' WHERE user_id = ?", perfUser.getId());
+                }
+        ));
+
         // Reset before read-only study plan & analytics endpoints to prevent contamination from session answers
         resetDatabase();
 
