@@ -690,6 +690,40 @@ public class PerfBaselineRunnerIntegrationTest {
                 null
         ));
 
+        // Reset before PUT Scenario A' to ensure updateDeck has original data
+        resetDatabase();
+
+        // 9b. PUT /api/decks/{id} Scenario A': Sửa 500 thẻ nhưng KHÔNG đổi nội dung
+        results.add(executeBenchmark(
+                "PUT /api/decks/{id} (a': Sửa 500 thẻ không đổi)",
+                totalRuns,
+                (runIndex) -> {
+                    List<TermCardDto> unchangedCards = new ArrayList<>(500);
+                    for (int i = 0; i < updateDeckVocabIds.size(); i++) {
+                        Long vId = updateDeckVocabIds.get(i);
+                        unchangedCards.add(new TermCardDto(
+                                vId,
+                                "bench_upd_" + (i + 1),
+                                "Nghia cua tu bench_upd_" + (i + 1),
+                                "/p/",
+                                "noun",
+                                "example",
+                                List.of("syn_bench_upd_" + (i + 1))
+                        ));
+                    }
+                    DeckUpdateRequest unchangedDeckRequest = new DeckUpdateRequest("Perf Deck 500 - Update Existing", "Dedicated benchmark deck", null, unchangedCards);
+                    String unchangedPayload = objectMapper.writeValueAsString(unchangedDeckRequest);
+
+                    MvcResult res = mockMvc.perform(put("/api/decks/" + updateDeckId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(unchangedPayload))
+                            .andExpect(status().isOk())
+                            .andReturn();
+                    return res.getResponse().getContentAsByteArray().length;
+                },
+                null
+        ));
+
         // Reset before PUT Scenario B to ensure addDeck is fresh
         resetDatabase();
 
