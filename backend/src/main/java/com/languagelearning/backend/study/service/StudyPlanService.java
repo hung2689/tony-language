@@ -17,12 +17,15 @@ import com.languagelearning.backend.study.repository.StudyProgressRepository;
 import com.languagelearning.backend.term.dto.TermCardDto;
 import com.languagelearning.backend.term.entity.Vocabulary;
 import com.languagelearning.backend.term.entity.VocabularySynonym;
+import com.languagelearning.backend.study.repository.StudyPlanSql;
 import com.languagelearning.backend.term.repository.VocabularyRepository;
 import com.languagelearning.backend.term.repository.VocabularySynonymRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.text.Normalizer;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -39,6 +42,7 @@ public class StudyPlanService {
     private final VocabularySynonymRepository vocabularySynonymRepository;
     private final StudyProgressRepository studyProgressRepository;
     private final Sm2Service sm2Service;
+    private final JdbcTemplate jdbcTemplate;
 
     public StudyPlanService(
             StudyPlanRepository studyPlanRepository,
@@ -47,7 +51,8 @@ public class StudyPlanService {
             VocabularyRepository vocabularyRepository,
             VocabularySynonymRepository vocabularySynonymRepository,
             StudyProgressRepository studyProgressRepository,
-            Sm2Service sm2Service
+            Sm2Service sm2Service,
+            JdbcTemplate jdbcTemplate
     ) {
         this.studyPlanRepository = studyPlanRepository;
         this.studyPlanDeckRepository = studyPlanDeckRepository;
@@ -56,6 +61,7 @@ public class StudyPlanService {
         this.vocabularySynonymRepository = vocabularySynonymRepository;
         this.studyProgressRepository = studyProgressRepository;
         this.sm2Service = sm2Service;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     /**
@@ -397,9 +403,125 @@ public class StudyPlanService {
     /**
      * Retrieves today's vocabulary queue following SM-2 and priority rules:
      * Due reviews -> Weak words -> New words (capped at maxNewWordsPerDay, at least minWordsPerDay).
+     * Evaluated purely via single-source PostgreSQL window queries with zero full-table hydration.
      */
     @Transactional(readOnly = true)
     public TodayStudyQueueResponse getTodayQueue(Long userId) {
+        StudyPlan activePlan = studyPlanRepository.findByUserIdAndStatus(userId, StudyPlan.Status.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Chưa có lộ trình ôn tập nào đang hoạt động."));
+
+        ZoneId zoneId = parseZoneId(activePlan.getTimezone());
+        LocalDate currentStudyDate = getStudyDay(zoneId);
+        Instant endOfStudyDay = currentStudyDate.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        int maxNew = activePlan.getMaxNewWordsPerDay();
+        int minWords = activePlan.getMinWordsPerDay();
+        Timestamp endTimestamp = Timestamp.from(endOfStudyDay);
+
+        List<QueueCardResult> rows = jdbcTemplate.query(
+                StudyPlanSql.TODAY_QUEUE_CARDS,
+                (rs, rowNum) -> new QueueCardResult(
+                        rs.getLong("id"),
+                        rs.getString("word"),
+                        rs.getString("meaning"),
+                        rs.getString("pronunciation"),
+                        rs.getString("word_type"),
+                        rs.getString("example_sentence"),
+                        rs.getInt("category"),
+                        rs.getInt("rank_in_cat"),
+                        rs.getInt("due_count"),
+                        rs.getInt("weak_count"),
+                        rs.getInt("new_count")
+                ),
+                activePlan.getId(),
+                endTimestamp,
+                userId,
+                maxNew,
+                maxNew,
+                minWords,
+                maxNew
+        );
+
+        if (rows.isEmpty()) {
+            return new TodayStudyQueueResponse(
+                    activePlan.getId(),
+                    activePlan.getName(),
+                    currentStudyDate,
+                    Collections.emptyList(),
+                    0, 0, 0, 0
+            );
+        }
+
+        int dueCount = rows.get(0).dueCount();
+        int weakCount = rows.get(0).weakCount();
+        int newCount = rows.get(0).newCount();
+        int totalCount = rows.size();
+
+        List<Long> selectedIds = rows.stream().map(QueueCardResult::id).toList();
+        Map<Long, List<String>> synonymsMap = new HashMap<>();
+        if (!selectedIds.isEmpty()) {
+            String synSql = "SELECT vocabulary_id, synonym FROM vocabulary_synonyms WHERE vocabulary_id = ANY(?) ORDER BY vocabulary_id ASC, id ASC";
+            Long[] idArray = selectedIds.toArray(new Long[0]);
+            jdbcTemplate.query(
+                    connection -> {
+                        var ps = connection.prepareStatement(synSql);
+                        var sqlArray = connection.createArrayOf("int8", idArray);
+                        ps.setArray(1, sqlArray);
+                        return ps;
+                    },
+                    rs -> {
+                        long vocabId = rs.getLong("vocabulary_id");
+                        String synonym = rs.getString("synonym");
+                        synonymsMap.computeIfAbsent(vocabId, k -> new ArrayList<>()).add(synonym);
+                    }
+            );
+        }
+
+        List<TermCardDto> cardDtos = new ArrayList<>(rows.size());
+        for (QueueCardResult r : rows) {
+            List<String> syns = synonymsMap.getOrDefault(r.id(), Collections.emptyList());
+            cardDtos.add(new TermCardDto(
+                    r.id(),
+                    r.word(),
+                    r.meaning(),
+                    r.pronunciation(),
+                    r.wordType(),
+                    r.exampleSentence(),
+                    syns
+            ));
+        }
+
+        return new TodayStudyQueueResponse(
+                activePlan.getId(),
+                activePlan.getName(),
+                currentStudyDate,
+                cardDtos,
+                dueCount,
+                weakCount,
+                newCount,
+                totalCount
+        );
+    }
+
+    private record QueueCardResult(
+            Long id,
+            String word,
+            String meaning,
+            String pronunciation,
+            String wordType,
+            String exampleSentence,
+            int category,
+            int rankInCat,
+            int dueCount,
+            int weakCount,
+            int newCount
+    ) {}
+
+    /**
+     * Legacy Java in-memory today queue implementation preserved exclusively as the Golden Reference for Parity Tests.
+     */
+    @Transactional(readOnly = true)
+    public TodayStudyQueueResponse getTodayQueueLegacyForParity(Long userId) {
         StudyPlan activePlan = studyPlanRepository.findByUserIdAndStatus(userId, StudyPlan.Status.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Chưa có lộ trình ôn tập nào đang hoạt động."));
 
