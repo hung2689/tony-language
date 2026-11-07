@@ -59,12 +59,14 @@ public class AnalyticsParityIntegrationTest {
     @Autowired
     private StudyProgressRepository studyProgressRepository;
 
+    private LegacyAnalyticsTestHelper legacyAnalyticsService;
     private User testUser;
     private final ZoneId zoneHcm = ZoneId.of("Asia/Ho_Chi_Minh");
     private final ZoneId zoneUtc = ZoneId.of("UTC");
 
     @BeforeEach
     void setUp() {
+        legacyAnalyticsService = new LegacyAnalyticsTestHelper(studySessionRepository, studyProgressRepository, vocabularySetRepository, vocabularyRepository);
         testUser = new User();
         testUser.setUsername("parity_user_" + System.currentTimeMillis() + "_" + Math.random());
         testUser.setEmail("parity_" + System.currentTimeMillis() + "@test.com");
@@ -109,7 +111,7 @@ public class AnalyticsParityIntegrationTest {
     @DisplayName("Ca 1: User mới (chưa có session, chưa có progress, chưa có deck)")
     void testScenario1_NewUser() {
         AnalyticsOverviewResponse overviewOpt = analyticsService.getOverview(testUser.getId(), zoneHcm);
-        AnalyticsOverviewResponse overviewLeg = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneHcm);
+        AnalyticsOverviewResponse overviewLeg = legacyAnalyticsService.getOverview(testUser.getId(), zoneHcm);
         assertEquals(overviewLeg, overviewOpt);
         assertEquals(0, overviewOpt.totalQuestions());
         assertEquals(0, overviewOpt.currentStreak());
@@ -119,7 +121,7 @@ public class AnalyticsParityIntegrationTest {
         assertEquals(0, overviewOpt.totalLearnedCards());
 
         HeatmapResponse heatmapOpt = analyticsService.getHeatmap(testUser.getId(), 2026, zoneHcm);
-        HeatmapResponse heatmapLeg = analyticsService.getHeatmapLegacyForParity(testUser.getId(), 2026, zoneHcm);
+        HeatmapResponse heatmapLeg = legacyAnalyticsService.getHeatmap(testUser.getId(), 2026, zoneHcm);
         assertEquals(heatmapLeg.year(), heatmapOpt.year());
         assertEquals(heatmapLeg.totalActiveDays(), heatmapOpt.totalActiveDays());
         assertEquals(heatmapLeg.totalQuestions(), heatmapOpt.totalQuestions());
@@ -127,14 +129,14 @@ public class AnalyticsParityIntegrationTest {
         assertEquals(heatmapLeg.days(), heatmapOpt.days());
 
         RetentionDistributionResponse retOpt = analyticsService.getRetentionDistribution(testUser.getId());
-        RetentionDistributionResponse retLeg = analyticsService.getRetentionDistributionLegacyForParity(testUser.getId());
+        RetentionDistributionResponse retLeg = legacyAnalyticsService.getRetentionDistribution(testUser.getId());
         assertEquals(retLeg, retOpt);
         assertEquals(0, retOpt.totalCards());
         assertEquals(0, retOpt.masteredCount());
         assertEquals(0, retOpt.unseenCount());
 
         List<WeakWordDto> weakOpt = analyticsService.getWeakWords(testUser.getId(), 10);
-        List<WeakWordDto> weakLeg = analyticsService.getWeakWordsLegacyForParity(testUser.getId(), 10);
+        List<WeakWordDto> weakLeg = legacyAnalyticsService.getWeakWords(testUser.getId(), 10);
         assertEquals(weakLeg, weakOpt);
         assertTrue(weakOpt.isEmpty());
     }
@@ -152,7 +154,7 @@ public class AnalyticsParityIntegrationTest {
         createProgress(v1, 8, 2, new BigDecimal("80.00"), 2);
 
         AnalyticsOverviewResponse overviewOpt = analyticsService.getOverview(testUser.getId(), zoneHcm);
-        AnalyticsOverviewResponse overviewLeg = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneHcm);
+        AnalyticsOverviewResponse overviewLeg = legacyAnalyticsService.getOverview(testUser.getId(), zoneHcm);
         assertEquals(overviewLeg, overviewOpt);
         assertEquals(10, overviewOpt.totalQuestions());
         assertEquals(8, overviewOpt.correctQuestions());
@@ -164,7 +166,7 @@ public class AnalyticsParityIntegrationTest {
         assertEquals(1, overviewOpt.longestStreak());
 
         HeatmapResponse heatmapOpt = analyticsService.getHeatmap(testUser.getId(), today.getYear(), zoneHcm);
-        HeatmapResponse heatmapLeg = analyticsService.getHeatmapLegacyForParity(testUser.getId(), today.getYear(), zoneHcm);
+        HeatmapResponse heatmapLeg = legacyAnalyticsService.getHeatmap(testUser.getId(), today.getYear(), zoneHcm);
         assertEquals(heatmapLeg.totalActiveDays(), heatmapOpt.totalActiveDays());
         assertEquals(heatmapLeg.totalQuestions(), heatmapOpt.totalQuestions());
         assertEquals(heatmapLeg.averageAccuracy(), heatmapOpt.averageAccuracy());
@@ -172,14 +174,14 @@ public class AnalyticsParityIntegrationTest {
         assertEquals(heatmapLeg.days().get(0), heatmapOpt.days().get(0));
 
         RetentionDistributionResponse retOpt = analyticsService.getRetentionDistribution(testUser.getId());
-        RetentionDistributionResponse retLeg = analyticsService.getRetentionDistributionLegacyForParity(testUser.getId());
+        RetentionDistributionResponse retLeg = legacyAnalyticsService.getRetentionDistribution(testUser.getId());
         assertEquals(retLeg, retOpt);
         assertEquals(2, retOpt.totalCards());
         assertEquals(1, retOpt.learningCount());
         assertEquals(1, retOpt.unseenCount());
 
         List<WeakWordDto> weakOpt = analyticsService.getWeakWords(testUser.getId(), 5);
-        List<WeakWordDto> weakLeg = analyticsService.getWeakWordsLegacyForParity(testUser.getId(), 5);
+        List<WeakWordDto> weakLeg = legacyAnalyticsService.getWeakWords(testUser.getId(), 5);
         assertEquals(weakLeg.size(), weakOpt.size());
         assertEquals(weakLeg.get(0).word(), weakOpt.get(0).word());
         assertEquals(weakLeg.get(0).wrongCount(), weakOpt.get(0).wrongCount());
@@ -197,7 +199,7 @@ public class AnalyticsParityIntegrationTest {
         createSession(tMinus2, 10, 8, 2);
 
         AnalyticsOverviewResponse resOpt = analyticsService.getOverview(testUser.getId(), zoneHcm);
-        AnalyticsOverviewResponse resLeg = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneHcm);
+        AnalyticsOverviewResponse resLeg = legacyAnalyticsService.getOverview(testUser.getId(), zoneHcm);
         assertEquals(resLeg, resOpt);
         assertEquals(0, resOpt.currentStreak(), "Current streak should be 0 because streak broke before yesterday");
         assertEquals(2, resOpt.longestStreak(), "Longest streak should be 2");
@@ -207,7 +209,7 @@ public class AnalyticsParityIntegrationTest {
         createSession(tMinus1, 15, 12, 3);
 
         AnalyticsOverviewResponse resOpt2 = analyticsService.getOverview(testUser.getId(), zoneHcm);
-        AnalyticsOverviewResponse resLeg2 = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneHcm);
+        AnalyticsOverviewResponse resLeg2 = legacyAnalyticsService.getOverview(testUser.getId(), zoneHcm);
         assertEquals(resLeg2, resOpt2);
         assertEquals(3, resOpt2.currentStreak(), "Streak continued through yesterday: day-3, day-2, day-1 = 3");
         assertEquals(3, resOpt2.longestStreak());
@@ -217,7 +219,7 @@ public class AnalyticsParityIntegrationTest {
         createSession(tToday, 20, 18, 2);
 
         AnalyticsOverviewResponse resOpt3 = analyticsService.getOverview(testUser.getId(), zoneHcm);
-        AnalyticsOverviewResponse resLeg3 = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneHcm);
+        AnalyticsOverviewResponse resLeg3 = legacyAnalyticsService.getOverview(testUser.getId(), zoneHcm);
         assertEquals(resLeg3, resOpt3);
         assertEquals(4, resOpt3.currentStreak());
         assertEquals(4, resOpt3.longestStreak());
@@ -234,22 +236,22 @@ public class AnalyticsParityIntegrationTest {
 
         // Test with UTC
         AnalyticsOverviewResponse utcOpt = analyticsService.getOverview(testUser.getId(), zoneUtc);
-        AnalyticsOverviewResponse utcLeg = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneUtc);
+        AnalyticsOverviewResponse utcLeg = legacyAnalyticsService.getOverview(testUser.getId(), zoneUtc);
         assertEquals(utcLeg, utcOpt);
 
         HeatmapResponse heatmapUtcOpt = analyticsService.getHeatmap(testUser.getId(), 2026, zoneUtc);
-        HeatmapResponse heatmapUtcLeg = analyticsService.getHeatmapLegacyForParity(testUser.getId(), 2026, zoneUtc);
+        HeatmapResponse heatmapUtcLeg = legacyAnalyticsService.getHeatmap(testUser.getId(), 2026, zoneUtc);
         assertEquals(heatmapUtcLeg.days(), heatmapUtcOpt.days());
         assertEquals(1, heatmapUtcOpt.days().size());
         assertEquals("2026-05-20", heatmapUtcOpt.days().get(0).date(), "In UTC date must be 2026-05-20");
 
         // Test with Asia/Ho_Chi_Minh
         AnalyticsOverviewResponse hcmOpt = analyticsService.getOverview(testUser.getId(), zoneHcm);
-        AnalyticsOverviewResponse hcmLeg = analyticsService.getOverviewLegacyForParity(testUser.getId(), zoneHcm);
+        AnalyticsOverviewResponse hcmLeg = legacyAnalyticsService.getOverview(testUser.getId(), zoneHcm);
         assertEquals(hcmLeg, hcmOpt);
 
         HeatmapResponse heatmapHcmOpt = analyticsService.getHeatmap(testUser.getId(), 2026, zoneHcm);
-        HeatmapResponse heatmapHcmLeg = analyticsService.getHeatmapLegacyForParity(testUser.getId(), 2026, zoneHcm);
+        HeatmapResponse heatmapHcmLeg = legacyAnalyticsService.getHeatmap(testUser.getId(), 2026, zoneHcm);
         assertEquals(heatmapHcmLeg.days(), heatmapHcmOpt.days());
         assertEquals(1, heatmapHcmOpt.days().size());
         assertEquals("2026-05-21", heatmapHcmOpt.days().get(0).date(), "In Asia/Ho_Chi_Minh date must be 2026-05-21");
@@ -272,7 +274,7 @@ public class AnalyticsParityIntegrationTest {
 
         // Test limit = 10
         List<WeakWordDto> weakOpt = analyticsService.getWeakWords(testUser.getId(), 10);
-        List<WeakWordDto> weakLeg = analyticsService.getWeakWordsLegacyForParity(testUser.getId(), 10);
+        List<WeakWordDto> weakLeg = legacyAnalyticsService.getWeakWords(testUser.getId(), 10);
 
         assertEquals(weakLeg.size(), weakOpt.size());
         assertEquals(5, weakOpt.size());
@@ -299,7 +301,7 @@ public class AnalyticsParityIntegrationTest {
 
         // Test limit = 2
         List<WeakWordDto> weakOptLimit2 = analyticsService.getWeakWords(testUser.getId(), 2);
-        List<WeakWordDto> weakLegLimit2 = analyticsService.getWeakWordsLegacyForParity(testUser.getId(), 2);
+        List<WeakWordDto> weakLegLimit2 = legacyAnalyticsService.getWeakWords(testUser.getId(), 2);
         assertEquals(2, weakOptLimit2.size());
         assertEquals(weakLegLimit2.size(), weakOptLimit2.size());
         assertEquals("word_E", weakOptLimit2.get(0).word());
@@ -332,7 +334,7 @@ public class AnalyticsParityIntegrationTest {
         // vUnseenNoProgress: no progress row
 
         RetentionDistributionResponse opt = analyticsService.getRetentionDistribution(testUser.getId());
-        RetentionDistributionResponse leg = analyticsService.getRetentionDistributionLegacyForParity(testUser.getId());
+        RetentionDistributionResponse leg = legacyAnalyticsService.getRetentionDistribution(testUser.getId());
 
         assertEquals(leg, opt);
         assertEquals(6, opt.totalCards());

@@ -450,31 +450,36 @@ Giai đoạn 4 tập trung giải quyết triệt để các vấn đề hiệu 
 
 ### 8.1. Bảng Đối Chiếu Chỉ Số Giai Đoạn 4 (Đo Cùng Một Lần Chạy Trên Dataset B1)
 
-*Số liệu đo trực tiếp qua `PerfBaselineRunnerIntegrationTest` trên database kiểm thử độc lập `language_learning_test` (port 5433), so sánh song song giữa bản LEGACY và bản MỚI trong cùng một lần chạy.*
+*Số liệu đo trực tiếp qua `PerfBaselineRunnerIntegrationTest` trên database kiểm thử độc lập `language_learning_test` (port 5433), so sánh song song giữa bản LEGACY (`LegacyAnalyticsTestHelper`) và bản MỚI (SQL trực tiếp) trong cùng một lần chạy trên dataset B1 (5.501 vocabularies, 23 decks, 10.000 items, 2.000 sessions, 10.000 progress).*
 
 | STT | Endpoint | Bản triển khai | Số query | Dòng DB đọc | Payload Bytes (Raw / Gzip) | Thời gian COLD | Thời gian WARM | Đánh giá kiến trúc & Cơ chế tối ưu |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **1a** | **Hàng đợi học hôm nay**<br>`GET /current/today`<br>*(1.750 thẻ: 1.250 due + 500 weak)* | **LEGACY**<br>(In-Memory) | **5 q** | **6.761 r** | 547.650 B<br>(gzip: 31.996 B) | 632 ms | **239 ms** | 5 queries indexed, nạp thẻ lên JVM RAM và sort trong memory (<2 ms cho 2.500 từ). Thời gian service chỉ **111 ms**. |
-| **1b** | **Hàng đợi học hôm nay**<br>`GET /current/today?cte=true`<br>*(1.750 thẻ)* | **MỚI**<br>(CTE Window) | **3 q** | **3.501 r** | 547.650 B<br>(gzip: 31.996 B) | 1.039 ms | **956 ms** | Giảm 2 queries và giảm 48,2% dòng đọc. Tuy nhiên, CTE window complex (`ROW_NUMBER() OVER (...)`) gây tải cao trong database (6.147 shared hit buffers), thời gian service tăng lên **897 ms** (> 700% chậm hơn). $\rightarrow$ **Quyết định: Fallback production về bản 1a.** |
-| **2** | **Tóm tắt hàng đợi học**<br>`GET /current/today/summary`<br>*(Endpoint mới 4.2)* | **MỚI**<br>(CTE Summary) | **2 q** | **2 r** | **338 B**<br>(gzip: 258 B) | **58 ms** | **47 ms** | **-60% queries, -99,97% dòng đọc, -99,94% bytes, nhanh hơn 5x!** Endpoint trả về `{planId, planName, todayDate, dueWords, weakWords, newWords, totalWords}`. Phục vụ toàn bộ dock badge, reminder modal, dashboard card. |
-| **3** | **Analytics Overview**<br>`GET /api/analytics/overview` | **LEGACY**<br>**(MỚI SQL)** | 2 q<br>**2 q** | 7.000 r<br>**61 r** | 301 B (gz: 238 B)<br>**301 B (gz: 237 B)** | 125 ms<br>**19 ms** | 106 ms<br>**9 ms** | **-99,1% dòng đọc, -91,5% thời gian warm!** Dùng scalar subqueries gộp `SUM(total_questions)`, `SUM(correct_answers)`, `SUM(wrong_answers)`, `COUNT(learned)` và `DISTINCT date` tính streak. |
+| **1** | **Hàng đợi học hôm nay**<br>`GET /api/study-plans/current/today`<br>*(1.750 thẻ: 1.250 due + 500 weak)* | **Production**<br>(In-Memory + Batch Prefetch) | **5 q** | **6.761 r** | 541.621 B<br>(gzip: 31.878 B) | 631 ms | **274 ms** | Đã loại bỏ hoàn toàn tham số `?cte` và CTE `TODAY_QUEUE_CARDS` khỏi production code. Bản in-memory tận dụng 5 câu truy vấn indexed đơn giản, nạp từ vựng và batch prefetch synonyms, sort trên JVM RAM (<2 ms cho 2.500 từ). Thời gian service thực tế ~111 - 127 ms. |
+| **2** | **Tóm tắt hàng đợi học**<br>`GET /api/study-plans/current/today/summary`<br>*(Endpoint mới Giai đoạn 4)* | **MỚI**<br>(SQL Aggregate Summary) | **2 q** | **2 r** | **336 B**<br>(gzip: 257 B) | **73 ms** | **43 ms** | **-60% queries, -99,97% dòng đọc, -99,94% bytes, nhanh hơn 6x!** Endpoint trả về `{planId, planName, todayDate, dueWords, weakWords, newWords, totalWords}`. Phục vụ toàn bộ dock badge, reminder modal, dashboard card thay vì phải kéo full payload 541 kB. |
+| **3** | **Analytics Overview**<br>`GET /api/analytics/overview` | **LEGACY**<br>**(MỚI SQL)** | 2 q<br>**2 q** | 7.000 r<br>**61 r** | 301 B (gz: 238 B)<br>**301 B (gz: 237 B)** | 125 ms<br>**19 ms** | 106 ms<br>**8 ms** | **-99,1% dòng đọc, -92,5% thời gian warm!** Dùng scalar subqueries gộp `SUM(total_questions)`, `SUM(correct_answers)`, `SUM(wrong_answers)`, `COUNT(learned)` và `DISTINCT date` tính streak. |
 | **4** | **Analytics Weak Words**<br>`GET /weak-words?limit=10` | **LEGACY**<br>**(MỚI SQL)** | 2 q<br>**1 q** | 5.010 r<br>**10 r** | 2.157 B (gz: 371 B)<br>**2.157 B (gz: 371 B)** | 109 ms<br>**15 ms** | 91 ms<br>**7 ms** | **-50% queries, -99,8% dòng đọc, -92,3% thời gian warm!** Tận dụng partial index scan `idx_study_progress_user_weak` kết hợp `JOIN vocabularies` và `LIMIT 10`. |
 | **5** | **Analytics Retention**<br>`GET /api/analytics/retention` | **LEGACY**<br>**(MỚI SQL)** | 3 q<br>**1 q** | 5.024 r<br>**1 r** | 219 B (gz: 200 B)<br>**219 B (gz: 200 B)** | 134 ms<br>**16 ms** | 85 ms<br>**13 ms** | **-66,7% queries, -99,98% dòng đọc, -84,7% thời gian warm!** Query duy nhất dùng `COUNT(*) FILTER (WHERE ...)` tổng hợp trực tiếp trong PostgreSQL trả về đúng 1 dòng. |
-| **6** | **Analytics Heatmap**<br>`GET /api/analytics/heatmap` | **LEGACY**<br>**(MỚI SQL)** | 1 q<br>**1 q** | 2.000 r<br>**60 r** | 6.930 B (gz: 474 B)<br>**6.927 B (gz: 472 B)** | 49 ms<br>**17 ms** | 29 ms<br>**10 ms** | **-97,0% dòng đọc, -65,5% thời gian warm!** Gom nhóm theo `(started_at AT TIME ZONE ?)::date` trực tiếp trong database, trả về đúng 60 ngày có học thay vì quét 2.000 sessions. |
-| **7** | **Analytics Suite**<br>*(Tổng hợp cả 4 endpoint)* | **LEGACY**<br>**(MỚI SQL)** | 8 q<br>**5 q** | 19.034 r<br>**132 r** | 9.607 B (gz: 1.283 B)<br>**9.604 B (gz: 1.280 B)** | 328 ms<br>**34 ms** | 291 ms<br>**34 ms** | **-37,5% queries, -99,31% dòng đọc, -88,3% thời gian warm!** Triệt tiêu hoàn toàn áp lực cấp phát RAM và GC pauses trên môi trường Render 512MB RAM. |
+| **6** | **Analytics Heatmap**<br>`GET /api/analytics/heatmap` | **LEGACY**<br>**(MỚI SQL)** | 1 q<br>**1 q** | 2.000 r<br>**60 r** | 6.930 B (gz: 474 B)<br>**6.930 B (gz: 476 B)** | 49 ms<br>**17 ms** | 29 ms<br>**4 ms** | **-97,0% dòng đọc, -86,2% thời gian warm!** Gom nhóm theo `(started_at AT TIME ZONE ?)::date` trực tiếp trong database, trả về đúng 60 ngày có học thay vì quét 2.000 sessions. |
+| **7** | **Analytics Suite**<br>*(Tổng hợp cả 4 endpoint)* | **LEGACY**<br>**(MỚI SQL)** | 8 q<br>**5 q** | 19.034 r<br>**132 r** | 9.607 B (gz: 1.283 B)<br>**9.559 B (gz: 1.277 B)** | 328 ms<br>**24 ms** | 291 ms<br>**20 ms** | **-37,5% queries, -99,31% dòng đọc, -93,1% thời gian warm!** Triệt tiêu hoàn toàn áp lực cấp phát RAM và GC pauses trên môi trường Render 512MB RAM. |
+
+#### Giải thích hiện tượng lệch 1.750 bytes payload và quy chuẩn đo:
+- Ở các bản benchmark trước, payload `/today` có lúc đo được 545.900 B (B1) và 547.650 B (B2) (lệch đúng 1.750 B).
+- **Nguyên nhân**: Lệnh `TRUNCATE TABLE ... CASCADE` trong harness trước đây thiếu mệnh đề `RESTART IDENTITY`. Khi seed lại nhiều lần, sequence khóa chính của bảng `vocabularies` vượt mốc 9.999 lên 10.000+ (từ 4 chữ số tăng lên 5 chữ số). Do hàng đợi `/today` có đúng 1.750 thẻ, mỗi ID thẻ tăng thêm 1 chữ số ASCII (1 byte) trong chuỗi JSON, dẫn đến đúng $1.750 × 1\text{ byte} = 1.750\text{ bytes}$ chênh lệch.
+- **Biện pháp xử lý**: Đã bổ sung `RESTART IDENTITY` vào lệnh TRUNCATE trong harness (`TRUNCATE TABLE ... RESTART IDENTITY CASCADE`), giúp sequence ID luôn được reset về 1 cố định.
+- **Ghi chú quan trọng**: Payload `/today` của B1 (545.900 B) và B2 (547.650 B) không so sánh trực tiếp với số hiện tại (541.621 B) vì id đã đổi do `RESTART IDENTITY`; tuy nhiên số query (5 q) và số dòng đọc (6.761 r) hoàn toàn bất biến và so sánh trực tiếp được.
 
 ### 8.2. Kế Hoạch Đo EXPLAIN (ANALYZE, BUFFERS) Trên PostgreSQL 18.4 (Dataset B1)
 
-Thực thi độc lập trên database `language_learning_test` (port 5433) cho 6 câu truy vấn đọc:
+Thực thi độc lập trên database `language_learning_test` (port 5433) cho các câu truy vấn đọc:
 
 ```sql
--- 1. TODAY_QUEUE_CARDS (Plan 1.750 cards)
+-- 1. TODAY_QUEUE_CARDS (Thực nghiệm CTE Window function)
 -- Execution Time: 29.597 ms | Planning Time: 45.429 ms | Buffers: shared hit=6147
 -- Node chính: WindowAgg (ROW_NUMBER() OVER (...)), HashAggregate, Nested Loop JOIN.
--- Nguyên nhân gây chậm warm ở phía application: 6.147 shared buffer hits trong DB kết hợp JDBC row-by-row mapping cho 1.750 cards với 11 cột + 1 query ANY(?) nạp 1.750 synonyms khiến thời gian Service mất 897 ms.
+-- Kết luận: Phức tạp hóa câu lệnh SQL không mang lại lợi ích thực tế so với bản in-memory indexed.
 
 -- 2. TODAY_QUEUE_SUMMARY (Summary count)
--- Execution Time: 21.714 ms | Planning Time: 43.389 ms | Buffers: shared hit=384
+-- Execution Time: 10 - 21 ms | Planning Time: ~1 ms (warm catalog cache) | Buffers: shared hit=384
 -- Node chính: Aggregate COUNT(*) FILTER (...). Buffers chỉ 384 hits (giảm 93,8% so với full cards).
 
 -- 3. OVERVIEW_TOTALS (Analytics Overview)
@@ -495,37 +500,71 @@ Thực thi độc lập trên database `language_learning_test` (port 5433) cho 
 -- Không sort full table, dừng ngay khi đủ LIMIT 10.
 ```
 
-### 8.3. Phân Tích Chi Tiết Thành Phần Thời Gian Của `GET /today` (Sub-step Breakdown)
+### 8.3. Kết Quả Điều Tra Chuyên Sâu Về Hiệu Năng (Sub-step Investigations)
 
-Đo lường phân rã thời gian độc lập qua 5 lần chạy WARM (lấy trung vị) giữa hai bản triển khai:
-- **Bản MỚI (CTE SQL)**:
-  - Thời gian Service (SQL Query + DTO Mapping): **897 ms**
-  - Thời gian Jackson JSON Serialization: **5 ms**
-  - Tổng thời gian: **902 ms**
-- **Bản LEGACY (In-Memory với batch synonyms prefetch)**:
-  - Thời gian Service (5 Queries + In-Memory Sort): **111 ms**
-  - Thời gian Jackson JSON Serialization: **3 ms**
-  - Tổng thời gian: **114 ms**
+#### 1. Điều tra chi tiết hiệu năng giữa bản CTE và bản In-Memory (Statement-by-Statement & Service-Level Profile):
+- Tiến hành đo statement-by-statement chi tiết qua DataSource Proxy và Stopwatch nội bộ qua 10 lần chạy trên dataset B1:
+  - **Query 1 (CTE SQL `TODAY_QUEUE_CARDS`)**: Cold 117 ms, Warm 27 - 60 ms.
+  - **ResultSet Mapping (1.750 rows)**: Chỉ tốn **1 - 8 ms**! $\rightarrow$ **Bác bỏ hoàn toàn giả thuyết "do JDBC row mapping / buffer hits tốn hàng trăm ms"**.
+  - **Query 2 (Synonyms ANY(?))**: Cold 76 ms, Warm 4 - 10 ms.
+  - **Synonym Mapping**: 0 - 2 ms.
+  - **Tổng thời gian tầng Service (cô lập)**:
+    - Bản CTE warm: **33 - 74 ms**
+    - Bản In-Memory warm: **111 - 133 ms** (cold 631 - 857 ms)
+- **Kết luận kiến trúc**:
+  - Trong phép đo cô lập tầng service, bản CTE warm (33 - 74 ms) nhanh hơn in-memory (111 - 133 ms).
+  - Bản in-memory được giữ lại cho production vì: đơn giản, ít rủi ro, không phụ thuộc vào window function phức tạp của DB engine, đã có bộ test suite hành vi bao phủ đầy đủ, và vì `/today` chỉ dùng riêng ở màn hình học trực tiếp (tất cả các nơi gọi thường xuyên như dock badge, reminder modal, dashboard card đã chuyển sang endpoint siêu nhẹ `/today/summary` với thời gian warm 43 ms và 2 queries).
+  - Nguyên nhân của con số warm 956 ms / 1.720 ms đo trước đó qua harness MockMvc chưa xác định (có thể do serialization overhead của MockMvc hoặc môi trường test runner).
+  - Bản triển khai CTE đầy đủ được lưu trữ và bảo toàn trong git commit `ebec000` để tham khảo khi cần chuyển đổi trong tương lai.
 
-**Kết luận & Quyết định kiến trúc**:
-1. Thời gian JSON serialization chỉ chiếm ~3 - 5 ms, không phải nguyên nhân nghẽn.
-2. Bản CTE SQL window function tuy giảm số query từ 5 xuống 3 nhưng chịu chi phí xử lý window partitioning và buffer hits cao trong database khi lượng bản ghi lớn (1.750 thẻ), khiến thời gian service lên tới 897 ms. Trong khi đó, bản Legacy tận dụng 5 câu truy vấn indexed đơn giản và thực hiện phân loại/sắp xếp trong RAM JVM cực nhanh (chỉ 111 ms).
-3. **Quyết định**: Fallback `GET /api/study-plans/current/today` về bản in-memory đã tối ưu hóa batch prefetch synonyms (`StudyPlanService.getTodayQueueFallback`).
-4. **Giữ lại nguyên vẹn `GET /today/summary`** (47 ms warm, 2 queries, 2 rows, 338 B) phục vụ toàn bộ các component đếm thẻ (Dock, Reminder, Widget).
-5. **Giữ lại nguyên vẹn toàn bộ 4 query Analytics mới**, giúp giảm 76 - 94% độ trễ và giảm 99,3% số dòng đọc.
+#### 2. Điều tra Planning Time 43-45 ms của `TODAY_QUEUE_SUMMARY` (JIT ON vs JIT OFF):
+- Chạy thực nghiệm `EXPLAIN (ANALYZE, BUFFERS)` với `SET jit = on` vs `SET jit = off`:
+  - **JIT ON**: Planning time 0.8 - 1.8 ms, Execution time 11 - 16 ms.
+  - **JIT OFF**: Planning time 0.9 - 1.3 ms, Execution time 10 - 15 ms.
+- **Kết luận**: JIT không phải là nguyên nhân gây planning time cao. Con số 43-45 ms planning time ghi nhận ban đầu xuất phát từ hiện tượng **PostgreSQL catalog cache miss (cold catalog cache)** khi connection mới được khởi tạo và database phải tra cứu metadata của 6 bảng/views liên quan. Khi catalog cache đã warm, planning time của truy vấn chỉ tốn xấp xỉ **1 ms**.
 
-### 8.4. Kết Quả Kiểm Tra Bảo Mật (Audit Bảng Quyền Sở Hữu Resource)
+### 8.4. Ma Trận Bảo Mật Quyền Sở Hữu Resource (IDOR Security Matrix - Chạy Thật 30 Scenarios)
 
-| Controller / Service | Resource / Entity | Phương thức truy vấn | Quyền sở hữu (User Ownership) | Kết quả Audit & Xử lý |
-| :--- | :--- | :--- | :---: | :--- |
-| `StudyPlanService` | `VocabularySet` | `getDeckForecast(deckId)` | Trước: `findById(deckId)`<br>**Sau: `findByIdAndUserId(deckId, userId)`** | **ĐÃ VÁ**: User A truy vấn deck của User B lập tức nhận 404 `ResourceNotFoundException("DECK_NOT_FOUND")`. Đã có integration test kiểm chứng (`DeckSrsSecurityIntegrationTest`). |
-| `StudyPlanService` | `VocabularySet` | `getDeckStudyQueue(deckId)` | Trước: `findById(deckId)`<br>**Sau: `findByIdAndUserId(deckId, userId)`** | **ĐÃ VÁ**: Tương tự như trên, kiểm tra quyền sở hữu trước khi nạp thẻ, trả về 404 `DECK_NOT_FOUND`. |
-| `StudyPlanService` | `StudyPlan` | `buildPlanResponse(userId, planId)` | `findById(planId)` + check `plan.getUserId().equals(userId)` | **AN TOÀN**: Bổ sung kiểm tra quyền sở hữu trong helper nội bộ, ném 404 nếu không khớp `userId`. |
-| `StudyPlanService` | `StudyPlan` | `buildPlanResponseLegacyForParity` | `findById(planId)` + check `plan.getUserId().equals(userId)` | **AN TOÀN**: Ràng buộc `userId` trước khi build response. |
-| `DeckService` | `VocabularySet` | `getDeckById`, `updateDeck`, `deleteDeck` | `findByIdAndUserId(id, userId)` | **AN TOÀN**: Mọi thao tác đọc, sửa, xóa bộ thẻ đều bắt buộc khớp `userId`. |
-| `DeckService` | `Folder` | `assignFolder` | `folderRepository.findByIdAndUserId(folderId, userId)` | **AN TOÀN**: Kiểm tra thư mục thuộc sở hữu của user trước khi gán deck. |
-| `FolderService` | `Folder` | `getFolderById`, `updateFolder`, `deleteFolder` | `findByIdAndUserId(id, userId)` | **AN TOÀN**: Mọi thao tác CRUD thư mục đều ràng buộc `userId`. |
-| `StudyService` | `StudySession` | `recordAnswers`, `completeSession` | `findByIdAndUserId(id, userId)` | **AN TOÀN**: Ràng buộc phiên học thuộc về user đang đăng nhập. |
-| `StudyService` | `VocabularySet` | `createSession` | `findByIdAndUserId(deckId, userId)` | **AN TOÀN**: Kiểm tra quyền sở hữu deck trước khi tạo phiên học. |
-| `WallpaperService` | `Wallpaper` | `getWallpaperById`, `deleteWallpaper` | `findByIdAndUserId(id, userId)` | **AN TOÀN**: Ràng buộc wallpaper thuộc sở hữu user. |
-| `AnalyticsService` | `StudyProgress` / `StudySession` | Toàn bộ 4 endpoint | Ràng buộc `WHERE user_id = ?` trong tất cả các query SQL | **AN TOÀN**: Không thể đọc trộm dữ liệu học tập của user khác. |
+*Kiểm thử tự động 100% bằng integration test HTTP thực tế `IdorSecurityMatrixIntegrationTest` (30 test methods, 0 failures) trên PostgreSQL test (port 5433). Mọi đường dẫn endpoint được trích xuất trực tiếp từ các Annotation `@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`, `@PatchMapping`, `@DeleteMapping` của Controllers thật trong `src/main`.*
+
+#### 1. Nhóm IDOR Thực Sự (Truy Cập Chéo Resource Giữa Các User - 27 Scenarios)
+*User A gửi request thao tác bằng ID tài nguyên của User B. Hệ thống bắt buộc phải từ chối và trả về HTTP 404 NOT FOUND (không tiết lộ sự tồn tại của resource).*
+
+| STT | Phương thức | Endpoint thực tế | Resource | Hành vi tấn công của User A | Mã HTTP | Trạng thái dữ liệu của User B | Đánh giá |
+| :---: | :---: | :--- | :--- | :--- | :---: | :--- | :---: |
+| 1 | `GET` | `/api/decks/{id}` | `VocabularySet` | Đọc deck của B bằng `deckId_B` | **404** | Không lộ dữ liệu từ vựng của B | **AN TOÀN** |
+| 2 | `PUT` | `/api/decks/{id}` | `VocabularySet` | Sửa thông tin deck của B | **404** | Tên và mô tả của B không đổi | **AN TOÀN** |
+| 3 | `DELETE` | `/api/decks/{id}` | `VocabularySet` | Xóa deck của B bằng `deckId_B` | **404** | Deck của B vẫn tồn tại nguyên vẹn | **AN TOÀN** |
+| 4 | `GET` | `/api/folders/{id}` | `Folder` | Đọc thư mục của B | **404** | Không xem được thư mục của B | **AN TOÀN** |
+| 5 | `PUT` | `/api/folders/{id}` | `Folder` | Đổi tên thư mục của B | **404** | Tên thư mục của B không bị thay đổi | **AN TOÀN** |
+| 6 | `DELETE` | `/api/folders/{id}` | `Folder` | Xóa thư mục của B | **404** | Thư mục của B vẫn còn nguyên | **AN TOÀN** |
+| 7 | `PATCH` | `/api/decks/{id}/folder` | `Folder` | Di chuyển deck A vào folder của B | **404** | Deck của A không thay đổi thư mục | **AN TOÀN** |
+| 8 | `POST` | `/api/study/sessions` | `VocabularySet` | Bắt đầu học với `deckId` của B | **404** | Không tạo được session từ deck của B | **AN TOÀN** |
+| 9 | `POST` | `/api/study/sessions/{id}/answers` | `StudySession` | Gửi câu trả lời vào session của B | **404** | Session của B không nhận câu trả lời trái phép | **AN TOÀN** |
+| 10 | `POST` | `/api/study/sessions/{id}/finish` | `StudySession` | Kết thúc phiên học của B | **404** | Phiên học của B không bị kết thúc sớm | **AN TOÀN** |
+| 11 | `POST` | `/api/study-plans` | `VocabularySet` | Tạo lộ trình học kèm deck của B | **404** | Không thể tạo study plan chứa deck của B | **AN TOÀN** |
+| 12 | `POST` | `/api/study-plans/preview` | `VocabularySet` | Preview số từ của lộ trình với deck của B | **404** | Không làm lộ số lượng từ vựng của B | **AN TOÀN** |
+| 13 | `POST` | `/api/study-plans/current/decks` | `VocabularySet` | Thêm deck của B vào lộ trình của A | **404** | Lộ trình của A không thêm được deck của B | **AN TOÀN** |
+| 14 | `DELETE` | `/api/study-plans/current/decks/{deckId}` | `VocabularySet` | Xóa deck của B khỏi plan | **404** | Deck của B vẫn nguyên vẹn trong lộ trình của B | **AN TOÀN** |
+| 15 | `GET` | `/api/decks/{id}/srs-forecast` | `VocabularySet` | Xem dự báo SRS của deck thuộc B | **404** | Không xem được forecast của B | **AN TOÀN** |
+| 16 | `GET` | `/api/decks/{id}/srs-queue` | `VocabularySet` | Xem queue SRS của deck thuộc B | **404** | Không xem được queue của B | **AN TOÀN** |
+| 17 | `GET` | `/api/decks/{deckId}/synonyms` | `VocabularySet` | Đọc hàng đợi từ đồng nghĩa deck của B | **404** | Không xem được dữ liệu synonym của B | **AN TOÀN** |
+| 18 | `GET` | `/api/decks/{deckId}/synonyms/stats` | `VocabularySet` | Xem thống kê đồng nghĩa của deck thuộc B | **404** | Không xem được thống kê của B | **AN TOÀN** |
+| 19 | `POST` | `/api/decks/{deckId}/synonyms/quick-add` | `VocabularySet` | Thêm nhanh từ vào deck của B | **404** | Deck của B không bị thêm từ trái phép | **AN TOÀN** |
+| 20 | `POST` | `/api/decks/{deckId}/synonyms/evaluate` | `VocabularySet` | Đánh giá synonym trên deck của B | **404** | Không chấm điểm synonym trên deck của B | **AN TOÀN** |
+| 21 | `POST` | `/api/decks/{deckId}/synonyms/evaluate` | `Vocabulary` | Đánh giá synonym với vocabId của B | **404** | Bị từ chối vì từ vựng không nằm trong deck A | **AN TOÀN** |
+| 22 | `GET` | `/api/decks/{deckId}/sentence-challenges` | `VocabularySet` | Lấy thử thách đặt câu từ deck của B | **404** | Không đọc được câu hỏi bài tập của B | **AN TOÀN** |
+| 23 | `POST` | `/api/decks/{deckId}/sentence-challenges/evaluate` | `VocabularySet` | Chấm điểm câu trên deck của B | **404** | Không chấm điểm trên deck của B | **AN TOÀN** |
+| 24 | `POST` | `/api/decks/{deckId}/context-story` | `VocabularySet` | Sinh truyện ngữ cảnh từ deck của B | **404** | Không dùng AI sinh truyện trên deck của B | **AN TOÀN** |
+| 25 | `GET` | `/api/decks/{deckId}/context-story` | `VocabularySet` | Đọc truyện ngữ cảnh từ deck của B | **404** | Không đọc được truyện ngữ cảnh của B | **AN TOÀN** |
+| 26 | `PATCH` | `/api/wallpapers/{id}/active` | `UserWallpaper` | Kích hoạt hình nền của B | **404** | Không kích hoạt được hình nền của B | **AN TOÀN** |
+| 27 | `DELETE` | `/api/wallpapers/{id}` | `UserWallpaper` | Xóa hình nền của B | **404** | Hình nền của B vẫn còn nguyên | **AN TOÀN** |
+
+#### 2. Nhóm Kiểm Tra Tính Toàn Vẹn & Cách Ly Dữ Liệu (Isolation & Integrity Checks - 3 Scenarios)
+*User A thao tác trên tài nguyên của chính mình nhưng có truyền tham số hoặc thực hiện thao tác nhạy cảm: đảm bảo hoàn toàn không làm sai lệch hay tác động đến tài nguyên của User B.*
+
+| STT | Phương thức | Endpoint thực tế | Resource | Hành vi kiểm tra | Mã HTTP | Trạng thái dữ liệu của User B | Đánh giá |
+| :---: | :---: | :--- | :--- | :--- | :---: | :--- | :---: |
+| 28 | `PUT` | `/api/decks/{id}` | `Vocabulary` | User A sửa deck của A nhưng chèn ID thẻ từ của B | **200** | **Bảo vệ thẻ B**: Server tự clone/tách tạo thẻ mới cho A; thẻ của B giữ nguyên | **AN TOÀN** |
+| 29 | `PATCH` | `/api/study-plans/current` | `StudyPlan` | User A cập nhật cài đặt lộ trình của chính mình | **200** | Lộ trình của User B giữ nguyên tên, ngày và settings | **AN TOÀN** |
+| 30 | `DELETE` | `/api/study-plans/current` | `StudyPlan` | User A xóa lộ trình đang hoạt động của mình | **200** | Chỉ xóa plan của A; Lộ trình của B vẫn ACTIVE | **AN TOÀN** |

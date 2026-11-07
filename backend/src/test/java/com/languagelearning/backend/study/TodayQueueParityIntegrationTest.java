@@ -88,29 +88,6 @@ public class TodayQueueParityIntegrationTest {
         SecurityTestUtils.setAuthenticatedUser(testUser.getId(), testUser.getEmail(), testUser.getUsername(), List.of("USER"));
     }
 
-    private void assertQueueParity(TodayStudyQueueResponse expected, TodayStudyQueueResponse actual) {
-        assertEquals(expected.planId(), actual.planId(), "planId must match");
-        assertEquals(expected.planName(), actual.planName(), "planName must match");
-        assertEquals(expected.todayDate(), actual.todayDate(), "todayDate must match");
-        assertEquals(expected.dueCount(), actual.dueCount(), "dueCount must match");
-        assertEquals(expected.weakCount(), actual.weakCount(), "weakCount must match");
-        assertEquals(expected.newCount(), actual.newCount(), "newCount must match");
-        assertEquals(expected.totalCount(), actual.totalCount(), "totalCount must match");
-        assertEquals(expected.cards().size(), actual.cards().size(), "cards size must match");
-
-        for (int i = 0; i < expected.cards().size(); i++) {
-            TermCardDto expCard = expected.cards().get(i);
-            TermCardDto actCard = actual.cards().get(i);
-            assertEquals(expCard.getId(), actCard.getId(), "Card id at index " + i + " must match");
-            assertEquals(expCard.getTerm(), actCard.getTerm(), "Card term at index " + i + " must match");
-            assertEquals(expCard.getDefinition(), actCard.getDefinition(), "Card definition at index " + i + " must match");
-            assertEquals(expCard.getPronunciation(), actCard.getPronunciation(), "Card pronunciation at index " + i + " must match");
-            assertEquals(expCard.getPartOfSpeech(), actCard.getPartOfSpeech(), "Card partOfSpeech at index " + i + " must match");
-            assertEquals(expCard.getExample(), actCard.getExample(), "Card example at index " + i + " must match");
-            assertEquals(expCard.getSynonyms(), actCard.getSynonyms(), "Card synonyms at index " + i + " must match");
-        }
-    }
-
     private void assertSummaryParity(TodayStudyQueueResponse queue, TodaySummaryResponse summary) {
         assertEquals(queue.planId(), summary.planId(), "summary planId must match");
         assertEquals(queue.planName(), summary.planName(), "summary planName must match");
@@ -169,12 +146,10 @@ public class TodayQueueParityIntegrationTest {
     @DisplayName("Kịch bản 1: Lộ trình rỗng (không có bộ từ nào)")
     void testParity_EmptyPlan() {
         createPlan("Empty Plan", "Asia/Ho_Chi_Minh", 20, 10);
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
-        assertEquals(0, optimized.totalCount());
-        assertTrue(optimized.cards().isEmpty());
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
+        assertEquals(0, queue.totalCount());
+        assertTrue(queue.cards().isEmpty());
     }
 
     @Test
@@ -188,12 +163,10 @@ public class TodayQueueParityIntegrationTest {
         StudyPlan plan = createPlan("New Words Plan", "Asia/Ho_Chi_Minh", 10, 5);
         attachDeckToPlan(plan.getId(), deck.getId(), 1);
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
-        assertEquals(10, optimized.newCount());
-        assertEquals(10, optimized.totalCount());
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
+        assertEquals(10, queue.newCount());
+        assertEquals(10, queue.totalCount());
     }
 
     @Test
@@ -216,12 +189,10 @@ public class TodayQueueParityIntegrationTest {
             studyProgressRepository.save(sp);
         }
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
-        assertEquals(15, optimized.dueCount());
-        assertEquals(15, optimized.totalCount());
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
+        assertEquals(15, queue.dueCount());
+        assertEquals(15, queue.totalCount());
     }
 
     @Test
@@ -250,13 +221,11 @@ public class TodayQueueParityIntegrationTest {
         StudyPlan plan = createPlan("Unicode Plan", "Asia/Ho_Chi_Minh", 10, 5);
         attachDeckToPlan(plan.getId(), deck.getId(), 1);
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
-        assertEquals(1, optimized.totalCount(), "Deduplication must select exactly 1 card");
-        assertEquals(v1.getId(), optimized.cards().get(0).getId(), "Must pick MIN(id)");
-        assertEquals(List.of("tieng viet"), optimized.cards().get(0).getSynonyms());
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
+        assertEquals(1, queue.totalCount(), "Deduplication must select exactly 1 card");
+        assertEquals(v1.getId(), queue.cards().get(0).getId(), "Must pick MIN(id)");
+        assertEquals(List.of("tieng viet"), queue.cards().get(0).getSynonyms());
     }
 
     @Test
@@ -279,11 +248,9 @@ public class TodayQueueParityIntegrationTest {
         attachDeckToPlan(plan.getId(), deck1.getId(), 1);
         attachDeckToPlan(plan.getId(), deck2.getId(), 2);
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
-        assertEquals(3, optimized.totalCount(), "Must deduplicate shared word across decks");
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
+        assertEquals(3, queue.totalCount(), "Must deduplicate shared word across decks");
     }
 
     @Test
@@ -306,10 +273,8 @@ public class TodayQueueParityIntegrationTest {
             StudyPlan plan = createPlan("Plan " + tz, tz, 10, 5);
             attachDeckToPlan(plan.getId(), deck.getId(), 1);
 
-            TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-            TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-            assertQueueParity(legacy, optimized);
-            assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
+            TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+            assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
 
             // Clean up plan for next tz
             studyPlanDeckRepository.deleteByStudyPlanId(plan.getId());
@@ -346,10 +311,6 @@ public class TodayQueueParityIntegrationTest {
         StudyPlan planA = createPlan("Plan A", "Asia/Ho_Chi_Minh", 0, 0);
         attachDeckToPlan(planA.getId(), deck.getId(), 1);
         TodayStudyQueueResponse qA = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(
-                studyPlanService.getTodayQueueLegacyForParity(testUser.getId()),
-                qA
-        );
         assertSummaryParity(qA, studyPlanService.getTodaySummary(testUser.getId()));
         studyPlanDeckRepository.deleteByStudyPlanId(planA.getId());
         studyPlanRepository.delete(planA);
@@ -358,10 +319,6 @@ public class TodayQueueParityIntegrationTest {
         StudyPlan planB = createPlan("Plan B", "Asia/Ho_Chi_Minh", 3, 15);
         attachDeckToPlan(planB.getId(), deck.getId(), 1);
         TodayStudyQueueResponse qB = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(
-                studyPlanService.getTodayQueueLegacyForParity(testUser.getId()),
-                qB
-        );
         assertSummaryParity(qB, studyPlanService.getTodaySummary(testUser.getId()));
         studyPlanDeckRepository.deleteByStudyPlanId(planB.getId());
         studyPlanRepository.delete(planB);
@@ -370,10 +327,6 @@ public class TodayQueueParityIntegrationTest {
         StudyPlan planC = createPlan("Plan C", "Asia/Ho_Chi_Minh", 20, 100);
         attachDeckToPlan(planC.getId(), deck.getId(), 1);
         TodayStudyQueueResponse qC = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(
-                studyPlanService.getTodayQueueLegacyForParity(testUser.getId()),
-                qC
-        );
         assertSummaryParity(qC, studyPlanService.getTodaySummary(testUser.getId()));
     }
 
@@ -403,12 +356,10 @@ public class TodayQueueParityIntegrationTest {
         studyPlanRepository.save(plan);
         attachDeckToPlan(plan.getId(), deck.getId(), 1);
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(brandNewUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(brandNewUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(brandNewUser.getId()));
-        assertEquals(5, optimized.totalCount());
-        assertEquals(5, optimized.newCount());
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(brandNewUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(brandNewUser.getId()));
+        assertEquals(5, queue.totalCount());
+        assertEquals(5, queue.newCount());
     }
 
     @Test
@@ -446,10 +397,8 @@ public class TodayQueueParityIntegrationTest {
             studyProgressRepository.save(sp);
         }
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
     }
 
     @Test
@@ -487,11 +436,9 @@ public class TodayQueueParityIntegrationTest {
         StudyPlan plan = createPlan("Boundary Plan", "Asia/Ho_Chi_Minh", 0, 0);
         attachDeckToPlan(plan.getId(), deck.getId(), 1);
 
-        TodayStudyQueueResponse legacy = studyPlanService.getTodayQueueLegacyForParity(testUser.getId());
-        TodayStudyQueueResponse optimized = studyPlanService.getTodayQueue(testUser.getId());
-        assertQueueParity(legacy, optimized);
-        assertSummaryParity(optimized, studyPlanService.getTodaySummary(testUser.getId()));
-        assertEquals(1, optimized.dueCount(), "Only word due at 03:59:58 should be due today");
-        assertEquals(vBefore.getId(), optimized.cards().get(0).getId());
+        TodayStudyQueueResponse queue = studyPlanService.getTodayQueue(testUser.getId());
+        assertSummaryParity(queue, studyPlanService.getTodaySummary(testUser.getId()));
+        assertEquals(1, queue.dueCount(), "Only word due at 03:59:58 should be due today");
+        assertEquals(vBefore.getId(), queue.cards().get(0).getId());
     }
 }

@@ -139,6 +139,15 @@ public class SynonymChallengeService {
         if (request.getVocabularyId() == null) {
             throw new ValidationException("vocabularyId không được để trống");
         }
+        if (request.getDeckId() != null) {
+            vocabularySetRepository.findByIdAndUserId(request.getDeckId(), userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ từ với id: " + request.getDeckId()));
+            boolean inDeck = vocabularySetItemRepository.existsByIdVocabularySetIdAndIdVocabularyId(request.getDeckId(), request.getVocabularyId());
+            if (!inDeck) {
+                throw new ResourceNotFoundException("Không tìm thấy từ vựng trong bộ từ này.");
+            }
+        }
+
         Vocabulary vocab = vocabularyRepository.findById(request.getVocabularyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy từ vựng với id: " + request.getVocabularyId()));
 
@@ -589,6 +598,10 @@ public class SynonymChallengeService {
      */
     @Transactional(readOnly = true)
     public SynonymStatsDto getSynonymStats(Long userId, Long deckId) {
+        if (deckId != null && deckId > 0) {
+            vocabularySetRepository.findByIdAndUserId(deckId, userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ từ với id: " + deckId));
+        }
         List<SynonymChallengeHistory> histories;
         if (deckId != null && deckId > 0) {
             histories = historyRepository.findByUserIdAndDeckIdOrderByCreatedAtDesc(userId, deckId);

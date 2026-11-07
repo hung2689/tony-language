@@ -42,9 +42,7 @@ public class SynonymChallengeController {
             @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
     ) {
         Long userId = currentUserProvider.getCurrentUserId();
-        if (request.getDeckId() == null) {
-            request.setDeckId(deckId);
-        }
+        request.setDeckId(deckId);
         SynonymEvaluateResponse response = synonymChallengeService.evaluateChallenge(userId, request, customApiKey);
         return ResponseEntity.ok(ApiResponse.success("Đánh giá từ đồng nghĩa thành công", response));
     }
@@ -55,9 +53,7 @@ public class SynonymChallengeController {
             @Valid @RequestBody QuickAddCardRequest request
     ) {
         Long userId = currentUserProvider.getCurrentUserId();
-        if (request.getDeckId() == null) {
-            request.setDeckId(deckId);
-        }
+        request.setDeckId(deckId);
         Map<String, Object> result = synonymChallengeService.quickAddCardToDeck(userId, request);
         return ResponseEntity.ok(ApiResponse.success("Thao tác thêm thẻ từ hoàn tất", result));
     }

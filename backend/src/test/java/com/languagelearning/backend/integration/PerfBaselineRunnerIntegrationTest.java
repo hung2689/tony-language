@@ -224,7 +224,7 @@ public class PerfBaselineRunnerIntegrationTest {
                 "TRUNCATE TABLE study_answers, study_sessions, study_progress, " +
                 "study_plan_decks, study_plans, vocabulary_synonyms, vocabulary_set_items, " +
                 "vocabularies, vocabulary_sets, folders, xp_events, user_xp, " +
-                "synonym_challenge_history, user_wallpapers CASCADE"
+                "synonym_challenge_history, user_wallpapers RESTART IDENTITY CASCADE"
         );
         PerfDataSeeder seeder = new PerfDataSeeder(jdbcTemplate, passwordEncoder);
         seeder.run(new DefaultApplicationArguments());
@@ -974,12 +974,12 @@ public class PerfBaselineRunnerIntegrationTest {
         // Reset before read-only study plan & analytics endpoints to prevent contamination from session answers
         resetDatabase();
 
-        // 2a. GET today-queue (MỚI: CTE SQL)
+        // 2a. GET today-queue (Production In-Memory)
         results.add(executeBenchmark(
-                "GET /api/study-plans/current/today (MỚI: CTE SQL)",
+                "GET /api/study-plans/current/today (Production In-Memory)",
                 totalRuns,
                 (runIndex) -> {
-                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today?cte=true"))
+                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today"))
                             .andExpect(status().isOk())
                             .andReturn();
                     byte[] rawBytes = res.getResponse().getContentAsByteArray();
@@ -988,23 +988,9 @@ public class PerfBaselineRunnerIntegrationTest {
                 null
         ));
 
-        // 2b. GET today-queue (LEGACY: In-Memory)
+        // 2b. GET today-summary (Production SQL Summary)
         results.add(executeBenchmark(
-                "GET /api/study-plans/current/today (LEGACY: In-Memory)",
-                totalRuns,
-                (runIndex) -> {
-                    MvcResult res = mockMvc.perform(get("/api/study-plans/current/today?legacy=true"))
-                            .andExpect(status().isOk())
-                            .andReturn();
-                    byte[] rawBytes = res.getResponse().getContentAsByteArray();
-                    return ActionResponse.of(rawBytes);
-                },
-                null
-        ));
-
-        // 2c. GET today-summary (MỚI: CTE Summary)
-        results.add(executeBenchmark(
-                "GET /api/study-plans/current/today/summary (MỚI: CTE Summary)",
+                "GET /api/study-plans/current/today/summary (Production SQL Summary)",
                 totalRuns,
                 (runIndex) -> {
                     MvcResult res = mockMvc.perform(get("/api/study-plans/current/today/summary"))
@@ -1366,54 +1352,33 @@ public class PerfBaselineRunnerIntegrationTest {
 
     private void measureTodayQueueBreakdown() throws Exception {
         System.out.println("=========================================================================");
-        System.out.println("DETAILED BREAKDOWN BENCHMARK: GET /today (MỚI vs LEGACY, 5 Warm runs median)");
+        System.out.println("DETAILED BREAKDOWN BENCHMARK: GET /today (Production In-Memory, 5 Warm runs median)");
 
         // Warmup runs
         for (int i = 0; i < 2; i++) {
-            studyPlanService.getTodayQueueCte(perfUser.getId());
             studyPlanService.getTodayQueue(perfUser.getId());
         }
 
-        // Measure MỚI sub-steps
-        List<Long> moiDtoTimes = new ArrayList<>();
-        List<Long> moiJsonTimes = new ArrayList<>();
+        List<Long> dtoTimes = new ArrayList<>();
+        List<Long> jsonTimes = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             long t0 = System.nanoTime();
-            TodayStudyQueueResponse resp = studyPlanService.getTodayQueueCte(perfUser.getId());
+            TodayStudyQueueResponse resp = studyPlanService.getTodayQueue(perfUser.getId());
             long t1 = System.nanoTime();
             byte[] json = objectMapper.writeValueAsBytes(ApiResponse.success("OK", resp));
             long t2 = System.nanoTime();
-            moiDtoTimes.add((t1 - t0) / 1_000_000);
-            moiJsonTimes.add((t2 - t1) / 1_000_000);
+            dtoTimes.add((t1 - t0) / 1_000_000);
+            jsonTimes.add((t2 - t1) / 1_000_000);
         }
 
-        // Measure LEGACY sub-steps
-        List<Long> legDtoTimes = new ArrayList<>();
-        List<Long> legJsonTimes = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
-            long t0 = System.nanoTime();
-            TodayStudyQueueResponse resp = studyPlanService.getTodayQueueLegacyForParity(perfUser.getId());
-            long t1 = System.nanoTime();
-            byte[] json = objectMapper.writeValueAsBytes(ApiResponse.success("OK", resp));
-            long t2 = System.nanoTime();
-            legDtoTimes.add((t1 - t0) / 1_000_000);
-            legJsonTimes.add((t2 - t1) / 1_000_000);
-        }
+        Collections.sort(dtoTimes);
+        Collections.sort(jsonTimes);
 
-        Collections.sort(moiDtoTimes);
-        Collections.sort(moiJsonTimes);
-        Collections.sort(legDtoTimes);
-        Collections.sort(legJsonTimes);
+        long serviceTime = dtoTimes.get(2);
+        long jsonTime = jsonTimes.get(2);
 
-        long moiService = moiDtoTimes.get(2);
-        long moiJson = moiJsonTimes.get(2);
-        long legService = legDtoTimes.get(2);
-        long legJson = legJsonTimes.get(2);
-
-        System.out.printf("  [MỚI CTE SQL]    : Service (SQL + DTO Mapping) = %4d ms | Jackson JSON Serialization = %4d ms | Total = %4d ms%n",
-                moiService, moiJson, moiService + moiJson);
-        System.out.printf("  [LEGACY In-RAM]  : Service (Queries + In-RAM)  = %4d ms | Jackson JSON Serialization = %4d ms | Total = %4d ms%n",
-                legService, legJson, legService + legJson);
+        System.out.printf("  [Production In-Memory] : Service (Queries + Batch Prefetch) = %4d ms | Jackson JSON Serialization = %4d ms | Total = %4d ms%n",
+                serviceTime, jsonTime, serviceTime + jsonTime);
         System.out.println("=========================================================================");
     }
 }

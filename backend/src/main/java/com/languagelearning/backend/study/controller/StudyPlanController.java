@@ -2,10 +2,18 @@ package com.languagelearning.backend.study.controller;
 
 import com.languagelearning.backend.common.dto.ApiResponse;
 import com.languagelearning.backend.common.security.CurrentUserProvider;
-import com.languagelearning.backend.study.dto.*;
+import com.languagelearning.backend.study.dto.AddDecksToPlanRequest;
+import com.languagelearning.backend.study.dto.CreateStudyPlanRequest;
+import com.languagelearning.backend.study.dto.PreviewAddDecksRequest;
+import com.languagelearning.backend.study.dto.PreviewAddDecksResponse;
+import com.languagelearning.backend.study.dto.RemoveDecksFromPlanRequest;
+import com.languagelearning.backend.study.dto.SrsForecastResponse;
+import com.languagelearning.backend.study.dto.StudyPlanResponse;
+import com.languagelearning.backend.study.dto.TodayStudyQueueResponse;
+import com.languagelearning.backend.study.dto.TodaySummaryResponse;
+import com.languagelearning.backend.study.dto.UpdateStudyPlanRequest;
 import com.languagelearning.backend.study.service.StudyPlanService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,18 +33,18 @@ public class StudyPlanController {
     public ResponseEntity<ApiResponse<StudyPlanResponse>> getCurrentPlan() {
         Long userId = currentUserProvider.getCurrentUserId();
         StudyPlanResponse response = studyPlanService.getCurrentPlan(userId);
-        return ResponseEntity.ok(ApiResponse.success(
-                response != null ? "Lấy thông tin lộ trình thành công" : "Chưa có lộ trình ôn tập nào",
-                response
-        ));
+        if (response == null) {
+            return ResponseEntity.ok(ApiResponse.success("Chưa có lộ trình ôn tập nào", null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<StudyPlanResponse>> createPlan(@Valid @RequestBody CreateStudyPlanRequest request) {
+    public ResponseEntity<ApiResponse<StudyPlanResponse>> createPlan(
+            @Valid @RequestBody CreateStudyPlanRequest request) {
         Long userId = currentUserProvider.getCurrentUserId();
         StudyPlanResponse response = studyPlanService.createPlan(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo lộ trình ôn tập thành công", response));
+        return ResponseEntity.ok(ApiResponse.success("Tạo lộ trình ôn tập thành công", response));
     }
 
     @PostMapping("/preview")
@@ -44,7 +52,7 @@ public class StudyPlanController {
             @Valid @RequestBody PreviewAddDecksRequest request) {
         Long userId = currentUserProvider.getCurrentUserId();
         PreviewAddDecksResponse response = studyPlanService.previewAddDecks(userId, request);
-        return ResponseEntity.ok(ApiResponse.success("Tính toán khối lượng thành công", response));
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/current/decks")
@@ -86,13 +94,9 @@ public class StudyPlanController {
     }
 
     @GetMapping("/current/today")
-    public ResponseEntity<ApiResponse<TodayStudyQueueResponse>> getTodayQueue(
-            @RequestParam(name = "legacy", required = false, defaultValue = "false") boolean legacy,
-            @RequestParam(name = "cte", required = false, defaultValue = "false") boolean cte) {
+    public ResponseEntity<ApiResponse<TodayStudyQueueResponse>> getTodayQueue() {
         Long userId = currentUserProvider.getCurrentUserId();
-        TodayStudyQueueResponse response = cte
-                ? studyPlanService.getTodayQueueCte(userId)
-                : (legacy ? studyPlanService.getTodayQueueLegacyForParity(userId) : studyPlanService.getTodayQueue(userId));
+        TodayStudyQueueResponse response = studyPlanService.getTodayQueue(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách từ cần học hôm nay thành công", response));
     }
 
