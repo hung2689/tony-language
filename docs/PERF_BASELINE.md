@@ -548,11 +548,11 @@ Thực thi độc lập trên database `language_learning_test` (port 5433) cho 
 | 14 | `DELETE` | `/api/study-plans/current/decks/{deckId}` | `VocabularySet` | Xóa deck của B khỏi plan | **404** | Deck của B vẫn nguyên vẹn trong lộ trình của B | **AN TOÀN** |
 | 15 | `GET` | `/api/decks/{id}/srs-forecast` | `VocabularySet` | Xem dự báo SRS của deck thuộc B | **404** | Không xem được forecast của B | **AN TOÀN** |
 | 16 | `GET` | `/api/decks/{id}/srs-queue` | `VocabularySet` | Xem queue SRS của deck thuộc B | **404** | Không xem được queue của B | **AN TOÀN** |
-| 17 | `GET` | `/api/decks/{deckId}/synonyms` | `VocabularySet` | Đọc hàng đợi từ đồng nghĩa deck của B | **404** | Không xem được dữ liệu synonym của B | **AN TOÀN** |
-| 18 | `GET` | `/api/decks/{deckId}/synonyms/stats` | `VocabularySet` | Xem thống kê đồng nghĩa của deck thuộc B | **404** | Không xem được thống kê của B | **AN TOÀN** |
-| 19 | `POST` | `/api/decks/{deckId}/synonyms/quick-add` | `VocabularySet` | Thêm nhanh từ vào deck của B | **404** | Deck của B không bị thêm từ trái phép | **AN TOÀN** |
-| 20 | `POST` | `/api/decks/{deckId}/synonyms/evaluate` | `VocabularySet` | Đánh giá synonym trên deck của B | **404** | Không chấm điểm synonym trên deck của B | **AN TOÀN** |
-| 21 | `POST` | `/api/decks/{deckId}/synonyms/evaluate` | `Vocabulary` | Đánh giá synonym với vocabId của B | **404** | Bị từ chối vì từ vựng không nằm trong deck A | **AN TOÀN** |
+| 17 | `GET` | `/api/decks/{deckId}/synonym-challenges` | `VocabularySet` | Đọc hàng đợi từ đồng nghĩa deck của B | **404** | Không xem được dữ liệu synonym của B | **AN TOÀN** |
+| 18 | `GET` | `/api/decks/{deckId}/synonym-challenges/stats` | `VocabularySet` | Xem thống kê đồng nghĩa của deck thuộc B | **404** | Không xem được thống kê của B | **AN TOÀN** |
+| 19 | `POST` | `/api/decks/{deckId}/synonym-challenges/quick-add` | `VocabularySet` | Thêm nhanh từ vào deck của B | **404** | Deck của B không bị thêm từ trái phép | **AN TOÀN** |
+| 20 | `POST` | `/api/decks/{deckId}/synonym-challenges/evaluate` | `VocabularySet` | Đánh giá synonym trên deck của B | **404** | Không chấm điểm synonym trên deck của B | **AN TOÀN** |
+| 21 | `POST` | `/api/decks/{deckId}/synonym-challenges/evaluate` | `Vocabulary` | Đánh giá synonym với vocabId của B | **404** | Bị từ chối vì từ vựng không nằm trong deck A | **AN TOÀN** |
 | 22 | `GET` | `/api/decks/{deckId}/sentence-challenges` | `VocabularySet` | Lấy thử thách đặt câu từ deck của B | **404** | Không đọc được câu hỏi bài tập của B | **AN TOÀN** |
 | 23 | `POST` | `/api/decks/{deckId}/sentence-challenges/evaluate` | `VocabularySet` | Chấm điểm câu trên deck của B | **404** | Không chấm điểm trên deck của B | **AN TOÀN** |
 | 24 | `POST` | `/api/decks/{deckId}/context-story` | `VocabularySet` | Sinh truyện ngữ cảnh từ deck của B | **404** | Không dùng AI sinh truyện trên deck của B | **AN TOÀN** |

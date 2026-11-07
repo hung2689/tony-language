@@ -397,14 +397,14 @@ public class IdorSecurityMatrixIntegrationTest {
     @Test
     @DisplayName("IDOR Synonym: User A GET synonym queue từ deck của B -> 404")
     void testGetDeckSynonymsOfOtherUser_Returns404() throws Exception {
-        mockMvc.perform(get("/api/decks/" + deckB.getId() + "/synonyms"))
+        mockMvc.perform(get("/api/decks/" + deckB.getId() + "/synonym-challenges"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("IDOR Synonym: User A GET synonym stats từ deck của B -> 404")
     void testGetDeckSynonymStatsOfOtherUser_Returns404() throws Exception {
-        mockMvc.perform(get("/api/decks/" + deckB.getId() + "/synonyms/stats"))
+        mockMvc.perform(get("/api/decks/" + deckB.getId() + "/synonym-challenges/stats"))
                 .andExpect(status().isNotFound());
     }
 
@@ -412,7 +412,7 @@ public class IdorSecurityMatrixIntegrationTest {
     @DisplayName("IDOR Synonym: User A quick-add card vào deck của B -> 404")
     void testQuickAddCardToDeckOfOtherUser_Returns404() throws Exception {
         QuickAddCardRequest req = new QuickAddCardRequest(deckB.getId(), "syn_word", "meaning", "noun", "/p/", "ex");
-        mockMvc.perform(post("/api/decks/" + deckB.getId() + "/synonyms/quick-add")
+        mockMvc.perform(post("/api/decks/" + deckB.getId() + "/synonym-challenges/quick-add")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound());
@@ -427,7 +427,7 @@ public class IdorSecurityMatrixIntegrationTest {
         req.setRootWord("apple_b");
         req.setUserAnswers(List.of("pomme"));
 
-        mockMvc.perform(post("/api/decks/" + deckB.getId() + "/synonyms/evaluate")
+        mockMvc.perform(post("/api/decks/" + deckB.getId() + "/synonym-challenges/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound());
@@ -442,7 +442,7 @@ public class IdorSecurityMatrixIntegrationTest {
         req.setRootWord("apple_b");
         req.setUserAnswers(List.of("pomme"));
 
-        mockMvc.perform(post("/api/decks/" + deckA.getId() + "/synonyms/evaluate")
+        mockMvc.perform(post("/api/decks/" + deckA.getId() + "/synonym-challenges/evaluate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isNotFound());
