@@ -24,12 +24,7 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   flex-direction: column !important;
   align-items: center !important;
   width: 100% !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  max-height: 100vh !important;
-  max-height: 100dvh !important;
+  min-height: 100% !important;
   -webkit-overflow-scrolling: touch !important;
   background-color: #F3E6C8 !important;
   background-image: url('/assets/flashcard/vintage-map-bg.webp') !important;
@@ -39,8 +34,6 @@ body.deck-vintage-active > #root > div > header:not(.vintage-deck-header-row) {
   background-attachment: fixed !important;
   color: #3B2B1C;
   font-family: 'Merriweather', 'Playfair Display', 'Times New Roman', serif;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
   position: relative;
   box-sizing: border-box;
 }
