@@ -149,7 +149,7 @@ export default function MainLayout() {
       )}
 
       {/* Main Layout Area: Header + Scrollable Content Body */}
-      <div className="app-main-area">
+      <div className="app-main-column app-main-area">
         {/* Top Header Bar */}
         <AppHeader
           user={user}

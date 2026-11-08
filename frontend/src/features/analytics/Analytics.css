@@ -23,6 +23,7 @@ body.analytics-vintage-active {
 
 body.analytics-vintage-active .app-shell-layout,
 body.analytics-vintage-active .app-main-column,
+body.analytics-vintage-active .app-main-area,
 body.analytics-vintage-active .app-content-body {
   background: transparent !important;
   padding: 0 !important;

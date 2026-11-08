@@ -52,6 +52,7 @@ body.rpg-library-active {
 
 body.rpg-library-active .app-shell-layout,
 body.rpg-library-active .app-main-column,
+body.rpg-library-active .app-main-area,
 body.rpg-library-active .app-content-body {
   background: transparent !important;
   padding: 0 !important;

@@ -23,6 +23,7 @@ body.study-plan-vintage-active {
 
 body.study-plan-vintage-active .app-shell-layout,
 body.study-plan-vintage-active .app-main-column,
+body.study-plan-vintage-active .app-main-area,
 body.study-plan-vintage-active .app-content-body {
   background: transparent !important;
   padding: 0 !important;

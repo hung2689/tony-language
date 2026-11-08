@@ -5,6 +5,7 @@
 /* 1. App Shell Layout */
 .app-shell-layout {
   display: flex;
+  flex-direction: column;
   height: 100%;
   height: 100vh;
   height: 100dvh;
@@ -528,11 +529,13 @@
 }
 
 /* 3. Main Column & Topbar */
-.app-main-column {
+.app-main-column,
+.app-main-area {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
+  width: 100%;
   height: 100%;
   max-height: 100%;
   overflow: hidden;
@@ -4425,7 +4428,8 @@
 }
 
 /* Ensure app main elements layer above wallpaper */
-.has-custom-wallpaper .app-main-column {
+.has-custom-wallpaper .app-main-column,
+.has-custom-wallpaper .app-main-area {
   position: relative;
   z-index: 1;
 }
