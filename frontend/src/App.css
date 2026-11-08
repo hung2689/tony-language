@@ -528,7 +528,8 @@
 }
 
 /* 3. Main Column & Topbar */
-.app-main-column {
+.app-main-column,
+.app-main-area {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4425,7 +4426,8 @@
 }
 
 /* Ensure app main elements layer above wallpaper */
-.has-custom-wallpaper .app-main-column {
+.has-custom-wallpaper .app-main-column,
+.has-custom-wallpaper .app-main-area {
   position: relative;
   z-index: 1;
 }
