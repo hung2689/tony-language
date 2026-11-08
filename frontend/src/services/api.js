@@ -273,7 +273,12 @@ export async function request(endpoint, options = {}) {
       } else {
         errorMessage = `Lỗi máy chủ (${response.status})`;
       }
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.statusCode = response.status;
+      error.response = response;
+      error.data = data;
+      throw error;
     }
 
     return data?.data !== undefined ? data.data : data;

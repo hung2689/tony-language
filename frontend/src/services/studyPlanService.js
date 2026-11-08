@@ -125,16 +125,49 @@ export const studyPlanService = {
 
   /**
    * Retrieves today's study queue lightweight count summary for the active plan.
+   * If the backend does not have /today/summary yet (HTTP 404 on legacy backends),
+   * transparently falls back to /today once, computes summary counts, and caches the result.
    */
-  getTodaySummary({ skipCache = false } = {}) {
+  async getTodaySummary({ skipCache = false } = {}) {
     if (!skipCache && todaySummaryCache && Date.now() - todaySummaryCacheTime < QUEUE_CACHE_TTL) {
-      return Promise.resolve(todaySummaryCache);
+      return todaySummaryCache;
     }
-    return request('/study-plans/current/today/summary').then((data) => {
+    try {
+      const data = await request('/study-plans/current/today/summary');
       todaySummaryCache = data;
       todaySummaryCacheTime = Date.now();
       return data;
-    });
+    } catch (err) {
+      const is404 =
+        err?.status === 404 ||
+        err?.statusCode === 404 ||
+        err?.response?.status === 404 ||
+        (typeof err?.message === 'string' && (err.message.includes('404') || err.message.includes('No static resource') || err.message.includes('Không tìm thấy')));
+      if (is404) {
+        const queueData = await this.getTodayQueue({ skipCache });
+        const totalCount = queueData?.totalCount ?? queueData?.totalWords ?? queueData?.cards?.length ?? 0;
+        const dueCount = queueData?.dueCount ?? queueData?.dueWords ?? 0;
+        const weakCount = queueData?.weakCount ?? queueData?.weakWords ?? 0;
+        const newCount = queueData?.newCount ?? queueData?.newWords ?? 0;
+        const summary = {
+          planId: queueData?.planId ?? null,
+          planName: queueData?.planName ?? '',
+          todayDate: queueData?.todayDate ?? new Date().toISOString().split('T')[0],
+          totalWords: totalCount,
+          dueWords: dueCount,
+          weakWords: weakCount,
+          newWords: newCount,
+          totalCount,
+          dueCount,
+          weakCount,
+          newCount,
+        };
+        todaySummaryCache = summary;
+        todaySummaryCacheTime = Date.now();
+        return summary;
+      }
+      throw err;
+    }
   },
 
   /**
