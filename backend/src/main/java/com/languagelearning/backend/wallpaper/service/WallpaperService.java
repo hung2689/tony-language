@@ -134,6 +134,8 @@ public class WallpaperService {
     @Transactional
     public void setActiveWallpaper(Long id) {
         Long userId = currentUserProvider.getCurrentUserId();
+        wallpaperRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hình nền không tồn tại hoặc bạn không có quyền sở hữu"));
         List<UserWallpaper> all = wallpaperRepository.findByUserIdOrderByCreatedAtDesc(userId);
         for (UserWallpaper wp : all) {
             wp.setActive(wp.getId().equals(id));

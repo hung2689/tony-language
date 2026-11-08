@@ -177,7 +177,7 @@ export function StudyPlanProvider({ children }) {
       return emptyQueue;
     }
     try {
-      const queueRes = await studyPlanService.getTodayQueue({ skipCache: true });
+      const queueRes = await studyPlanService.getTodaySummary({ skipCache: true });
       setTodayQueue(queueRes || null);
       return queueRes;
     } catch {
@@ -233,7 +233,7 @@ export function StudyPlanProvider({ children }) {
       const plan = await studyPlanService.getCurrentPlan();
       dispatch({ type: 'SET_SERVER_PLAN', plan });
       if (isPlanActive(plan)) {
-        const queueRes = await studyPlanService.getTodayQueue({ skipCache: true });
+        const queueRes = await studyPlanService.getTodaySummary({ skipCache: true });
         setTodayQueue(queueRes || null);
       } else {
         setTodayQueue(null);

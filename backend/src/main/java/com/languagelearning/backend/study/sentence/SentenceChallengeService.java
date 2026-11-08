@@ -109,6 +109,14 @@ public class SentenceChallengeService {
     /**
      * Evaluates user's translated sentence with smart AI checking heuristics or Gemini.
      */
+    public SentenceEvaluationResponse evaluateSentence(Long userId, Long deckId, SentenceEvaluationRequest request, String customApiKey) {
+        if (deckId != null && userId != null) {
+            vocabularySetRepository.findByIdAndUserId(deckId, userId)
+                    .orElseThrow(() -> new DeckNotFoundException(deckId));
+        }
+        return evaluateSentence(request, customApiKey);
+    }
+
     public SentenceEvaluationResponse evaluateSentence(SentenceEvaluationRequest request) {
         return evaluateSentence(request, null);
     }

@@ -11,6 +11,18 @@ import com.languagelearning.backend.study.dto.AddDecksToPlanRequest;
 import com.languagelearning.backend.study.dto.CreateStudyPlanRequest;
 import com.languagelearning.backend.study.dto.StudyPlanResponse;
 import com.languagelearning.backend.study.entity.StudyProgress;
+import com.languagelearning.backend.study.entity.StudyPlan;
+import com.languagelearning.backend.study.entity.StudyPlanDeck;
+import com.languagelearning.backend.study.repository.StudyPlanRepository;
+import com.languagelearning.backend.study.repository.Sm2SqlConstants;
+import com.languagelearning.backend.common.exception.ResourceNotFoundException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+
 import com.languagelearning.backend.study.repository.StudyPlanDeckRepository;
 import com.languagelearning.backend.study.repository.StudyPlanSql;
 import com.languagelearning.backend.study.repository.StudyProgressRepository;
@@ -49,6 +61,10 @@ public class StudyPlanOptimizationIntegrationTest {
 
     @Autowired
     private StudyPlanService studyPlanService;
+
+    @Autowired
+    private StudyPlanRepository studyPlanRepository;
+
 
     @Autowired
     private StudyPlanDeckRepository studyPlanDeckRepository;
@@ -175,7 +191,7 @@ public class StudyPlanOptimizationIntegrationTest {
         );
 
         StudyPlanResponse sqlResp = studyPlanService.createPlan(userId, createReq);
-        StudyPlanResponse legacyResp = studyPlanService.buildPlanResponseLegacyForParity(userId, sqlResp.id());
+        StudyPlanResponse legacyResp = buildPlanResponseLegacyForParity(userId, sqlResp.id());
 
         // Assert Parity 100% giữa SQL mới và Java cũ
         assertEquals(legacyResp.totalWords(), sqlResp.totalWords(), "totalWords phải khớp");
@@ -361,5 +377,162 @@ public class StudyPlanOptimizationIntegrationTest {
         assertEquals(1, checkPlanB.decks().size());
         assertEquals(deckOfB.getId(), checkPlanB.decks().get(0).id());
         assertEquals(planOfB.revision(), checkPlanB.revision());
+    }
+
+    private StudyPlanResponse buildPlanResponseLegacyForParity(Long userId, Long planId) {
+        StudyPlan plan = studyPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lộ trình ôn tập."));
+        if (!plan.getUserId().equals(userId)) {
+            throw new ResourceNotFoundException("Không tìm thấy lộ trình ôn tập.");
+        }
+
+        List<StudyPlanDeck> planDecks = studyPlanDeckRepository.findByStudyPlanId(plan.getId()).stream()
+                .sorted(Comparator.comparingInt(StudyPlanDeck::getSortOrder).thenComparingLong(StudyPlanDeck::getId))
+                .toList();
+        List<Long> deckIds = planDecks.stream().map(StudyPlanDeck::getDeckId).toList();
+
+        List<Vocabulary> allPlanVocabs = deckIds.isEmpty() ? Collections.emptyList() : vocabularyRepository.findByDeckIdIn(deckIds);
+        List<Long> allVocabIds = allPlanVocabs.stream().map(Vocabulary::getId).toList();
+        Map<Long, StudyProgress> allProgressMap = allVocabIds.isEmpty() ? Collections.emptyMap() :
+                studyProgressRepository.findByUserIdAndVocabularyIdIn(userId, allVocabIds)
+                        .stream().collect(Collectors.toMap(StudyProgress::getVocabularyId, p -> p));
+
+        List<StudyPlanResponse.DeckInfo> deckInfos = new ArrayList<>();
+        if (!deckIds.isEmpty()) {
+            Map<Long, String> deckNames = vocabularySetRepository.findAllById(deckIds).stream()
+                    .collect(Collectors.toMap(VocabularySet::getId, VocabularySet::getName));
+
+            for (StudyPlanDeck spd : planDecks) {
+                Long deckId = spd.getDeckId();
+                List<Vocabulary> vocabs = vocabularyRepository.findByDeckId(deckId);
+                int deckMastered = 0;
+                for (Vocabulary v : vocabs) {
+                    StudyProgress sp = allProgressMap.get(v.getId());
+                    if (isMasteredInJava(sp)) {
+                        deckMastered++;
+                    }
+                }
+                deckInfos.add(new StudyPlanResponse.DeckInfo(
+                        deckId,
+                        deckNames.getOrDefault(deckId, "Bộ thẻ #" + deckId),
+                        vocabs.size(),
+                        deckMastered,
+                        spd.getSortOrder()
+                ));
+            }
+        }
+
+        Map<String, Vocabulary> dedupedPlanMap = new LinkedHashMap<>();
+        for (Vocabulary v : allPlanVocabs) {
+            if (v.getWord() != null) {
+                dedupedPlanMap.putIfAbsent(normalizeWord(v.getWord()), v);
+            }
+        }
+        List<Vocabulary> uniquePlanVocabs = new ArrayList<>(dedupedPlanMap.values());
+
+        ZoneId zoneId = parseZoneId(plan.getTimezone());
+        LocalDate currentStudyDate = getStudyDay(zoneId);
+        Instant endOfStudyDay = currentStudyDate.plusDays(1).atTime(3, 59, 59).atZone(zoneId).toInstant();
+
+        int masteredWords = 0;
+        int learningWords = 0;
+        int dueCount = 0;
+        int weakCount = 0;
+        int unstudiedNewWords = 0;
+
+        for (Vocabulary v : uniquePlanVocabs) {
+            StudyProgress sp = allProgressMap.get(v.getId());
+            if (!isStudiedInJava(sp)) {
+                unstudiedNewWords++;
+            } else {
+                if (isMasteredInJava(sp)) {
+                    masteredWords++;
+                } else {
+                    learningWords++;
+                }
+                if (sp.getNextReviewAt() != null && sp.getNextReviewAt().isBefore(endOfStudyDay)) {
+                    dueCount++;
+                } else if (sp.getWrongCount() > 0 && (sp.getAccuracy() == null || sp.getAccuracy().doubleValue() < Sm2SqlConstants.WEAK_MAX_ACCURACY)) {
+                    weakCount++;
+                }
+            }
+        }
+
+        int totalWords = uniquePlanVocabs.size();
+        int remainingWords = Math.max(0, totalWords - masteredWords);
+
+        LocalDate today = LocalDate.now();
+        long daysRemaining = Math.max(1, ChronoUnit.DAYS.between(today, plan.getTargetDate()) + 1);
+        double avgWordsPerDay = totalWords == 0
+                ? 0.0
+                : Math.round(((double) remainingWords / daysRemaining) * 10.0) / 10.0;
+        boolean isOverloaded = avgWordsPerDay > plan.getMaxNewWordsPerDay();
+
+        int newCount = Math.min(plan.getMaxNewWordsPerDay(), unstudiedNewWords);
+        int totalToday = dueCount + weakCount + newCount;
+        boolean completedToday = totalWords > 0 && totalToday == 0;
+
+        StudyPlanResponse.TodayStats todayStats = new StudyPlanResponse.TodayStats(
+                dueCount,
+                weakCount,
+                newCount,
+                totalToday,
+                completedToday
+        );
+
+        return new StudyPlanResponse(
+                plan.getId(),
+                plan.getName(),
+                plan.getTargetDate(),
+                plan.getMaxNewWordsPerDay(),
+                plan.getMinWordsPerDay(),
+                plan.getTimezone(),
+                plan.isHardGateEnabled(),
+                plan.getStatus(),
+                deckInfos,
+                totalWords,
+                masteredWords,
+                learningWords,
+                remainingWords,
+                daysRemaining,
+                avgWordsPerDay,
+                isOverloaded,
+                todayStats,
+                plan.getRevision(),
+                null,
+                plan.getCreatedAt(),
+                plan.getUpdatedAt()
+        );
+    }
+
+    private boolean isStudiedInJava(StudyProgress sp) {
+        return sp != null && (sp.getCorrectCount() > 0 || sp.getWrongCount() > 0);
+    }
+
+    private boolean isMasteredInJava(StudyProgress sp) {
+        return isStudiedInJava(sp)
+                && sp.getAccuracy() != null
+                && sp.getAccuracy().doubleValue() >= Sm2SqlConstants.MASTERED_MIN_ACCURACY
+                && sp.getRepetitions() >= Sm2SqlConstants.MASTERED_MIN_REPETITIONS;
+    }
+
+    private String normalizeWord(String word) {
+        return word == null ? "" : word.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private ZoneId parseZoneId(String tz) {
+        try {
+            return (tz != null && !tz.isBlank()) ? ZoneId.of(tz) : ZoneId.of("Asia/Ho_Chi_Minh");
+        } catch (Exception e) {
+            return ZoneId.of("Asia/Ho_Chi_Minh");
+        }
+    }
+
+    private LocalDate getStudyDay(ZoneId zoneId) {
+        ZonedDateTime nowZoned = ZonedDateTime.now(zoneId);
+        if (nowZoned.getHour() < 4) {
+            return nowZoned.toLocalDate().minusDays(1);
+        }
+        return nowZoned.toLocalDate();
     }
 }

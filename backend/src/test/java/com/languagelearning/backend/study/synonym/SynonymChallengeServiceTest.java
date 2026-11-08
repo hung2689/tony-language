@@ -58,6 +58,14 @@ class SynonymChallengeServiceTest {
                 historyRepository,
                 geminiSentenceService
         );
+
+        VocabularySet defaultDeck = new VocabularySet();
+        defaultDeck.setId(10L);
+        defaultDeck.setUserId(1L);
+        lenient().when(vocabularySetRepository.findByIdAndUserId(anyLong(), anyLong()))
+                .thenReturn(Optional.of(defaultDeck));
+        lenient().when(vocabularySetItemRepository.existsByIdVocabularySetIdAndIdVocabularyId(anyLong(), anyLong()))
+                .thenReturn(true);
     }
 
     @Test

@@ -54,7 +54,8 @@ public class SentenceChallengeController {
             @Valid @RequestBody SentenceEvaluationRequest request,
             @RequestHeader(value = "X-Gemini-Api-Key", required = false) String customApiKey
     ) {
-        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(request, customApiKey);
+        Long userId = currentUserProvider.getCurrentUserId();
+        SentenceEvaluationResponse response = sentenceChallengeService.evaluateSentence(userId, deckId, request, customApiKey);
         return ResponseEntity.ok(ApiResponse.success("AI chấm điểm câu dịch thành công", response));
     }
 }
