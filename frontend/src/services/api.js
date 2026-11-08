@@ -278,6 +278,7 @@ export async function request(endpoint, options = {}) {
       error.statusCode = response.status;
       error.response = response;
       error.data = data;
+      error.errorCode = data?.errorCode;
       throw error;
     }
 

@@ -16,6 +16,40 @@ export const clearStudyPlanQueueCache = () => {
   deckQueueCache.clear();
 };
 
+/**
+ * Checks whether an HTTP 404 error represents a missing endpoint (legacy backend)
+ * rather than a domain business error (e.g., PLAN_NOT_FOUND).
+ */
+export function isRouteNotFoundError(err) {
+  const status = err?.status ?? err?.statusCode ?? err?.response?.status;
+  if (status !== 404) return false;
+
+  const errorCode = err?.errorCode || err?.data?.errorCode;
+  const message = (err?.message || err?.data?.message || '').toLowerCase();
+
+  // If backend returned an explicit business error code (e.g., PLAN_NOT_FOUND, RESOURCE_NOT_FOUND),
+  // it is a domain business exception, NOT a missing endpoint route.
+  if (errorCode && errorCode !== 'NOT_FOUND') {
+    return false;
+  }
+
+  // If error message indicates a business domain entity not found (e.g. active study plan missing)
+  // Note: do not use bare 'plan' as it matches '/study-plans/' in Spring NoResourceFoundException paths
+  if (
+    message.includes('lộ trình') ||
+    message.includes('kế hoạch') ||
+    message.includes('plan not found') ||
+    message.includes('no active plan')
+  ) {
+    return false;
+  }
+
+  // Missing route on legacy backends:
+  // 1. Spring NoResourceFoundException (errorCode: "NOT_FOUND", "No static resource ...")
+  // 2. Default Spring Boot 404 (status: 404, message: "Not Found", no business errorCode)
+  return true;
+}
+
 export const studyPlanService = {
   /**
    * Gets the user's currently active study plan, or null if none.
@@ -138,12 +172,7 @@ export const studyPlanService = {
       todaySummaryCacheTime = Date.now();
       return data;
     } catch (err) {
-      const is404 =
-        err?.status === 404 ||
-        err?.statusCode === 404 ||
-        err?.response?.status === 404 ||
-        (typeof err?.message === 'string' && (err.message.includes('404') || err.message.includes('No static resource') || err.message.includes('Không tìm thấy')));
-      if (is404) {
+      if (isRouteNotFoundError(err)) {
         const queueData = await this.getTodayQueue({ skipCache });
         const totalCount = queueData?.totalCount ?? queueData?.totalWords ?? queueData?.cards?.length ?? 0;
         const dueCount = queueData?.dueCount ?? queueData?.dueWords ?? 0;

@@ -569,10 +569,10 @@ Thực thi độc lập trên database `language_learning_test` (port 5433) cho 
 | 29 | `PATCH` | `/api/study-plans/current` | `StudyPlan` | User A cập nhật cài đặt lộ trình của chính mình | **200** | Lộ trình của User B giữ nguyên tên, ngày và settings | **AN TOÀN** |
 | 30 | `DELETE` | `/api/study-plans/current` | `StudyPlan` | User A xóa lộ trình đang hoạt động của mình | **200** | Chỉ xóa plan của A; Lộ trình của B vẫn ACTIVE | **AN TOÀN** |
 
-### 8.5. Tổng Kết Số Lượng Kiểm Thử Sau Giai Đoạn 4 (213 Backend / 246 Frontend)
+### 8.5. Tổng Kết Số Lượng Kiểm Thử Sau Giai Đoạn 4 (213 Backend / 247 Frontend)
 
 - **Backend (JUnit 5 + Spring Boot Test)**: **213 tests passed** (0 failures, 0 errors, 0 skipped).
-- **Frontend (Vitest + React Testing Library)**: **246 tests passed** (0 failures across 29 test suites).
+- **Frontend (Vitest + React Testing Library)**: **247 tests passed** (0 failures across 29 test suites).
 - **Phân tích chuyển đổi số test (217 $\rightarrow$ 213 tests)**:
   - Ở mốc 4.7, backend có 217 tests do lớp `IdorSecurityMatrixIntegrationTest` chứa 34 test methods.
   - Sang nhiệm vụ 4.8, hệ thống thực hiện rà soát nghiêm ngặt toàn bộ route controller so với nhánh `main`. 4 route nhân tạo được thêm tạm ở giai đoạn trước (`/current/settings`, `DELETE /{id}`, `/forecast/{deckId}`, `/decks/{deckId}/queue` trên `StudyPlanController`) đã được xóa bỏ hoàn toàn khỏi production code.

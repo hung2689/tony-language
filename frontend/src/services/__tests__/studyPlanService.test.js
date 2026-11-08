@@ -159,9 +159,28 @@ describe('studyPlanService Unit Tests', () => {
     expect(res.dueWords).toBe(5);
   });
 
-  it('getTodaySummary falls back to /today when /today/summary returns 404, computes counts, and caches', async () => {
-    const err404 = new Error('Lỗi máy chủ (404)');
-    err404.status = 404;
+  it('getTodaySummary when 404 is PLAN_NOT_FOUND does NOT call /today and rethrows error', async () => {
+    const errBusiness404 = new Error('Chưa có lộ trình ôn tập nào đang hoạt động.');
+    errBusiness404.status = 404;
+    errBusiness404.errorCode = 'PLAN_NOT_FOUND';
+    errBusiness404.data = { errorCode: 'PLAN_NOT_FOUND', message: 'Chưa có lộ trình ôn tập nào đang hoạt động.' };
+
+    const requestSpy = vi.spyOn(api, 'request').mockRejectedValueOnce(errBusiness404);
+
+    await expect(studyPlanService.getTodaySummary({ skipCache: true })).rejects.toThrow(
+      'Chưa có lộ trình ôn tập nào đang hoạt động.'
+    );
+
+    expect(requestSpy).toHaveBeenCalledTimes(1);
+    expect(requestSpy).toHaveBeenCalledWith('/study-plans/current/today/summary');
+    expect(requestSpy).not.toHaveBeenCalledWith('/study-plans/current/today');
+  });
+
+  it('getTodaySummary falls back to /today when /today/summary returns 404 missing route, computes counts, and caches', async () => {
+    const errMissingRoute = new Error('No static resource api/study-plans/current/today/summary.');
+    errMissingRoute.status = 404;
+    errMissingRoute.errorCode = 'NOT_FOUND';
+    errMissingRoute.data = { errorCode: 'NOT_FOUND', message: 'No static resource api/study-plans/current/today/summary.' };
 
     const mockQueue = {
       planId: 12,
@@ -176,7 +195,7 @@ describe('studyPlanService Unit Tests', () => {
 
     const requestSpy = vi.spyOn(api, 'request').mockImplementation((endpoint) => {
       if (endpoint === '/study-plans/current/today/summary') {
-        return Promise.reject(err404);
+        return Promise.reject(errMissingRoute);
       }
       if (endpoint === '/study-plans/current/today') {
         return Promise.resolve(mockQueue);
@@ -184,7 +203,7 @@ describe('studyPlanService Unit Tests', () => {
       return Promise.reject(new Error('Unknown endpoint'));
     });
 
-    // First call: 404 triggers fallback to /today
+    // First call: route missing 404 triggers fallback to /today once
     const res = await studyPlanService.getTodaySummary({ skipCache: true });
 
     expect(requestSpy).toHaveBeenCalledWith('/study-plans/current/today/summary');
