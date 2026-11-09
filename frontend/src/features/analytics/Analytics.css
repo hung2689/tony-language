@@ -2,10 +2,8 @@
    Analytics & Study Insights Dashboard - Vintage Pirate Cartography System
    ========================================================================== */
 
-/* 0. Scoped Body Override: Hide Modern Wallpaper & Floating Dock */
+/* 0. Scoped Body Override: Hide Modern Wallpaper */
 body.analytics-vintage-active .app-wallpaper-layer,
-body.analytics-vintage-active .app-floating-dock-wrapper,
-body.analytics-vintage-active .magic-dock-wrapper,
 body.analytics-vintage-active .mobile-bottom-nav {
   display: none !important;
 }

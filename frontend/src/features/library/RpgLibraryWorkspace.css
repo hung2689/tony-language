@@ -60,8 +60,7 @@ body.rpg-library-active .app-content-body {
 
 body.rpg-library-active .app-wallpaper-layer,
 body.rpg-library-active .daily-gate-banner,
-body.rpg-library-active .app-floating-dock-wrapper,
-body.rpg-library-active .magic-dock-wrapper {
+body.rpg-library-active .mobile-bottom-nav {
   display: none !important;
 }
 

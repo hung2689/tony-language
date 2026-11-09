@@ -6,7 +6,6 @@ import { folderService } from '../../services/folderService';
 import { deckService } from '../../services/deckService';
 import { analyticsService } from '../../services/analyticsService';
 import AppHeader from './AppHeader';
-import AppDock from './AppDock';
 import MobileBottomNav from './MobileBottomNav';
 import Toast from '../common/Toast';
 
@@ -195,9 +194,6 @@ export default function MainLayout() {
           <WallpaperModal />
         </Suspense>
       )}
-
-      {/* MagicUI macOS Dock for Navigation & Quick Actions */}
-      <AppDock onOpenCreateDeck={() => setIsGlobalCreateDeckOpen(true)} />
 
       {/* Mobile Bottom Navigation Bar (Thumb-zone for Mobile Screens) */}
       <MobileBottomNav />
