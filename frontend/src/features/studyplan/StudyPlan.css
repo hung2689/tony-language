@@ -2,10 +2,8 @@
    Study Plan & Spaced Repetition (SRS) - Vintage Pirate Cartography System
    ========================================================================== */
 
-/* 0. Scoped Body Override: Hide Wallpaper & Bottom Dock, Set Warm Parchment Canvas */
+/* 0. Scoped Body Override: Hide Wallpaper, Set Warm Parchment Canvas */
 body.study-plan-vintage-active .app-wallpaper-layer,
-body.study-plan-vintage-active .app-floating-dock-wrapper,
-body.study-plan-vintage-active .magic-dock-wrapper,
 body.study-plan-vintage-active .mobile-bottom-nav {
   display: none !important;
 }
