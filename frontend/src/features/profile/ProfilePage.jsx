@@ -14,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { profileService } from './profileService';
+import { resolveApiAssetUrl } from '../../services/api';
 import { useAuth } from '../auth/AuthContext';
 import ExplorerSidebar from '../library/components/ExplorerSidebar';
 import WantedPoster from './components/WantedPoster';
@@ -231,7 +232,8 @@ export default function ProfilePage() {
     profile?.username ||
     user?.username ||
     (email !== '—' ? email.split('@')[0] : rawDisplayName.toLowerCase().replace(/\s+/g, ''));
-  const avatarSrc = profile?.avatarUrl || user?.avatarUrl || DEFAULT_AVATAR;
+  const resolvedAvatar = resolveApiAssetUrl(profile?.avatarUrl || user?.avatarUrl);
+  const avatarSrc = resolvedAvatar || DEFAULT_AVATAR;
   const bioText = profile?.bio || customBio || DEFAULT_BIO;
   const bountyValue = computeExplorerBounty(profile, customBounty);
 
@@ -261,7 +263,7 @@ export default function ProfilePage() {
   const wordsStudied = stats.wordsStudied ?? 0;
   const accuracyPercent =
     stats.accuracyPercent !== undefined && stats.accuracyPercent !== null
-      ? Number(stats.accuracyPercent).toFixed(1)
+      ? Math.min(100, Math.max(0, Number(stats.accuracyPercent))).toFixed(1)
       : '0.0';
   const totalAnswers = stats.totalAnswers ?? 0;
   const studyTimeText = formatStudyDurationVi(stats);
@@ -356,7 +358,7 @@ export default function ProfilePage() {
           <div className="lexicon-profile-two-col">
             {/* LEFT BLOCK: Classic Pirate WANTED Poster */}
             <WantedPoster
-              avatarUrl={profile?.avatarUrl || user?.avatarUrl}
+              avatarUrl={resolvedAvatar}
               displayName={rawDisplayName}
               bounty={bountyValue}
               onTriggerAvatarUpload={() => avatarTriggerRef.current?.()}
@@ -608,6 +610,7 @@ export default function ProfilePage() {
                         <div className="lexicon-personal-avatar-wrap">
                           <div className="lexicon-personal-avatar-circle">
                             <img
+                              key={avatarSrc}
                               src={avatarSrc}
                               alt={rawDisplayName}
                               className="lexicon-personal-avatar-img"

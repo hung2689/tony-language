@@ -202,11 +202,11 @@ export default function AvatarUploader({
         try {
           const res = await profileService.uploadAvatar(blob);
           const newUrl = res.avatarUrl;
-          if (updateUser) {
-            updateUser({ avatarUrl: newUrl });
-          }
           if (refreshUser) {
             await refreshUser();
+          }
+          if (updateUser) {
+            updateUser({ avatarUrl: newUrl });
           }
           if (onAvatarUpdated) onAvatarUpdated(newUrl);
           if (onSuccess) onSuccess('Đã cập nhật ảnh đại diện thành công');

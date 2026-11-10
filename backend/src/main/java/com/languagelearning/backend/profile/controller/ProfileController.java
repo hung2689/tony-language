@@ -95,6 +95,7 @@ public class ProfileController {
         ProfileService.ResourceFile resource = profileService.loadAvatarFile(filename);
         return ResponseEntity.ok()
                 .header("X-Content-Type-Options", "nosniff")
+                .header("Cross-Origin-Resource-Policy", "cross-origin")
                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
                 .contentType(MediaType.parseMediaType(resource.contentType()))
                 .body(resource.data());

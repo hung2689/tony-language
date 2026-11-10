@@ -1,6 +1,20 @@
-import { request, setAccessToken, clearAccessToken, refreshAccessToken } from './api';
+import {
+  request,
+  setAccessToken,
+  clearAccessToken,
+  refreshAccessToken,
+  resolveApiAssetUrl,
+} from './api';
 
 let restoreSessionPromise = null;
+
+function normalizeUserAvatar(user) {
+  if (!user || typeof user !== 'object') return user;
+  if (user.avatarUrl) {
+    return { ...user, avatarUrl: resolveApiAssetUrl(user.avatarUrl) };
+  }
+  return user;
+}
 
 export const authService = {
   async register(email, username, password) {
@@ -10,6 +24,9 @@ export const authService = {
     });
     if (data?.accessToken) {
       setAccessToken(data.accessToken);
+    }
+    if (data?.user) {
+      data.user = normalizeUserAvatar(data.user);
     }
     return data;
   },
@@ -22,6 +39,9 @@ export const authService = {
     if (data?.accessToken) {
       setAccessToken(data.accessToken);
     }
+    if (data?.user) {
+      data.user = normalizeUserAvatar(data.user);
+    }
     return data;
   },
 
@@ -33,7 +53,8 @@ export const authService = {
     if (!restoreSessionPromise) {
       restoreSessionPromise = (async () => {
         await refreshAccessToken();
-        return await request('/users/me');
+        const me = await request('/users/me');
+        return normalizeUserAvatar(me);
       })().finally(() => {
         restoreSessionPromise = null;
       });
@@ -52,6 +73,7 @@ export const authService = {
   },
 
   async getMe() {
-    return await request('/users/me');
+    const me = await request('/users/me');
+    return normalizeUserAvatar(me);
   },
 };
