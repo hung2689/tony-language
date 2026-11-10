@@ -1,4 +1,5 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { resolveApiAssetUrl } from '../../services/api';
 import './AvatarFrame.css';
 
 const TIER_STRING_MAP = {
@@ -46,6 +47,9 @@ const AvatarFrame = memo(function AvatarFrame({
   className = '',
 }) {
   const safeTierId = parseTierNumber(tierId);
+  const resolvedSrc = resolveApiAssetUrl(src);
+  const [failedSrc, setFailedSrc] = useState(null);
+  const hasValidImage = Boolean(resolvedSrc) && failedSrc !== resolvedSrc;
 
   // Compute initials fallback (up to 2 letters)
   const getInitials = (str) => {
@@ -82,28 +86,21 @@ const AvatarFrame = memo(function AvatarFrame({
 
       {/* 3. Inner Avatar Content */}
       <div className="avatar-frame-inner">
-        {src ? (
+        {hasValidImage ? (
           <img
-            src={src}
+            key={resolvedSrc}
+            src={resolvedSrc}
             alt={`Ảnh đại diện của ${name}`}
             className="avatar-frame-image"
             loading="lazy"
             decoding="async"
-            onError={(e) => {
-              // Hide broken image and fall back gracefully to initials
-              e.currentTarget.style.display = 'none';
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const fallback = parent.querySelector('.avatar-frame-initials');
-                if (fallback) fallback.style.display = 'flex';
-              }
-            }}
+            onError={() => setFailedSrc(resolvedSrc)}
           />
         ) : null}
 
         <div
           className="avatar-frame-initials"
-          style={{ display: src ? 'none' : 'flex' }}
+          style={{ display: hasValidImage ? 'none' : 'flex' }}
           aria-label={name}
         >
           {initials}

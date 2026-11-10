@@ -216,7 +216,7 @@ public class ProfileService {
         profile.setAvatarData(sanitizedPng);
         profile.setAvatarMime("image/png");
         // URL pattern: /api/profile/avatar/<userId> — served directly from DB bytes
-        String storedUrl = "/api/profile/avatar/" + userId;
+        String storedUrl = "/api/profile/avatar/" + userId + "?v=" + System.currentTimeMillis();
         profile.setAvatarUrl(storedUrl);
         userProfileRepository.save(profile);
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { resolveApiAssetUrl } from '../../../services/api';
 
 const DEFAULT_WANTED_AVATAR = '/assets/profile/default-avatar.webp';
 
@@ -19,7 +20,8 @@ export default function WantedPoster({
   bounty,
   onTriggerAvatarUpload,
 }) {
-  const portraitSrc = avatarUrl || DEFAULT_WANTED_AVATAR;
+  const resolvedAvatar = resolveApiAssetUrl(avatarUrl);
+  const portraitSrc = resolvedAvatar || DEFAULT_WANTED_AVATAR;
   const posterName = (displayName || 'Học viên').trim();
 
   return (
@@ -42,11 +44,12 @@ export default function WantedPoster({
           aria-label="Thay đổi ảnh đại diện từ tờ truy nã"
         >
           <img
+            key={portraitSrc}
             src={portraitSrc}
             alt={posterName}
             className="lexicon-wanted-portrait-img"
             onError={(e) => {
-              if (e.currentTarget.src !== window.location.origin + DEFAULT_WANTED_AVATAR) {
+              if (!e.currentTarget.src.endsWith(DEFAULT_WANTED_AVATAR)) {
                 e.currentTarget.src = DEFAULT_WANTED_AVATAR;
               }
             }}

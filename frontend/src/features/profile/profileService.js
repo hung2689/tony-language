@@ -1,4 +1,10 @@
-import { request, API_BASE_URL, getAccessToken } from '../../services/api';
+import {
+  request,
+  API_BASE_URL,
+  getAccessToken,
+  refreshAccessToken,
+  resolveApiAssetUrl,
+} from '../../services/api';
 
 export const profileService = {
   /**
@@ -6,7 +12,11 @@ export const profileService = {
    * @returns {Promise<import('./types').ProfileResponse>}
    */
   async getProfile() {
-    return await request('/profile');
+    const res = await request('/profile');
+    if (res && typeof res === 'object' && res.avatarUrl) {
+      return { ...res, avatarUrl: resolveApiAssetUrl(res.avatarUrl) };
+    }
+    return res;
   },
 
   /**
@@ -15,10 +25,14 @@ export const profileService = {
    * @returns {Promise<{ displayName: string }>}
    */
   async updateName(displayName) {
-    return await request('/profile', {
+    const res = await request('/profile', {
       method: 'PATCH',
       body: JSON.stringify({ displayName }),
     });
+    if (res && typeof res === 'object' && res.avatarUrl) {
+      return { ...res, avatarUrl: resolveApiAssetUrl(res.avatarUrl) };
+    }
+    return res;
   },
 
   /**
@@ -26,44 +40,52 @@ export const profileService = {
    * @param {Blob|File} file
    * @returns {Promise<{ avatarUrl: string }>}
    */
-  uploadAvatar(file) {
-    return new Promise((resolve, reject) => {
-      const formData = new FormData();
-      formData.append('file', file, 'avatar.png');
+  async uploadAvatar(file, _retry = false) {
+    const formData = new FormData();
+    formData.append('file', file, 'avatar.png');
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_BASE_URL}/profile/avatar`, true);
+    const headers = {};
+    const token = getAccessToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
-      const token = getAccessToken();
-      if (token) {
-        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}/profile/avatar`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+    } catch {
+      throw new Error('Lỗi kết nối khi tải lên ảnh đại diện');
+    }
+
+    if (response.status === 401 && !_retry) {
+      try {
+        await refreshAccessToken();
+        return await this.uploadAvatar(file, true);
+      } catch {
+        throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       }
+    }
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            resolve(JSON.parse(xhr.responseText));
-          } catch {
-            resolve({ avatarUrl: '' });
-          }
-        } else {
-          let errorMsg = 'Lỗi tải lên ảnh đại diện';
-          try {
-            const errObj = JSON.parse(xhr.responseText);
-            if (errObj.message) errorMsg = errObj.message;
-          } catch {
-            // ignore
-          }
-          reject(new Error(errorMsg));
-        }
-      };
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      const errorMsg =
+        payload?.message ||
+        payload?.data?.message ||
+        'Lỗi tải lên ảnh đại diện';
+      throw new Error(errorMsg);
+    }
 
-      xhr.onerror = () => {
-        reject(new Error('Lỗi kết nối khi tải lên ảnh đại diện'));
-      };
-
-      xhr.send(formData);
-    });
+    const data = payload?.data !== undefined ? payload.data : payload || {};
+    const rawUrl = data.avatarUrl || '';
+    return {
+      ...data,
+      avatarUrl: rawUrl ? resolveApiAssetUrl(rawUrl, { bustCache: true }) : '',
+    };
   },
 
   /**

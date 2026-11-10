@@ -217,10 +217,10 @@ export default function AppHeader({
         <ProfileDropdown
           user={{
             ...(user || {}),
-            displayName: profileStats?.displayName || user?.displayName,
-            avatarUrl: profileStats?.avatarUrl || user?.avatarUrl,
-            tierId: profileStats?.tierId || user?.tierId || rank.tierId,
-            tierName: profileStats?.tierName || rank.name,
+            displayName: user?.displayName || profileStats?.displayName,
+            avatarUrl: user?.avatarUrl !== undefined ? user.avatarUrl : profileStats?.avatarUrl,
+            tierId: user?.tierId || profileStats?.tierId || rank.tierId,
+            tierName: user?.tierName || profileStats?.tierName || rank.name,
             level: explorerLevel,
           }}
           onLogout={onLogout}

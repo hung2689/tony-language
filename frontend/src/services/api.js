@@ -14,6 +14,23 @@ function resolveApiBaseUrl() {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+
+export function resolveApiAssetUrl(url, { bustCache = false } = {}) {
+  if (!url || typeof url !== 'string') return url;
+  let trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('/api/')) {
+    trimmed = API_BASE_URL + trimmed.slice(4);
+  }
+  if (bustCache && !trimmed.startsWith('data:') && !trimmed.startsWith('blob:')) {
+    const clean = trimmed
+      .replace(/([?&])v=[^&]*(&|$)/, (_, p1, p2) => (p2 ? p1 : ''))
+      .replace(/[?&]$/, '');
+    const sep = clean.includes('?') ? '&' : '?';
+    trimmed = clean + sep + 'v=' + Date.now();
+  }
+  return trimmed;
+}
 const AUTH_LOCK_NAME = 'language_learning_auth_refresh';
 const AUTH_CHANNEL_NAME = 'language_learning_auth_channel';
 
